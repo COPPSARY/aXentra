@@ -1,4 +1,74 @@
+import type {
+  SoftwareLicenseAllocationType,
+  SoftwareLicenseStatus,
+} from "../utils/constants.js";
+import type { ImageBundleItem } from "../utils/imageBundle.js";
+
+/** A `SoftwareLicense` row as stored in the database. */
+export interface SoftwareLicenseRow {
+  software_license_id: number;
+  software_name: string;
+  software_version: string | null;
+  license_key: string | null;
+  purchase_date: string | null;
+  expiry_date: string | null;
+  location_id: number;
+  status: SoftwareLicenseStatus;
+  description: string | null;
+  file_id: number | null;
+  allocation_type: SoftwareLicenseAllocationType;
+  allocation_limit: number | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  version: number;
+  images: ImageBundleItem[];
+}
+
+/** Constructor input for `SoftwareLicense`. */
+export interface SoftwareLicenseProps {
+  softwareLicenseId?: number | null;
+  softwareName: string;
+  softwareVersion?: string | null;
+  licenseKey?: string | null;
+  purchaseDate?: string | null;
+  expiryDate?: string | null;
+  locationId: number;
+  status?: SoftwareLicenseStatus;
+  description?: string | null;
+  fileId?: number | null;
+  allocationType?: SoftwareLicenseAllocationType;
+  allocationLimit?: number | null;
+  createdBy?: number | null;
+  updatedBy?: number | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  version?: number;
+  images?: ImageBundleItem[];
+}
+
 export class SoftwareLicense {
+  /** Primary key. Unset only on an instance built for insert. */
+  softwareLicenseId: number;
+  softwareName: string;
+  softwareVersion: string | null;
+  licenseKey: string | null;
+  purchaseDate: string | null;
+  expiryDate: string | null;
+  locationId: number;
+  status: SoftwareLicenseStatus;
+  description: string | null;
+  fileId: number | null;
+  allocationType: SoftwareLicenseAllocationType;
+  allocationLimit: number | null;
+  createdBy: number | null;
+  updatedBy: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  version: number;
+  images: ImageBundleItem[];
+
   constructor({
     softwareLicenseId = null,
     softwareName,
@@ -18,8 +88,8 @@ export class SoftwareLicense {
     updatedAt = null,
     version = 1,
     images = [],
-  }) {
-    this.softwareLicenseId = softwareLicenseId;
+  }: SoftwareLicenseProps) {
+    this.softwareLicenseId = softwareLicenseId as number;
     this.softwareName = softwareName;
     this.softwareVersion = softwareVersion;
     this.licenseKey = licenseKey;
@@ -39,7 +109,7 @@ export class SoftwareLicense {
     this.images = Array.isArray(images) ? images : [];
   }
 
-  static toInsertRow(softwareLicense) {
+  static toInsertRow(softwareLicense: SoftwareLicenseProps) {
     return {
       software_name: softwareLicense.softwareName,
       software_version: softwareLicense.softwareVersion,
@@ -58,7 +128,9 @@ export class SoftwareLicense {
     };
   }
 
-  static fromRow(row) {
+  static fromRow(row: SoftwareLicenseRow): SoftwareLicense;
+  static fromRow(row: SoftwareLicenseRow | null | undefined): SoftwareLicense | null;
+  static fromRow(row: SoftwareLicenseRow | null | undefined): SoftwareLicense | null {
     if (!row) {
       return null;
     }

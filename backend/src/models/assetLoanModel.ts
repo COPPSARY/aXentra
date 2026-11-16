@@ -1,4 +1,64 @@
+import type { AssetLoanStatus } from "../utils/constants.js";
+
+/** A `AssetLoan` row as stored in the database. */
+export interface AssetLoanRow {
+  asset_loan_id: number;
+  location_id: number;
+  borrower_profile_id: number;
+  lender_user_id: number;
+  start_loan_date: string;
+  end_loan_date: string;
+  return_date: string | null;
+  remark: string | null;
+  status: AssetLoanStatus;
+  share_token: string | null;
+  share_enabled: boolean;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  version: number;
+}
+
+/** Constructor input for `AssetLoan`. */
+export interface AssetLoanProps {
+  assetLoanId?: number | null;
+  locationId: number;
+  borrowerProfileId: number;
+  lenderUserId: number;
+  startLoanDate: string;
+  endLoanDate: string;
+  returnDate?: string | null;
+  remark?: string | null;
+  status?: AssetLoanStatus;
+  shareToken?: string | null;
+  shareEnabled?: boolean;
+  createdBy?: number | null;
+  updatedBy?: number | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  version?: number;
+}
+
 export class AssetLoan {
+  /** Primary key. Unset only on an instance built for insert. */
+  assetLoanId: number;
+  locationId: number;
+  borrowerProfileId: number;
+  lenderUserId: number;
+  startLoanDate: string;
+  endLoanDate: string;
+  returnDate: string | null;
+  remark: string | null;
+  status: AssetLoanStatus;
+  shareToken: string | null;
+  shareEnabled: boolean;
+  createdBy: number | null;
+  updatedBy: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  version: number;
+
   constructor({
     assetLoanId = null,
     locationId,
@@ -16,8 +76,8 @@ export class AssetLoan {
     createdAt = null,
     updatedAt = null,
     version = 1,
-  }) {
-    this.assetLoanId = assetLoanId;
+  }: AssetLoanProps) {
+    this.assetLoanId = assetLoanId as number;
     this.locationId = locationId;
     this.borrowerProfileId = borrowerProfileId;
     this.lenderUserId = lenderUserId;
@@ -35,7 +95,7 @@ export class AssetLoan {
     this.version = version;
   }
 
-  static toInsertRow(assetLoan) {
+  static toInsertRow(assetLoan: AssetLoanProps) {
     return {
       location_id: assetLoan.locationId,
       borrower_profile_id: assetLoan.borrowerProfileId,
@@ -52,7 +112,9 @@ export class AssetLoan {
     };
   }
 
-  static fromRow(row) {
+  static fromRow(row: AssetLoanRow): AssetLoan;
+  static fromRow(row: AssetLoanRow | null | undefined): AssetLoan | null;
+  static fromRow(row: AssetLoanRow | null | undefined): AssetLoan | null {
     if (!row) {
       return null;
     }

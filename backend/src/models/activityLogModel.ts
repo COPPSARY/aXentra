@@ -1,10 +1,58 @@
+import type { ActivityAction, ActivityEntityType } from "../utils/constants.js";
+
 // Row mapping for the append-only activity_log audit table.
 //
 // The table has no updated_at / updated_by / version columns because rows are
 // never mutated. entity_label, location_name and actor_name are denormalized
 // snapshots so that an entry still renders after the referenced row (or user)
 // has been deleted.
+/** A `ActivityLog` row as stored in the database. */
+export interface ActivityLogRow {
+  activity_log_id: number;
+  occurred_at: string | null;
+  entity_type: ActivityEntityType;
+  entity_id: number | null;
+  entity_label: string;
+  action: ActivityAction;
+  status: string | null;
+  location_id: number | null;
+  location_name: string | null;
+  actor_user_id: number | null;
+  actor_name: string;
+  metadata: Record<string, unknown>;
+}
+
+/** Constructor input for `ActivityLog`. */
+export interface ActivityLogProps {
+  activityLogId?: number | null;
+  occurredAt?: string | null;
+  entityType: ActivityEntityType;
+  entityId?: number | null;
+  entityLabel: string;
+  action: ActivityAction;
+  status?: string | null;
+  locationId?: number | null;
+  locationName?: string | null;
+  actorUserId?: number | null;
+  actorName: string;
+  metadata?: Record<string, unknown>;
+}
+
 export class ActivityLog {
+  /** Primary key. Unset only on an instance built for insert. */
+  activityLogId: number;
+  occurredAt: string | null;
+  entityType: ActivityEntityType;
+  entityId: number | null;
+  entityLabel: string;
+  action: ActivityAction;
+  status: string | null;
+  locationId: number | null;
+  locationName: string | null;
+  actorUserId: number | null;
+  actorName: string;
+  metadata: Record<string, unknown>;
+
   constructor({
     activityLogId = null,
     occurredAt = null,
@@ -18,8 +66,8 @@ export class ActivityLog {
     actorUserId = null,
     actorName,
     metadata = {},
-  }) {
-    this.activityLogId = activityLogId;
+  }: ActivityLogProps) {
+    this.activityLogId = activityLogId as number;
     this.occurredAt = occurredAt;
     this.entityType = entityType;
     this.entityId = entityId;
@@ -33,7 +81,7 @@ export class ActivityLog {
     this.metadata = metadata;
   }
 
-  static toInsertRow(activityLog) {
+  static toInsertRow(activityLog: ActivityLogProps) {
     return {
       entity_type: activityLog.entityType,
       entity_id: activityLog.entityId,
@@ -48,7 +96,9 @@ export class ActivityLog {
     };
   }
 
-  static fromRow(row) {
+  static fromRow(row: ActivityLogRow): ActivityLog;
+  static fromRow(row: ActivityLogRow | null | undefined): ActivityLog | null;
+  static fromRow(row: ActivityLogRow | null | undefined): ActivityLog | null {
     if (!row) {
       return null;
     }

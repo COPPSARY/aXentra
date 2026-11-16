@@ -1,5 +1,7 @@
+import type { Role } from "../config/rbac.js";
+
 import { randomBytes } from "node:crypto";
-import argon2 from "argon2";
+import argon2, { type Options as Argon2Options } from "argon2";
 
 const ARGON2_HASH_PREFIX = "$argon2";
 const PASSWORD_HASH_OPTIONS = Object.freeze({
@@ -11,10 +13,59 @@ const PASSWORD_HASH_OPTIONS = Object.freeze({
 });
 const PASSWORD_SALT_LENGTH = 16;
 
-const isArgon2Hash = (value) =>
+const isArgon2Hash = (value: unknown): value is string =>
   typeof value === "string" && value.startsWith(ARGON2_HASH_PREFIX);
 
+/** A `User` row as stored in the database. */
+export interface UserRow {
+  user_id: number;
+  username: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  password: string;
+  avatar_pic: string | null;
+  role: Role;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  version: number;
+}
+
+/** Constructor input for `User`. */
+export interface UserProps {
+  userId?: number | null;
+  username: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  email: string | null;
+  password: string;
+  avatarPic?: string | null;
+  role?: Role;
+  createdBy?: number | null;
+  updatedBy?: number | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  version?: number;
+}
+
 export class User {
+  /** Primary key. Unset only on an instance built for insert. */
+  userId: number;
+  username: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  password: string;
+  avatarPic: string | null;
+  role: Role;
+  createdBy: number | null;
+  updatedBy: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  version: number;
+
   constructor({
     userId,
     username,
@@ -29,8 +80,8 @@ export class User {
     createdAt = null,
     updatedAt = null,
     version = 1,
-  }) {
-    this.userId = userId;
+  }: UserProps) {
+    this.userId = userId as number;
     this.username = username;
     this.firstName = firstName;
     this.lastName = lastName;
@@ -45,7 +96,7 @@ export class User {
     this.version = version;
   }
 
-  async comparePassword(plainPassword) {
+  async comparePassword(plainPassword: string): Promise<boolean> {
     if (!this.password || !isArgon2Hash(this.password)) {
       return false;
     }
@@ -58,7 +109,10 @@ export class User {
     return safeUser;
   }
 
-  static async hashPassword(plainPassword, options = PASSWORD_HASH_OPTIONS) {
+  static async hashPassword(
+    plainPassword: string,
+    options: Argon2Options | number = PASSWORD_HASH_OPTIONS
+  ): Promise<string> {
     const normalizedOptions =
       typeof options === "number" ? PASSWORD_HASH_OPTIONS : { ...PASSWORD_HASH_OPTIONS, ...options };
 
@@ -68,7 +122,9 @@ export class User {
     });
   }
 
-  static toPasswordUpdateRow(user) {
+  static toPasswordUpdateRow(
+    user: Pick<User, "password" | "userId"> & { updatedBy?: number | null }
+  ) {
     return {
       password: user.password,
       updated_at: new Date().toISOString(),
@@ -77,7 +133,9 @@ export class User {
     };
   }
 
-  static fromRow(row) {
+  static fromRow(row: UserRow): User;
+  static fromRow(row: UserRow | null | undefined): User | null;
+  static fromRow(row: UserRow | null | undefined): User | null {
     if (!row) {
       return null;
     }

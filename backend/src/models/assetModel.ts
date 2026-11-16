@@ -1,4 +1,83 @@
+import type { AssetStatus } from "../utils/constants.js";
+import type { ImageBundleItem } from "../utils/imageBundle.js";
+
+/** A `Asset` row as stored in the database. */
+export interface AssetRow {
+  asset_id: number;
+  asset_name: string;
+  product_id: number | null;
+  asset_type_id: number;
+  location_id: number;
+  description: string | null;
+  remark: string | null;
+  mac_address: string | null;
+  serial_number: string | null;
+  asset_tag: string | null;
+  status: AssetStatus;
+  loanable: boolean;
+  warranty_expiry_date: string | null;
+  loan_to_profile_id: number | null;
+  file_id: number | null;
+  display_image: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  version: number;
+  images: ImageBundleItem[];
+}
+
+/** Constructor input for `Asset`. */
+export interface AssetProps {
+  assetId?: number | null;
+  assetName: string;
+  productId?: number | null;
+  assetTypeId: number;
+  locationId: number;
+  description?: string | null;
+  remark?: string | null;
+  macAddress?: string | null;
+  serialNumber?: string | null;
+  assetTag?: string | null;
+  status: AssetStatus;
+  loanable?: boolean;
+  warrantyExpiryDate?: string | null;
+  loanToProfileId?: number | null;
+  fileId?: number | null;
+  displayImage?: string | null;
+  createdBy?: number | null;
+  updatedBy?: number | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  version?: number;
+  images?: ImageBundleItem[];
+}
+
 export class Asset {
+  /** Primary key. Unset only on an instance built for insert. */
+  assetId: number;
+  assetName: string;
+  productId: number | null;
+  assetTypeId: number;
+  locationId: number;
+  description: string | null;
+  remark: string | null;
+  macAddress: string | null;
+  serialNumber: string | null;
+  assetTag: string | null;
+  status: AssetStatus;
+  loanable: boolean;
+  warrantyExpiryDate: string | null;
+  loanToProfileId: number | null;
+  fileId: number | null;
+  displayImage: string | null;
+  createdBy: number | null;
+  updatedBy: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  version: number;
+  images: ImageBundleItem[];
+
   constructor({
     assetId = null,
     assetName,
@@ -22,8 +101,8 @@ export class Asset {
     updatedAt = null,
     version = 1,
     images = [],
-  }) {
-    this.assetId = assetId;
+  }: AssetProps) {
+    this.assetId = assetId as number;
     this.assetName = assetName;
     this.productId = productId;
     this.assetTypeId = assetTypeId;
@@ -47,7 +126,7 @@ export class Asset {
     this.images = Array.isArray(images) ? images : [];
   }
 
-  static toInsertRow(asset) {
+  static toInsertRow(asset: AssetProps) {
     return {
       asset_name: asset.assetName,
       product_id: asset.productId,
@@ -70,7 +149,9 @@ export class Asset {
     };
   }
 
-  static fromRow(row) {
+  static fromRow(row: AssetRow): Asset;
+  static fromRow(row: AssetRow | null | undefined): Asset | null;
+  static fromRow(row: AssetRow | null | undefined): Asset | null {
     if (!row) {
       return null;
     }
