@@ -12,7 +12,7 @@ const itemEntry = Joi.object({
   }),
 }).unknown(false);
 
-const noDuplicateAssetIds = (value, helpers) => {
+const noDuplicateAssetIds: Joi.CustomValidator<Array<{ assetId: number }>> = (value, helpers) => {
   const ids = value.map((entry) => entry.assetId);
   if (new Set(ids).size !== ids.length) {
     return helpers.error("items.duplicate");
