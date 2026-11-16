@@ -1,4 +1,6 @@
-const formatMeta = (meta) => {
+type LogLevel = "info" | "warn" | "error";
+
+const formatMeta = (meta: unknown): unknown => {
   if (!meta) return undefined;
   if (meta instanceof Error) {
     return {
@@ -10,8 +12,8 @@ const formatMeta = (meta) => {
   return meta;
 };
 
-const writeLog = (level, message, meta) => {
-  const payload = {
+const writeLog = (level: LogLevel, message: string, meta?: unknown) => {
+  const payload: { level: LogLevel; message: string; timestamp: string; meta?: unknown } = {
     level,
     message,
     timestamp: new Date().toISOString(),
@@ -31,16 +33,18 @@ const writeLog = (level, message, meta) => {
   console.log(serialized);
 };
 
+export type Logger = typeof logger;
+
 export const logger = {
-  info(message, meta) {
+  info(message: string, meta?: unknown) {
     writeLog("info", message, meta);
   },
 
-  warn(message, meta) {
+  warn(message: string, meta?: unknown) {
     writeLog("warn", message, meta);
   },
 
-  error(message, meta) {
+  error(message: string, meta?: unknown) {
     writeLog("error", message, meta);
   },
 };

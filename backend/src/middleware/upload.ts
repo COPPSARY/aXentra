@@ -1,7 +1,7 @@
 import multer from "multer";
 import { config } from "../config/index.js";
 
-const buildMemoryUpload = (fileSize) =>
+const buildMemoryUpload = (fileSize: number) =>
   multer({
     storage: multer.memoryStorage(),
     limits: {

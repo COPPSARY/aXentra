@@ -1,12 +1,12 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-const parsePositiveInt = (value, fallback) => {
-  const parsed = parseInt(value, 10);
+const parsePositiveInt = (value: string | undefined, fallback: number): number => {
+  const parsed = parseInt(value ?? "", 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 };
 
-const parseBoolean = (value, fallback = false) => {
+const parseBoolean = (value: string | undefined, fallback = false): boolean => {
   if (value == null) return fallback;
   const normalized = String(value).trim().toLowerCase();
   if (["true", "1", "yes", "on"].includes(normalized)) return true;
@@ -39,7 +39,9 @@ const DB_STARTUP_RETRY = {
 const refreshCookieSameSiteRaw = (
   process.env.AUTH_REFRESH_COOKIE_SAME_SITE || "lax"
 ).toLowerCase();
-const refreshCookieSameSite = ["lax", "strict", "none"].includes(refreshCookieSameSiteRaw)
+const isSameSite = (value: string): value is "lax" | "strict" | "none" =>
+  ["lax", "strict", "none"].includes(value);
+const refreshCookieSameSite = isSameSite(refreshCookieSameSiteRaw)
   ? refreshCookieSameSiteRaw
   : "lax";
 const avatarAllowedMimeTypes = (
@@ -75,7 +77,7 @@ const requestDebugEnabled = parseBoolean(
   env !== "production"
 );
 
-const parseTrustProxy = (value) => {
+const parseTrustProxy = (value: string | undefined): boolean | number | string => {
   if (value == null || value === "") return 1;
 
   const normalized = String(value).trim().toLowerCase();
@@ -124,7 +126,7 @@ export const assertProductionConfig = () => {
 
 export const config = {
   env,
-  port: parseInt(process.env.PORT, 10) || 5000,
+  port: parseInt(process.env.PORT ?? "", 10) || 5000,
 
   supabase: {
     url: supabaseUrl,
@@ -138,7 +140,8 @@ export const config = {
   },
 
   jwt: {
-    secret: isTestEnv ? jwtSecret || "test-jwt-secret" : jwtSecret,
+    // Outside the test environment a missing secret has already thrown above.
+    secret: (isTestEnv ? jwtSecret || "test-jwt-secret" : jwtSecret) as string,
     expiresIn: process.env.JWT_EXPIRES_IN || "1d",
   },
 
@@ -155,7 +158,7 @@ export const config = {
 
   email: {
     host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.SMTP_PORT, 10) || 587,
+    port: parseInt(process.env.SMTP_PORT ?? "", 10) || 587,
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
     from: process.env.EMAIL_FROM || "noreply@example.com",
@@ -172,19 +175,19 @@ export const config = {
     avatarBucketPublic:
       (process.env.SUPABASE_AVATAR_BUCKET_PUBLIC || "false").toLowerCase() === "true",
     avatarMaxFileSize:
-      parseInt(process.env.AVATAR_MAX_FILE_SIZE_BYTES, 10) || 2 * 1024 * 1024,
+      parseInt(process.env.AVATAR_MAX_FILE_SIZE_BYTES ?? "", 10) || 2 * 1024 * 1024,
     avatarAllowedMimeTypes,
     fileBucket: process.env.SUPABASE_FILE_BUCKET || "files",
     fileBucketPublic:
       (process.env.SUPABASE_FILE_BUCKET_PUBLIC || "false").toLowerCase() === "true",
     fileMaxFileSize:
-      parseInt(process.env.FILE_MAX_FILE_SIZE_BYTES, 10) || 10 * 1024 * 1024,
+      parseInt(process.env.FILE_MAX_FILE_SIZE_BYTES ?? "", 10) || 10 * 1024 * 1024,
     fileAllowedMimeTypes,
     assetAlbumBucket: process.env.SUPABASE_ASSET_ALBUM_BUCKET || "asset-albums",
     assetAlbumBucketPublic:
       (process.env.SUPABASE_ASSET_ALBUM_BUCKET_PUBLIC || "false").toLowerCase() === "true",
     assetAlbumMaxFileSize:
-      parseInt(process.env.ASSET_ALBUM_MAX_FILE_SIZE_BYTES, 10) || 10 * 1024 * 1024,
+      parseInt(process.env.ASSET_ALBUM_MAX_FILE_SIZE_BYTES ?? "", 10) || 10 * 1024 * 1024,
     assetAlbumAllowedMimeTypes,
     assetDisplayImageBucket:
       process.env.SUPABASE_ASSET_DISPLAY_IMAGE_BUCKET || "asset-display-images",
@@ -193,7 +196,7 @@ export const config = {
     softwareLicenseAlbumBucketPublic:
       (process.env.SUPABASE_SOFTWARE_LICENSE_ALBUM_BUCKET_PUBLIC || "false").toLowerCase() === "true",
     softwareLicenseAlbumMaxFileSize:
-      parseInt(process.env.SOFTWARE_LICENSE_ALBUM_MAX_FILE_SIZE_BYTES, 10) || 10 * 1024 * 1024,
+      parseInt(process.env.SOFTWARE_LICENSE_ALBUM_MAX_FILE_SIZE_BYTES ?? "", 10) || 10 * 1024 * 1024,
     softwareLicenseAlbumAllowedMimeTypes,
   },
 

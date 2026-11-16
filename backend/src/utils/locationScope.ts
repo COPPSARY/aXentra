@@ -1,6 +1,9 @@
+import type { LocationScope, ScopedActor } from "../types/auth.js";
 import { ForbiddenError } from "../utils/AppError.js";
 
-const normalizeLocationId = (value) => {
+type MaybeActor = ScopedActor | null | undefined;
+
+const normalizeLocationId = (value: unknown): number | null => {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
     return null;
@@ -8,17 +11,21 @@ const normalizeLocationId = (value) => {
   return parsed;
 };
 
-export const isSuperAdmin = (actor) => actor?.role === "super_admin";
+export const isSuperAdmin = (actor: MaybeActor): boolean => actor?.role === "super_admin";
 
-export const normalizeLocationIds = (locationIds) => {
+export const normalizeLocationIds = (locationIds: unknown): number[] => {
   if (!Array.isArray(locationIds)) {
     return [];
   }
 
-  return [...new Set(locationIds.map(normalizeLocationId).filter((id) => id !== null))];
+  return [
+    ...new Set(
+      locationIds.map(normalizeLocationId).filter((id): id is number => id !== null)
+    ),
+  ];
 };
 
-export const assertAdminHasLocations = (actor) => {
+export const assertAdminHasLocations = (actor: MaybeActor): LocationScope => {
   if (isSuperAdmin(actor)) {
     return null;
   }
@@ -39,7 +46,10 @@ export const assertAdminHasLocations = (actor) => {
   return allowedLocationIds;
 };
 
-export const assertActorCanAccessLocation = (actor, locationId) => {
+export const assertActorCanAccessLocation = (
+  actor: MaybeActor,
+  locationId: unknown
+): number | null => {
   if (isSuperAdmin(actor)) {
     return normalizeLocationId(locationId);
   }
@@ -58,7 +68,7 @@ export const assertActorCanAccessLocation = (actor, locationId) => {
   return normalizedLocationId;
 };
 
-export const buildLocationScope = (actor) => {
+export const buildLocationScope = (actor: MaybeActor): LocationScope => {
   if (isSuperAdmin(actor)) {
     return null;
   }
@@ -74,7 +84,10 @@ export const buildLocationScope = (actor) => {
   return normalizeLocationIds(actor?.allowedLocationIds);
 };
 
-export const buildLocationScopeWithOptionalLocationId = (actor, locationId) => {
+export const buildLocationScopeWithOptionalLocationId = (
+  actor: MaybeActor,
+  locationId?: unknown
+): LocationScope => {
   if (locationId === undefined || locationId === null || `${locationId}`.trim() === "") {
     return buildLocationScope(actor);
   }

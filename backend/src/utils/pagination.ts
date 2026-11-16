@@ -4,7 +4,16 @@ export const DEFAULT_PAGE = 1;
 export const DEFAULT_LIMIT = 10;
 export const MAX_LIMIT = 10;
 
-const normalizePositiveInteger = (value, fieldName, fallbackValue) => {
+export interface PaginationQuery {
+  page?: unknown;
+  limit?: unknown;
+}
+
+const normalizePositiveInteger = (
+  value: unknown,
+  fieldName: string,
+  fallbackValue: number
+): number => {
   if (value === undefined || value === null || `${value}`.trim() === "") {
     return fallbackValue;
   }
@@ -18,7 +27,7 @@ const normalizePositiveInteger = (value, fieldName, fallbackValue) => {
 };
 
 export const parsePaginationQuery = (
-  query = {},
+  query: PaginationQuery = {},
   {
     defaultPage = DEFAULT_PAGE,
     defaultLimit = DEFAULT_LIMIT,
@@ -36,16 +45,21 @@ export const parsePaginationQuery = (
   };
 };
 
-export const getPaginationRange = (page, limit) => ({
+export const getPaginationRange = (page: number, limit: number) => ({
   from: (page - 1) * limit,
   to: page * limit - 1,
 });
 
-export const buildPaginatedResponse = ({
+export const buildPaginatedResponse = <T>({
   items,
   totalItems,
   page,
   limit,
+}: {
+  items: T[];
+  totalItems: unknown;
+  page: number;
+  limit: number;
 }) => {
   const normalizedTotalItems = Number(totalItems) || 0;
   const totalPages = normalizedTotalItems > 0 ? Math.ceil(normalizedTotalItems / limit) : 0;

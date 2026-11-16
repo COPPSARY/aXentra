@@ -1,8 +1,21 @@
+import type { ErrorRequestHandler, RequestHandler, Response } from "express";
 import { config } from "../config/index.js";
 import { AppError } from "../utils/AppError.js";
 import { logger } from "../utils/logger.js";
 
-const handleSupabaseError = (err) => {
+/** Anything that reaches the error handler: AppError, Supabase, JWT, Multer, or unknown. */
+interface HandledError {
+  name?: string;
+  message?: string;
+  stack?: string;
+  code?: string | null;
+  status?: number | string;
+  statusCode?: number | string;
+  isOperational?: boolean;
+  errors?: unknown;
+}
+
+const handleSupabaseError = (err: HandledError): AppError => {
   if (err.code === "23505") {
     return new AppError("Resource already exists", 409);
   }
@@ -20,7 +33,7 @@ const handleSupabaseError = (err) => {
   return new AppError(err.message || "Database error", statusCode);
 };
 
-const isSupabaseError = (err) => {
+const isSupabaseError = (err: HandledError | null | undefined): boolean => {
   if (!err || typeof err.code !== "string") {
     return false;
   }
@@ -36,7 +49,7 @@ const handleJWTExpiredError = () => {
   return new AppError("Token expired. Please log in again", 401, null, "AUTH_TOKEN_EXPIRED");
 };
 
-const handleMulterError = (err) => {
+const handleMulterError = (err: HandledError): AppError => {
   if (err.code === "LIMIT_FILE_SIZE") {
     return new AppError("Avatar file is too large", 400);
   }
@@ -44,8 +57,8 @@ const handleMulterError = (err) => {
   return new AppError(err.message || "Invalid upload payload", 400);
 };
 
-const sendErrorDev = (err, res) => {
-  res.status(err.statusCode).json({
+const sendErrorDev = (err: HandledError, res: Response): void => {
+  res.status(err.statusCode as number).json({
     success: false,
     status: err.status,
     code: err.code || null,
@@ -56,10 +69,10 @@ const sendErrorDev = (err, res) => {
   });
 };
 
-const sendErrorProd = (err, res) => {
+const sendErrorProd = (err: HandledError, res: Response): void => {
   // Operational, trusted error: send message to client
   if (err.isOperational) {
-    res.status(err.statusCode).json({
+    res.status(err.statusCode as number).json({
       success: false,
       status: err.status,
       code: err.code || null,
@@ -79,8 +92,8 @@ const sendErrorProd = (err, res) => {
   }
 };
 
-export const errorHandler = (err, req, res, next) => {
-  const error = err.name === "MulterError" ? handleMulterError(err) : err;
+export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
+  const error: HandledError = err.name === "MulterError" ? handleMulterError(err) : err;
 
   error.statusCode = error.statusCode || 500;
   error.status = error.status || "error";
@@ -88,7 +101,7 @@ export const errorHandler = (err, req, res, next) => {
   if (config.env === "development") {
     sendErrorDev(error, res);
   } else {
-    let prodError = { ...error, message: error.message };
+    let prodError: HandledError = { ...error, message: error.message };
 
     if (isSupabaseError(error)) {
       prodError = handleSupabaseError(error);
@@ -104,7 +117,7 @@ export const errorHandler = (err, req, res, next) => {
   }
 };
 
-export const notFoundHandler = (req, res, next) => {
+export const notFoundHandler: RequestHandler = (req, res, next) => {
   const err = new AppError(`Route ${req.originalUrl} not found`, 404);
   next(err);
 };

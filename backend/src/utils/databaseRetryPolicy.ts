@@ -1,3 +1,15 @@
+import type { ErrorLike } from "./retry.js";
+
+/** Body of a Supabase/PostgREST error response. Every field is optional and untrusted. */
+interface ResponseDetails {
+  code?: unknown;
+  message?: unknown;
+  error?: unknown;
+  error_description?: unknown;
+  details?: unknown;
+  hint?: unknown;
+}
+
 const RETRYABLE_HTTP_STATUS_CODES = new Set([408, 429, 502, 503, 504]);
 const RETRYABLE_NETWORK_ERROR_CODES = new Set([
   "ECONNRESET",
@@ -31,28 +43,30 @@ const RETRYABLE_MESSAGE_PATTERNS = [
   /timed out/i,
 ];
 
-const normalizeCode = (value) => String(value || "").toUpperCase();
+const normalizeCode = (value: unknown): string => String(value || "").toUpperCase();
 
-const buildErrorMessage = (details = {}) =>
+const buildErrorMessage = (details: ResponseDetails = {}): string =>
   [details.message, details.error, details.error_description, details.details, details.hint]
     .filter(Boolean)
     .join(" ");
 
-export const isRetryableHttpStatusCode = (status) =>
+export const isRetryableHttpStatusCode = (status: unknown): boolean =>
   RETRYABLE_HTTP_STATUS_CODES.has(Number(status));
 
-export const isRetryableDatabaseCode = (code) =>
+export const isRetryableDatabaseCode = (code: unknown): boolean =>
   RETRYABLE_DATABASE_ERROR_CODES.has(normalizeCode(code));
 
-export const isRetryableMessage = (message) =>
-  RETRYABLE_MESSAGE_PATTERNS.some((pattern) => pattern.test(message || ""));
+export const isRetryableMessage = (message: unknown): boolean =>
+  RETRYABLE_MESSAGE_PATTERNS.some((pattern) => pattern.test(String(message || "")));
 
-export const isRetryableDatabaseError = (error) => {
-  if (!error) {
+export const isRetryableDatabaseError = (candidate: unknown): boolean => {
+  if (!candidate) {
     return false;
   }
 
-  if (RETRYABLE_NETWORK_ERROR_CODES.has(error.code)) {
+  const error = candidate as ErrorLike;
+
+  if (RETRYABLE_NETWORK_ERROR_CODES.has(error.code as string)) {
     return true;
   }
 
@@ -75,9 +89,9 @@ export const isRetryableDatabaseError = (error) => {
   return isRetryableMessage(error.message);
 };
 
-const parseResponseDetails = async (response) => {
+const parseResponseDetails = async (response: Response): Promise<ResponseDetails> => {
   try {
-    return await response.clone().json();
+    return (await response.clone().json()) as ResponseDetails;
   } catch {
     try {
       return { message: await response.clone().text() };
@@ -87,7 +101,9 @@ const parseResponseDetails = async (response) => {
   }
 };
 
-export const classifyRetryableResponse = async (response) => {
+export const classifyRetryableResponse = async (
+  response: Response
+): Promise<{ retryable: boolean; reason: string | null }> => {
   if (isRetryableHttpStatusCode(response.status)) {
     return {
       retryable: true,

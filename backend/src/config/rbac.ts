@@ -22,7 +22,9 @@ export const RESOURCES = {
   assetLoan: "assetLoan",
   search: "search",
   activityLog: "activityLog",
-};
+} as const;
+
+export type Resource = keyof typeof RESOURCES;
 
 export const ACTIONS = {
   create: "create",
@@ -30,12 +32,19 @@ export const ACTIONS = {
   update: "update",
   delete: "delete",
   manage: "manage",
-};
+} as const;
 
-export const ROLE_HIERARCHY = ["admin", "super_admin"];
+export type Action = keyof typeof ACTIONS;
+
+/** A permission entry: an action, or an action limited to the actor's own record. */
+export type Permission = Action | `${Action}:own`;
+
+export const ROLE_HIERARCHY = ["admin", "super_admin"] as const;
+
+export type Role = (typeof ROLE_HIERARCHY)[number];
 
 // Permission matrix: role -> resource -> permissions.
-export const PERMISSIONS = {
+export const PERMISSIONS: Record<Role, Record<Resource, readonly Permission[]>> = {
   super_admin: {
     user: ["create", "read", "update", "delete", "manage"],
     location: ["create", "read", "update", "delete", "manage"],
@@ -71,7 +80,7 @@ export const PERMISSIONS = {
 };
 
 // System-protected fields that cannot be modified through updates.
-export const PROTECTED_FIELDS = {
+export const PROTECTED_FIELDS: Partial<Record<Resource, readonly string[]>> = {
   user: ["userId", "createdBy", "updatedBy", "createdAt", "updatedAt"],
   location: ["locationId", "createdBy", "updatedBy", "createdAt", "updatedAt"],
   profile: ["profileId", "createdBy", "updatedBy", "createdAt", "updatedAt"],

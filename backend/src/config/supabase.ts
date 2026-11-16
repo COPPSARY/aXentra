@@ -28,13 +28,18 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
 
 export const hasSupabaseCredentials = () => Boolean(supabaseUrl && supabaseKey);
 
-const isBucketNotFound = (error) => {
+interface BucketErrorLike {
+  statusCode?: unknown;
+  message?: string;
+}
+
+const isBucketNotFound = (error: BucketErrorLike | null): boolean => {
   if (!error) return false;
   if (error.statusCode === 404) return true;
   return /not found|does not exist/i.test(error.message || "");
 };
 
-const isBucketAlreadyExists = (error) => {
+const isBucketAlreadyExists = (error: BucketErrorLike | null): boolean => {
   if (!error) return false;
   if (error.statusCode === 409) return true;
   return /already exists/i.test(error.message || "");
@@ -46,7 +51,13 @@ const ensureStorageBucket = async ({
   fileSizeLimit,
   allowedMimeTypes,
   label,
-}) => {
+}: {
+  bucketName: string;
+  isPublic: boolean;
+  fileSizeLimit: number;
+  allowedMimeTypes: string[];
+  label: string;
+}): Promise<void> => {
   if (!config.supabase.serviceRoleKey) {
     logger.warn(
       `SUPABASE_SERVICE_ROLE_KEY is missing. Skipping automatic ${label} bucket creation.`,

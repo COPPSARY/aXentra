@@ -1,16 +1,17 @@
+import type { Request, RequestHandler } from "express";
 import { ForbiddenError, UnauthorizedError } from "../utils/AppError.js";
 import { verifyAccessToken } from "../utils/jwt.js";
-import { PROTECTED_FIELDS } from "../config/rbac.js";
+import { PROTECTED_FIELDS, type Action, type Resource } from "../config/rbac.js";
 import { hasPermission, isValidRole } from "../utils/rbac.js";
 import { normalizeLocationIds } from "../utils/locationScope.js";
 
-const getBearerToken = (req) => {
+const getBearerToken = (req: Request): string | null => {
   const authHeader = req.headers?.authorization || "";
   if (!authHeader.startsWith("Bearer ")) return null;
   return authHeader.slice(7).trim();
 };
 
-export const requireAuth = (req, res, next) => {
+export const requireAuth: RequestHandler = (req, res, next) => {
   const token = getBearerToken(req);
   if (!token) {
     return next(new UnauthorizedError("Authentication required", "AUTH_REQUIRED"));
@@ -20,7 +21,7 @@ export const requireAuth = (req, res, next) => {
   try {
     payload = verifyAccessToken(token);
   } catch (error) {
-    if (error?.name === "TokenExpiredError") {
+    if ((error as Error | null)?.name === "TokenExpiredError") {
       return next(
         new UnauthorizedError("Token expired. Please log in again", "AUTH_TOKEN_EXPIRED")
       );
@@ -37,7 +38,8 @@ export const requireAuth = (req, res, next) => {
   const normalizedLocationIds = normalizeLocationIds(payload.allowedLocationIds);
 
   req.user = {
-    userId: payload.userId,
+    // The token is signed by this service, so the id is the number it was issued with.
+    userId: payload.userId as number,
     role,
   };
   if (payload.allowedLocationIds !== undefined) {
@@ -55,7 +57,11 @@ export const requireAuth = (req, res, next) => {
 
  //RBAC gate for route handlers.
  
-export const authorize = (resource, action, options = {}) => {
+export const authorize = (
+  resource: Resource,
+  action: Action,
+  options: { getOwnerId?: (req: Request) => unknown } = {}
+): RequestHandler => {
   return (req, res, next) => {
     if (!req.user?.role) {
       return next(new UnauthorizedError("Authentication required", "AUTH_REQUIRED"));
@@ -79,7 +85,7 @@ export const authorize = (resource, action, options = {}) => {
 
 // Middleware to guard against updates to protected fields.
 
-export const guardProtectedFields = (resource) => {
+export const guardProtectedFields = (resource: Resource): RequestHandler => {
   return (req, res, next) => {
     if (!req.user?.role) {
       return next(new UnauthorizedError("Authentication required", "AUTH_REQUIRED"));

@@ -1,5 +1,5 @@
 // Converts a field label to a snake_case field key. Example: "RAM Size" -> "ram_size"
-export function generateFieldKey(label) {
+export function generateFieldKey(label: string): string {
   if (!label || typeof label !== "string") {
     throw new Error("Label must be a non-empty string");
   }

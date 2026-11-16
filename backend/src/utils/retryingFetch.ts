@@ -1,4 +1,5 @@
-import { runWithRetry } from "./retry.js";
+import { runWithRetry, type ErrorLike, type RetryOptions } from "./retry.js";
+import type { Logger } from "./logger.js";
 import {
   classifyRetryableResponse,
   isRetryableDatabaseError,
@@ -6,7 +7,11 @@ import {
 } from "./databaseRetryPolicy.js";
 
 export class RetryableResponseError extends Error {
-  constructor(response, reason) {
+  response: Response;
+  status: number;
+  reason: string | null;
+
+  constructor(response: Response, reason: string | null) {
     super(`Retryable response status: ${response.status}`);
     this.name = "RetryableResponseError";
     this.response = response;
@@ -15,10 +20,10 @@ export class RetryableResponseError extends Error {
   }
 }
 
-export const isRetryableStatusCode = (status) =>
+export const isRetryableStatusCode = (status: unknown): boolean =>
   isRetryableHttpStatusCode(status);
 
-export const isRetryableFetchError = (error) => {
+export const isRetryableFetchError = (error: unknown): boolean => {
   if (error instanceof RetryableResponseError) {
     return true;
   }
@@ -30,14 +35,18 @@ export const createRetryingFetch = ({
   fetchImpl = globalThis.fetch?.bind(globalThis),
   retryOptions,
   logger = null,
-} = {}) => {
+}: {
+  fetchImpl?: typeof fetch;
+  retryOptions?: RetryOptions;
+  logger?: Pick<Logger, "warn"> | null;
+} = {}): typeof fetch => {
   if (typeof fetchImpl !== "function") {
     throw new Error("A fetch implementation is required");
   }
 
   return async (input, init) => {
     const method = init?.method || "GET";
-    const url = typeof input === "string" ? input : input?.url;
+    const url = typeof input === "string" ? input : (input as Request | undefined)?.url;
 
     try {
       return await runWithRetry(
@@ -62,7 +71,7 @@ export const createRetryingFetch = ({
               reason:
                 error instanceof RetryableResponseError
                   ? error.reason
-                  : error.message,
+                  : (error as ErrorLike).message,
             });
 
             await retryOptions?.onRetry?.({
