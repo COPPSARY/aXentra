@@ -209,7 +209,7 @@ export class FileService {
     images?: UploadedFile[];
     fileLabel?: string;
     locationId: unknown;
-    description?: string;
+    description?: string | null;
     actor: Actor;
   }) {
     if (locationId === undefined || locationId === null) {

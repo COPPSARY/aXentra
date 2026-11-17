@@ -32,7 +32,7 @@ export const isValidRole = (role: unknown): role is Role => {
 };
 
 export const requirePermission = (
-  actor: Pick<Actor, "role"> | null | undefined,
+  actor: (Pick<Actor, "role"> & Partial<Actor>) | null | undefined,
   action: Action,
   resource: Resource,
   isOwn = false

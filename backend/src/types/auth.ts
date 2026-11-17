@@ -25,5 +25,5 @@ export interface Actor {
  */
 export type LocationScope = number[] | null;
 
-/** The part of an actor that location-scope helpers need. */
-export type ScopedActor = Pick<Actor, "role" | "allowedLocationIds">;
+/** The part of an actor that location-scope helpers read. A full `Actor` also fits. */
+export type ScopedActor = Pick<Actor, "role" | "allowedLocationIds"> & Partial<Pick<Actor, "userId">>;

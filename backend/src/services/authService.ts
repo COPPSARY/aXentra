@@ -219,7 +219,7 @@ export class AuthService {
     return { message: FORGOT_PASSWORD_SUCCESS_MESSAGE };
   }
 
-  static async resetPassword(payload: ResetPasswordInput) {
+  static async resetPassword(payload: Pick<ResetPasswordInput, "token" | "password">) {
     const { token, password } = payload;
 
     const tokenRecord = await AuthRepository.findValidAuthTokenByHash(hashToken(token));
