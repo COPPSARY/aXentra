@@ -61,6 +61,18 @@ vi.mock("../../../src/repositories/profileRepository.js", () => ({
   },
 }));
 
+vi.mock("../../../src/repositories/locationRepository.js", () => ({
+  LocationRepository: {
+    findById: vi.fn(),
+  },
+}));
+
+vi.mock("../../../src/repositories/userRepository.js", () => ({
+  UserRepository: {
+    findUserById: vi.fn(),
+  },
+}));
+
 vi.mock("../../../src/utils/crypto.js", () => ({
   generateRandomToken: vi.fn(),
 }));
@@ -71,6 +83,8 @@ import { AssetLoanItemRepository } from "../../../src/repositories/assetLoanItem
 import { AssetLoanExtensionHistoryRepository } from "../../../src/repositories/assetLoanExtensionHistoryRepository.js";
 import { AssetRepository } from "../../../src/repositories/assetRepository.js";
 import { ProfileRepository } from "../../../src/repositories/profileRepository.js";
+import { LocationRepository } from "../../../src/repositories/locationRepository.js";
+import { UserRepository } from "../../../src/repositories/userRepository.js";
 import { generateRandomToken } from "../../../src/utils/crypto.js";
 import type { Actor } from "../../../src/types/auth.js";
 import { partial, stub } from "../../helpers/stub.js";
@@ -262,6 +276,16 @@ describe("AssetLoanService.getPublicAssetLoanByToken", () => {
         newEndLoanDate: "2026-06-10",
       },
     ]);
+    stub(LocationRepository.findById).mockResolvedValue({
+      locationId: 1,
+      name: "  Phnom Penh Branch ",
+    });
+    stub(UserRepository.findUserById).mockResolvedValue({
+      userId: 2,
+      firstName: "Sok",
+      lastName: "Dara",
+      username: "sdara",
+    });
 
     const result = await AssetLoanService.getPublicAssetLoanByToken("raw-token");
 
@@ -269,10 +293,14 @@ describe("AssetLoanService.getPublicAssetLoanByToken", () => {
     expect(ProfileRepository.findById).toHaveBeenCalledWith(9);
     expect(AssetRepository.findByIds).toHaveBeenCalledWith([55, 56]);
     expect(AssetLoanExtensionHistoryRepository.listByLoanId).toHaveBeenCalledWith(7);
+    expect(LocationRepository.findById).toHaveBeenCalledWith(1);
+    expect(UserRepository.findUserById).toHaveBeenCalledWith(2);
     expect(result).toEqual({
       reference: "LN-00007",
       status: "Active",
       borrowerName: "Jane Doe",
+      locationName: "Phnom Penh Branch",
+      issuedBy: "Sok Dara",
       startDate: "2026-06-01",
       endDate: "2099-01-01",
       returnDate: null,
@@ -305,6 +333,70 @@ describe("AssetLoanService.getPublicAssetLoanByToken", () => {
     expect(internal.borrowerProfileId).toBeUndefined();
     expect(internal.lenderUserId).toBeUndefined();
     expect(internal.locationId).toBeUndefined();
+  });
+
+  describe("branch and issuer names", () => {
+    const arrangeLoan = () => {
+      stub(AssetLoanRepository.findByShareToken).mockResolvedValue({
+        assetLoanId: 7,
+        locationId: 1,
+        borrowerProfileId: 9,
+        lenderUserId: 2,
+        startLoanDate: "2026-06-01",
+        endLoanDate: "2099-01-01",
+        status: "Active",
+        shareEnabled: true,
+      });
+      stub(AssetLoanItemRepository.listByLoanId).mockResolvedValue([]);
+      stub(ProfileRepository.findById).mockResolvedValue({ profileId: 9, fullName: "Jane Doe" });
+      stub(AssetRepository.findByIds).mockResolvedValue([]);
+      stub(AssetLoanExtensionHistoryRepository.listByLoanId).mockResolvedValue([]);
+    };
+
+    it("omits both names when the lookups fail, instead of failing the page", async () => {
+      arrangeLoan();
+      stub(LocationRepository.findById).mockRejectedValue(new Error("db down"));
+      stub(UserRepository.findUserById).mockRejectedValue(new Error("db down"));
+
+      const result = await AssetLoanService.getPublicAssetLoanByToken("raw-token");
+
+      expect(result).toMatchObject({ borrowerName: "Jane Doe", locationName: null, issuedBy: null });
+    });
+
+    it("names the issuer by username when they have no first or last name", async () => {
+      arrangeLoan();
+      stub(LocationRepository.findById).mockResolvedValue({ locationId: 1, name: "HQ" });
+      stub(UserRepository.findUserById).mockResolvedValue({
+        userId: 2,
+        firstName: null,
+        lastName: null,
+        username: "sdara",
+      });
+
+      const result = await AssetLoanService.getPublicAssetLoanByToken("raw-token");
+
+      expect(result).toMatchObject({ locationName: "HQ", issuedBy: "sdara" });
+    });
+
+    it("does not look anything up when the loan has no issuer", async () => {
+      arrangeLoan();
+      stub(AssetLoanRepository.findByShareToken).mockResolvedValue({
+        assetLoanId: 7,
+        locationId: 1,
+        borrowerProfileId: 9,
+        lenderUserId: 0,
+        startLoanDate: "2026-06-01",
+        endLoanDate: "2099-01-01",
+        status: "Active",
+        shareEnabled: true,
+      });
+      stub(LocationRepository.findById).mockResolvedValue({ locationId: 1, name: "HQ" });
+
+      const result = await AssetLoanService.getPublicAssetLoanByToken("raw-token");
+
+      expect(UserRepository.findUserById).not.toHaveBeenCalled();
+      expect(result).toMatchObject({ issuedBy: null });
+    });
   });
 });
 

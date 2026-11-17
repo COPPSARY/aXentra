@@ -413,6 +413,8 @@ It returns a limited response by design.
 reference
 status
 borrowerName
+locationName
+issuedBy
 startDate
 endDate
 returnDate
@@ -421,6 +423,8 @@ updatedAt
 items[]
 extensionHistory[]
 ```
+
+`locationName` and `issuedBy` are display names only. They are `null` when the lookup fails, so a lookup error never fails the public page.
 
 Public items contain name, asset-tag identifier, description, and status.
 The response omits internal loan, user, location, and version identifiers.
