@@ -2,81 +2,502 @@
   display: block;
 }
 
-.profile-card {
-  transition: border-color var(--app-motion-base) var(--app-motion-ease);
-}
-
-.profile-card:hover {
-  border-color: #c7d5ee;
-}
-
-.profile-details-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.upload-button {
-  display: inline-flex;
-  min-height: 44px;
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  padding: 0 18px;
-  font-size: var(--type-body-size);
-  font-weight: var(--weight-semibold);
-  color: var(--text-inverted);
-  transition:
-    background-color var(--app-motion-fast) var(--app-motion-ease),
-    transform var(--app-motion-fast) var(--app-motion-ease);
-}
-
-.upload-button:hover,
-.upload-button:focus-within {
-  background: var(--brand-600);
-}
-
-.upload-button:active {
-  transform: scale(0.98);
-}
-
-.profile-input {
-  width: 100%;
-  min-height: 42px;
-  border-radius: var(--radius-control);
-  border: 1px solid var(--gray-300);
-  background: #fff;
-  padding: 0 12px;
-  font-size: var(--type-subtitle-size);
+.profile-page {
+  min-height: 100vh;
+  background: var(--surface-sunken);
   color: var(--text-primary);
 }
 
-.profile-input:focus {
-  outline: 2px solid color-mix(in srgb, var(--accent) 26%, transparent);
-  outline-offset: 1px;
-  border-color: var(--accent);
-}
-
-.profile-actions {
+/* ---------------------------------------------------------------------
+   Identity header: flat on the page, no card.
+   --------------------------------------------------------------------- */
+.identity {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .profile-card,
-  .upload-button {
-    transition: none;
+.identity-avatar {
+  position: relative;
+  display: flex;
+  height: 80px;
+  width: 80px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--brand-100);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--accent-text);
+  font-size: var(--type-heading-size);
+  font-weight: var(--weight-semibold);
+}
+
+.identity-avatar img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  transition: opacity var(--app-motion-base) var(--app-motion-ease);
+}
+
+.identity-avatar.is-busy img,
+.identity-avatar.is-busy > span:first-child {
+  opacity: 0.4;
+}
+
+.identity-spinner {
+  position: absolute;
+  height: 24px;
+  width: 24px;
+  border: 2px solid var(--brand-200);
+  border-top-color: var(--accent);
+  border-radius: var(--radius-pill);
+  animation: profile-spin 700ms linear infinite;
+}
+
+@keyframes profile-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.identity-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.identity-eyebrow {
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-medium);
+  line-height: 16px;
+}
+
+.identity-title {
+  display: flex;
+  min-width: 0;
+  margin-top: var(--space-1);
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.identity-title h1 {
+  min-width: 0;
+  font-size: var(--type-heading-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-heading-line);
+}
+
+.identity-meta {
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+  line-height: 20px;
+}
+
+.identity-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.role-pill {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--status-neutral-border);
+  border-radius: var(--radius-pill);
+  background: var(--status-neutral-bg);
+  padding: 2px 10px;
+  color: var(--status-neutral-text);
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-caption-line);
+  white-space: nowrap;
+}
+
+.role-pill span {
+  height: 6px;
+  width: 6px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+}
+
+/* ---------------------------------------------------------------------
+   Two-column detail layout.
+   --------------------------------------------------------------------- */
+.details-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  align-items: start;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.details-main,
+.details-side {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: var(--space-4);
+}
+
+.details-card {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-container);
+  background: var(--surface);
+}
+
+.card-heading {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-3) 20px;
+}
+
+.card-heading h2 {
+  font-size: var(--type-subtitle-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-subtitle-line);
+}
+
+.card-count {
+  border-radius: var(--radius-pill);
+  background: var(--gray-100);
+  padding: 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-semibold);
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------
+   Field grid (view + edit share positions).
+   --------------------------------------------------------------------- */
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px var(--space-6);
+  padding: var(--space-4) 20px 20px;
+}
+
+.field dt,
+.record-list dt {
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-medium);
+  line-height: 16px;
+}
+
+.field dd,
+.record-list dd {
+  margin-top: var(--space-1);
+  font-size: var(--type-body-size);
+  line-height: 20px;
+  overflow-wrap: anywhere;
+  animation: profile-fade 150ms var(--app-motion-ease) both;
+}
+
+.field dd small,
+.record-list dd small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+}
+
+/* In edit mode the read-only username sits on the input's baseline. */
+.field-grid.is-editing .field > dd:not(:has(input)) {
+  display: flex;
+  min-height: 36px;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.is-muted {
+  color: var(--text-muted);
+}
+
+.field-input {
+  width: 100%;
+  height: 36px;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  padding: 0 var(--space-3);
+  color: var(--text-primary);
+  font: inherit;
+  transition:
+    border-color var(--app-motion-fast) var(--app-motion-ease),
+    box-shadow var(--app-motion-fast) var(--app-motion-ease);
+}
+
+.field-input:hover:not(:disabled) {
+  border-color: var(--gray-400);
+}
+
+.field-input:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.field-input:disabled {
+  background: var(--surface-sunken);
+  color: var(--text-disabled);
+}
+
+.field-input.is-invalid {
+  border-color: var(--status-error);
+}
+
+.field-input.is-invalid:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-error) 18%, transparent);
+}
+
+.field dd .field-error {
+  margin-top: var(--space-1);
+  color: var(--status-error-text);
+}
+
+.form-alert {
+  margin: 0 20px var(--space-4);
+  border: 1px solid var(--status-error-border);
+  border-radius: var(--radius-control);
+  background: var(--status-error-bg);
+  padding: var(--space-2) var(--space-3);
+  color: var(--status-error-text);
+  font-size: var(--type-body-size);
+  line-height: 20px;
+}
+
+.form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  border-top: 1px solid var(--border);
+  padding: var(--space-3) 20px;
+  animation: profile-rise 180ms var(--app-motion-ease) both;
+}
+
+/* ---------------------------------------------------------------------
+   Side column record list.
+   --------------------------------------------------------------------- */
+.record-list {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) 20px;
+}
+
+.record-list > div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.record-list dd {
+  margin-top: 0;
+  animation: none;
+}
+
+/* ---------------------------------------------------------------------
+   Activity timeline (matches the asset/license detail history).
+   --------------------------------------------------------------------- */
+.history-list {
+  margin: 0;
+  padding: var(--space-4) 20px var(--space-2);
+  list-style: none;
+}
+
+.history-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+}
+
+.history-item:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: 0;
+  left: 5px;
+  width: 1px;
+  background: var(--border);
+}
+
+.history-dot {
+  height: 11px;
+  width: 11px;
+  margin-top: var(--space-1);
+  border: 2px solid var(--gray-400);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+}
+
+.history-summary {
+  color: var(--text-secondary);
+  font-size: var(--type-body-size);
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.history-summary strong {
+  color: var(--text-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.history-detail,
+.history-meta {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+  line-height: 16px;
+}
+
+.card-more {
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--border);
+  padding: var(--space-2);
+}
+
+.empty-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+}
+
+.empty-note.is-error {
+  color: var(--status-error-text);
+}
+
+/* ---------------------------------------------------------------------
+   Loading skeletons.
+   --------------------------------------------------------------------- */
+.skeleton-list {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) 20px 20px;
+}
+
+.skeleton-list.is-inline {
+  flex: 1 1 auto;
+  max-width: 320px;
+  padding: 0;
+}
+
+.skeleton-list span,
+.skeleton-block {
+  display: block;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--gray-100) 0%, var(--gray-50) 50%, var(--gray-100) 100%);
+  background-size: 200% 100%;
+  animation: profile-shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-block {
+  height: 80px;
+  border-radius: var(--radius-pill);
+}
+
+.skeleton-list span:nth-child(2) {
+  width: 80%;
+}
+
+.skeleton-list span:nth-child(3) {
+  width: 60%;
+}
+
+@keyframes profile-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes profile-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes profile-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Responsive.
+   --------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+  .details-layout {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 639px) {
-  .profile-details-header,
-  .profile-actions {
-    flex-direction: column;
-    align-items: stretch;
+  .identity {
+    flex-wrap: wrap;
+  }
+
+  .identity-avatar {
+    height: 64px;
+    width: 64px;
+  }
+
+  .identity-copy {
+    flex-basis: calc(100% - 80px);
+  }
+
+  .identity-title {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .identity-actions {
+    width: 100%;
+  }
+
+  .identity-actions > * {
+    flex: 1 1 0;
+  }
+
+  .field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .form-footer > * {
+    flex: 1 1 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-list span,
+  .skeleton-block,
+  .identity-spinner {
+    animation-duration: 0s;
+  }
+
+  .form-footer {
+    animation-name: profile-fade;
   }
 }

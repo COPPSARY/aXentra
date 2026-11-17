@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-[#f7f8fa] text-(--gray-900)">
+<div class="profile-page">
   <app-sidebar />
   <app-mobile-tabbar />
 
@@ -11,172 +11,299 @@
       (signOut)="logout()"
     />
 
-    <main class="mx-auto max-w-[960px] px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-8">
-      <section class="app-page-heading app-motion-enter">
-        <h1 class="app-page-heading__title">Profile</h1>
-      </section>
+    <main class="app-motion-enter px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8 lg:pb-12">
+      <div class="mx-auto max-w-[1100px]">
+        @if (user(); as currentUser) {
+          <!-- Identity: who this is, said once. -->
+          <header class="identity">
+            <div class="identity-avatar" [class.is-busy]="isUploading">
+              @if (avatarUrl()) {
+                <img [src]="avatarUrl()" alt="" draggable="false" />
+              } @else {
+                <span aria-hidden="true">{{ initials() }}</span>
+              }
+              @if (isUploading) {
+                <span class="identity-spinner" aria-hidden="true"></span>
+              }
+            </div>
 
-      <section class="profile-card app-motion-enter app-motion-delay-1 mt-6 rounded-xl border border-(--gray-150) bg-white p-5 shadow-sm">
-        <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex items-center gap-4">
-            @if (avatarUrl()) {
-              <img
-                class="h-20 w-20 rounded-full object-cover ring-1 ring-(--gray-150)"
-                [src]="avatarUrl()"
-                alt=""
-                draggable="false"
+            <div class="identity-copy">
+              <p class="identity-eyebrow">My profile</p>
+              <div class="identity-title">
+                <h1 class="app-ellipsis">{{ displayName() }}</h1>
+                <span class="role-pill"><span aria-hidden="true"></span>{{ roleLabel() }}</span>
+              </div>
+              <p class="identity-meta app-ellipsis">
+                &#64;{{ currentUser.username }}
+                @if (currentUser.email) {
+                  <span aria-hidden="true">·</span> {{ currentUser.email }}
+                }
+              </p>
+            </div>
+
+            <div class="identity-actions">
+              <input
+                #avatarInput
+                class="sr-only"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                tabindex="-1"
+                aria-hidden="true"
+                (change)="selectAvatar($event)"
               />
-            } @else {
-              <span class="flex h-20 w-20 items-center justify-center rounded-full bg-(--brand-100) text-2xl font-semibold text-(--accent-hover)">
-                {{ initials() }}
-              </span>
-            }
-
-            <div class="min-w-0">
-              <h2 class="truncate text-xl font-semibold text-black">{{ displayName() }}</h2>
-              <p class="app-ellipsis mt-1 text-sm text-(--gray-700)">{{ user()?.email || 'No email set' }}</p>
-              <p class="app-ellipsis mt-1 text-sm font-medium text-(--accent)">{{ role() }}</p>
-            </div>
-          </div>
-
-          <label class="upload-button">
-            <input
-              class="sr-only"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              [disabled]="isUploading"
-              (change)="selectAvatar($event)"
-            />
-            Change Avatar
-          </label>
-        </div>
-
-      </section>
-
-      <section class="profile-card app-motion-enter app-motion-delay-2 mt-5 rounded-xl border border-(--gray-150) bg-white p-5 shadow-sm">
-        <div class="profile-details-header">
-          <h2 class="text-lg font-semibold text-black">Profile Details</h2>
-          @if (canEditProfile() && !isEditMode) {
-            <button appButton="secondary" type="button" (click)="startEditProfile()">
-              Edit Profile
-            </button>
-          }
-        </div>
-
-        <dl class="mt-4 grid gap-4 sm:grid-cols-2">
-          <div>
-            <dt class="text-sm font-medium text-(--gray-600)">First Name</dt>
-            <dd class="mt-1">
-              @if (isEditMode) {
-                <input
-                  class="profile-input"
-                  type="text"
-                  [ngModel]="editableFirstName"
-                  (ngModelChange)="updateEditableFirstName($event)"
-                  [disabled]="isSavingProfile"
-                  placeholder="First name"
-                />
-              } @else {
-                <span class="app-ellipsis text-base font-semibold text-black">
-                  {{ user()?.firstName || 'Not set' }}
-                </span>
-              }
-            </dd>
-          </div>
-          <div>
-            <dt class="text-sm font-medium text-(--gray-600)">Last Name</dt>
-            <dd class="mt-1">
-              @if (isEditMode) {
-                <input
-                  class="profile-input"
-                  type="text"
-                  [ngModel]="editableLastName"
-                  (ngModelChange)="updateEditableLastName($event)"
-                  [disabled]="isSavingProfile"
-                  placeholder="Last name"
-                />
-              } @else {
-                <span class="app-ellipsis text-base font-semibold text-black">
-                  {{ user()?.lastName || 'Not set' }}
-                </span>
-              }
-            </dd>
-          </div>
-          <div>
-            <dt class="text-sm font-medium text-(--gray-600)">Username</dt>
-            <dd class="app-ellipsis mt-1 text-base font-semibold text-black">{{ user()?.username }}</dd>
-          </div>
-          <div>
-            <dt class="text-sm font-medium text-(--gray-600)">Role</dt>
-            <dd class="app-ellipsis mt-1 text-base font-semibold text-black">{{ role() || 'Not set' }}</dd>
-          </div>
-          <div>
-            <dt class="text-sm font-medium text-(--gray-600)">Email</dt>
-            <dd class="mt-1">
-              @if (isEditMode) {
-                <input
-                  class="profile-input"
-                  type="email"
-                  [ngModel]="editableEmail"
-                  (ngModelChange)="updateEditableEmail($event)"
-                  [disabled]="isSavingProfile"
-                  placeholder="Email address"
-                />
-              } @else {
-                <span class="app-ellipsis text-base font-semibold text-black">{{ user()?.email || 'Not set' }}</span>
-              }
-            </dd>
-          </div>
-        </dl>
-
-        @if (canEditProfile()) {
-          <div class="mt-4 flex items-center justify-between gap-3 border-t border-(--gray-150) pt-4">
-            <div class="profile-actions">
-              @if (isEditMode) {
-                <button
-                  appButton="secondary"
-                  type="button"
-                  [disabled]="isSavingProfile"
-                  (click)="cancelEditProfile()"
-                >
-                  Cancel
-                </button>
-                <button
-                  appButton
-                  type="button"
-                  [disabled]="isSavingProfile"
-                  (click)="saveProfile()"
-                >
-                  {{ isSavingProfile ? 'Saving...' : 'Save Changes' }}
+              <button
+                appButton="ghost"
+                type="button"
+                [disabled]="isUploading"
+                (click)="avatarInput.click()"
+              >
+                {{ isUploading ? 'Uploading…' : 'Change photo' }}
+              </button>
+              @if (canEditProfile() && !isEditMode) {
+                <button appButton="secondary" type="button" (click)="startEditProfile()">
+                  Edit profile
                 </button>
               }
             </div>
-          </div>
+          </header>
 
-          @if (profileError) {
-            <p class="mt-3 text-sm font-semibold text-(--status-error-text)">{{ profileError }}</p>
-          }
+          <div class="details-layout">
+            <div class="details-main">
+              <!-- Personal details: view and edit share one grid so nothing shifts. -->
+              <form
+                class="details-card"
+                aria-labelledby="personal-title"
+                novalidate
+                (ngSubmit)="saveProfile()"
+                (keydown.escape)="cancelEditProfile()"
+              >
+                <div class="card-heading">
+                  <h2 id="personal-title">Personal details</h2>
+                </div>
+
+                <dl class="field-grid" [class.is-editing]="isEditMode">
+                  <div class="field">
+                    @if (isEditMode) {
+                      <dt><label for="profile-first-name">First name</label></dt>
+                      <dd>
+                        <input
+                          id="profile-first-name"
+                          name="firstName"
+                          class="field-input"
+                          type="text"
+                          autocomplete="given-name"
+                          [ngModel]="editableFirstName"
+                          (ngModelChange)="updateEditableFirstName($event)"
+                          [disabled]="isSavingProfile"
+                        />
+                      </dd>
+                    } @else {
+                      <dt>First name</dt>
+                      <dd [class.is-muted]="!currentUser.firstName">
+                        {{ currentUser.firstName || 'Not set' }}
+                      </dd>
+                    }
+                  </div>
+
+                  <div class="field">
+                    @if (isEditMode) {
+                      <dt><label for="profile-last-name">Last name</label></dt>
+                      <dd>
+                        <input
+                          id="profile-last-name"
+                          name="lastName"
+                          class="field-input"
+                          type="text"
+                          autocomplete="family-name"
+                          [ngModel]="editableLastName"
+                          (ngModelChange)="updateEditableLastName($event)"
+                          [disabled]="isSavingProfile"
+                        />
+                      </dd>
+                    } @else {
+                      <dt>Last name</dt>
+                      <dd [class.is-muted]="!currentUser.lastName">
+                        {{ currentUser.lastName || 'Not set' }}
+                      </dd>
+                    }
+                  </div>
+
+                  <div class="field">
+                    @if (isEditMode) {
+                      <dt><label for="profile-email">Email</label></dt>
+                      <dd>
+                        <input
+                          id="profile-email"
+                          name="email"
+                          class="field-input"
+                          type="email"
+                          autocomplete="email"
+                          [class.is-invalid]="emailError"
+                          [attr.aria-invalid]="emailError ? true : null"
+                          [attr.aria-describedby]="emailError ? 'profile-email-error' : null"
+                          [ngModel]="editableEmail"
+                          (ngModelChange)="updateEditableEmail($event)"
+                          [disabled]="isSavingProfile"
+                        />
+                        @if (emailError) {
+                          <small id="profile-email-error" class="field-error">{{ emailError }}</small>
+                        }
+                      </dd>
+                    } @else {
+                      <dt>Email</dt>
+                      <dd [class.is-muted]="!currentUser.email">
+                        {{ currentUser.email || 'Not set' }}
+                      </dd>
+                    }
+                  </div>
+
+                  <div class="field">
+                    <dt>Username</dt>
+                    <dd>
+                      {{ currentUser.username }}
+                      @if (isEditMode) {
+                        <small>Can't be changed</small>
+                      }
+                    </dd>
+                  </div>
+                </dl>
+
+                @if (isEditMode) {
+                  @if (profileError) {
+                    <p class="form-alert" role="alert">{{ profileError }}</p>
+                  }
+                  <div class="form-footer">
+                    <button
+                      appButton="secondary"
+                      type="button"
+                      [disabled]="isSavingProfile"
+                      (click)="cancelEditProfile()"
+                    >
+                      Cancel
+                    </button>
+                    <button appButton type="submit" [disabled]="isSavingProfile">
+                      {{ isSavingProfile ? 'Saving…' : 'Save changes' }}
+                    </button>
+                  </div>
+                }
+              </form>
+
+              @if (!activitiesForbidden()) {
+                <section class="details-card" aria-labelledby="activity-title">
+                  <div class="card-heading">
+                    <h2 id="activity-title">Recent activity</h2>
+                    @if (activitiesTotal() > 0) {
+                      <span class="card-count">{{ activitiesTotal() }}</span>
+                    }
+                  </div>
+
+                  @if (isActivitiesLoading() && activities().length === 0) {
+                    <div class="skeleton-list" aria-label="Loading activity">
+                      <span></span><span></span><span></span>
+                    </div>
+                  } @else if (activitiesError() && activities().length === 0) {
+                    <div class="empty-note is-error">
+                      {{ activitiesError() }}
+                      <button appButton="ghost" size="sm" type="button" (click)="retryActivities()">
+                        Retry
+                      </button>
+                    </div>
+                  } @else if (activityEntries().length === 0) {
+                    <p class="empty-note">No activity yet.</p>
+                  } @else {
+                    <ol class="history-list">
+                      @for (entry of activityEntries(); track entry.id) {
+                        <li class="history-item">
+                          <span class="history-dot" aria-hidden="true"></span>
+                          <div class="min-w-0">
+                            <p class="history-summary">
+                              {{ entry.summary }}
+                              @if (entry.target) {
+                                <strong>{{ entry.target }}</strong>
+                              }
+                            </p>
+                            @if (entry.detail) {
+                              <p class="history-detail">Changed: {{ entry.detail }}</p>
+                            }
+                            <p class="history-meta">
+                              {{ entry.meta }} ·
+                              <time [attr.datetime]="entry.occurredAt" [title]="entry.exact">{{
+                                entry.relative
+                              }}</time>
+                            </p>
+                          </div>
+                        </li>
+                      }
+                    </ol>
+
+                    @if (hasMoreActivities()) {
+                      <div class="card-more">
+                        <button
+                          appButton="ghost"
+                          size="sm"
+                          type="button"
+                          [disabled]="isActivitiesLoading()"
+                          (click)="loadMoreActivities()"
+                        >
+                          {{ isActivitiesLoading() ? 'Loading…' : 'Show more' }}
+                        </button>
+                      </div>
+                    }
+                  }
+                </section>
+              }
+            </div>
+
+            <aside class="details-side">
+              <section class="details-card" aria-labelledby="account-title">
+                <div class="card-heading">
+                  <h2 id="account-title">Account</h2>
+                </div>
+                <dl class="record-list">
+                  <div>
+                    <dt>Role</dt>
+                    <dd>{{ roleLabel() }}</dd>
+                  </div>
+                  <div>
+                    <dt>Locations</dt>
+                    @if (locationNames().length > 0) {
+                      <dd [title]="allLocations()">
+                        {{ visibleLocations() }}
+                        @if (hiddenLocationCount() > 0) {
+                          <small>+{{ hiddenLocationCount() }} more</small>
+                        }
+                      </dd>
+                    } @else {
+                      <dd class="is-muted">None assigned</dd>
+                    }
+                  </div>
+                  <div>
+                    <dt>Member since</dt>
+                    <dd [title]="memberSinceExact()">{{ memberSince() }}</dd>
+                  </div>
+                  <div>
+                    <dt>Last updated</dt>
+                    <dd>
+                      <time [attr.datetime]="currentUser.updatedAt" [title]="updatedExact()">{{
+                        updatedRelative()
+                      }}</time>
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+            </aside>
+          </div>
+        } @else {
+          <div class="identity" aria-label="Loading profile">
+            <span class="identity-avatar skeleton-block"></span>
+            <div class="skeleton-list is-inline"><span></span><span></span></div>
+          </div>
+          <div class="details-layout">
+            <div class="details-card"><div class="skeleton-list"><span></span><span></span><span></span></div></div>
+            <div class="details-card"><div class="skeleton-list"><span></span><span></span></div></div>
+          </div>
         }
-      </section>
-
-      <section class="profile-card app-motion-enter app-motion-delay-3 mt-5 rounded-xl border border-(--gray-150) bg-white p-5 shadow-sm">
-        <h2 class="text-lg font-semibold text-black">Account Overview</h2>
-
-        <dl class="mt-4 grid gap-4 sm:grid-cols-2">
-          <div>
-            <dt class="text-sm font-medium text-(--gray-600)">Assigned Locations</dt>
-            <dd class="mt-1 text-base font-semibold text-black">{{ assignedLocations() }}</dd>
-          </div>
-          <div>
-            <dt class="text-sm font-medium text-(--gray-600)">Member Since</dt>
-            <dd class="mt-1 text-base font-semibold text-black">{{ joinedDate() }}</dd>
-          </div>
-          <div>
-            <dt class="text-sm font-medium text-(--gray-600)">Last Updated</dt>
-            <dd class="mt-1 text-base font-semibold text-black">{{ updatedDate() }}</dd>
-          </div>
-        </dl>
-      </section>
+      </div>
     </main>
   </div>
 </div>
