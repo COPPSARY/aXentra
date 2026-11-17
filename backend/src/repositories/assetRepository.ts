@@ -307,6 +307,7 @@ export class AssetRepository {
     displayImage,
     createdBy,
     updatedBy = createdBy,
+    images = [],
   }: {
     assetName: string;
     productId: number | null;
@@ -325,10 +326,7 @@ export class AssetRepository {
     displayImage?: string | null;
     createdBy: number | null;
     updatedBy?: number | null;
-    /**
-     * Not written: the row is inserted with an empty album, so images
-     * uploaded with a new asset are dropped. Existing behaviour, kept as is.
-     */
+    /** The album, already uploaded to storage, saved with the new row. */
     images?: ImageBundleItem[];
   }) {
     const newAsset = new Asset({
@@ -349,6 +347,7 @@ export class AssetRepository {
       displayImage,
       createdBy,
       updatedBy,
+      images,
     });
 
     const { data, error } = await supabase
