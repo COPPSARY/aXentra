@@ -24,13 +24,13 @@ It does not create an Angular application cache.
 
 | File | Purpose |
 |---|---|
-| `src/app.js` | Set `no-store` as the default API policy |
-| `src/middleware/rbac.js` | Set the authenticated read policy after JWT validation |
-| `src/services/realtime/sseHub.js` | Set the SSE cache policy |
-| `test/integration/routes/locations.routes.test.js` | Test ETag revalidation and authenticated read headers |
-| `test/integration/routes/auth.routes.test.js` | Test the authentication response policy |
-| `test/integration/routes/assetLoans.routes.test.js` | Test the public response policy |
-| `test/unit/realtime/sseHub.test.js` | Test the SSE cache policy |
+| `src/app.ts` | Set `no-store` as the default API policy |
+| `src/middleware/rbac.ts` | Set the authenticated read policy after JWT validation |
+| `src/services/realtime/sseHub.ts` | Set the SSE cache policy |
+| `test/integration/routes/locations.routes.test.ts` | Test ETag revalidation and authenticated read headers |
+| `test/integration/routes/auth.routes.test.ts` | Test the authentication response policy |
+| `test/integration/routes/assetLoans.routes.test.ts` | Test the public response policy |
+| `test/unit/realtime/sseHub.test.ts` | Test the SSE cache policy |
 
 ## 4. Response policies
 

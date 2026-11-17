@@ -269,8 +269,8 @@ See [Asset Type Module](ASSET_TYPE_MODULE.md).
 
 ## 9. Tests
 
-- `test/unit/services/assetSpecValue.service.test.js`
-- `test/integration/routes/assets.routes.test.js`
+- `test/unit/services/assetSpecValue.service.test.ts`
+- `test/integration/routes/assets.routes.test.ts`
 
 The service tests cover these cases:
 
@@ -290,16 +290,16 @@ Route tests verify nested and item route mounting, permissions, and Joi validati
 
 | Layer | File |
 |---|---|
-| Collection routes | [`src/routes/assets.js`](../../routes/assets.js) |
-| Item routes | [`src/routes/assetSpecValues.js`](../../routes/assetSpecValues.js) |
-| Controller | [`src/controllers/assetSpecValueController.js`](../../controllers/assetSpecValueController.js) |
-| Service | [`src/services/assetSpecValueService.js`](../../services/assetSpecValueService.js) |
-| Repository | [`src/repositories/assetSpecValueRepository.js`](../../repositories/assetSpecValueRepository.js) |
-| Model | [`src/models/assetSpecValueModel.js`](../../models/assetSpecValueModel.js) |
-| Validator | [`src/validators/assetSpecValue.js`](../../validators/assetSpecValue.js) |
-| Asset service | [`src/services/assetService.js`](../../services/assetService.js) |
-| Field repository | [`src/repositories/assetTypeFieldRepository.js`](../../repositories/assetTypeFieldRepository.js) |
-| Value validation | [`src/utils/assetValidation.js`](../../utils/assetValidation.js) |
-| Optimistic locking | [`src/utils/optimisticLocking.js`](../../utils/optimisticLocking.js) |
+| Collection routes | [`src/routes/assets.ts`](../../routes/assets.ts) |
+| Item routes | [`src/routes/assetSpecValues.ts`](../../routes/assetSpecValues.ts) |
+| Controller | [`src/controllers/assetSpecValueController.ts`](../../controllers/assetSpecValueController.ts) |
+| Service | [`src/services/assetSpecValueService.ts`](../../services/assetSpecValueService.ts) |
+| Repository | [`src/repositories/assetSpecValueRepository.ts`](../../repositories/assetSpecValueRepository.ts) |
+| Model | [`src/models/assetSpecValueModel.ts`](../../models/assetSpecValueModel.ts) |
+| Validator | [`src/validators/assetSpecValue.ts`](../../validators/assetSpecValue.ts) |
+| Asset service | [`src/services/assetService.ts`](../../services/assetService.ts) |
+| Field repository | [`src/repositories/assetTypeFieldRepository.ts`](../../repositories/assetTypeFieldRepository.ts) |
+| Value validation | [`src/utils/assetValidation.ts`](../../utils/assetValidation.ts) |
+| Optimistic locking | [`src/utils/optimisticLocking.ts`](../../utils/optimisticLocking.ts) |
 | Asset reference | [`ASSET_MODULE.md`](ASSET_MODULE.md) |
 | Field reference | [`ASSET_TYPE_FIELD_MODULE.md`](ASSET_TYPE_FIELD_MODULE.md) |

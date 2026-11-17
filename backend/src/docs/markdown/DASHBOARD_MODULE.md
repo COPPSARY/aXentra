@@ -340,7 +340,7 @@ The calculations skip those values.
 
 ## 9. Tests
 
-- `test/unit/services/dashboard.service.test.js`
+- `test/unit/services/dashboard.service.test.ts`
 
 The tests cover these cases:
 
@@ -364,16 +364,16 @@ The route uses the shared authentication and authorization pattern.
 
 | Layer | File |
 |---|---|
-| Route | [`src/routes/dashboard.js`](../../routes/dashboard.js) |
-| Controller | [`src/controllers/dashboardController.js`](../../controllers/dashboardController.js) |
-| Service | [`src/services/dashboardService.js`](../../services/dashboardService.js) |
-| Asset repository | [`src/repositories/assetRepository.js`](../../repositories/assetRepository.js) |
-| Asset-type repository | [`src/repositories/assetTypeRepository.js`](../../repositories/assetTypeRepository.js) |
-| Location repository | [`src/repositories/locationRepository.js`](../../repositories/locationRepository.js) |
-| User repository | [`src/repositories/userRepository.js`](../../repositories/userRepository.js) |
-| Loan repository | [`src/repositories/assetLoanRepository.js`](../../repositories/assetLoanRepository.js) |
-| Loan-item repository | [`src/repositories/assetLoanItemRepository.js`](../../repositories/assetLoanItemRepository.js) |
-| File repository | [`src/repositories/fileRepository.js`](../../repositories/fileRepository.js) |
-| License repository | [`src/repositories/softwareLicenseRepository.js`](../../repositories/softwareLicenseRepository.js) |
-| Scope utility | [`src/utils/locationScope.js`](../../utils/locationScope.js) |
-| Tests | [`test/unit/services/dashboard.service.test.js`](../../../test/unit/services/dashboard.service.test.js) |
+| Route | [`src/routes/dashboard.ts`](../../routes/dashboard.ts) |
+| Controller | [`src/controllers/dashboardController.ts`](../../controllers/dashboardController.ts) |
+| Service | [`src/services/dashboardService.ts`](../../services/dashboardService.ts) |
+| Asset repository | [`src/repositories/assetRepository.ts`](../../repositories/assetRepository.ts) |
+| Asset-type repository | [`src/repositories/assetTypeRepository.ts`](../../repositories/assetTypeRepository.ts) |
+| Location repository | [`src/repositories/locationRepository.ts`](../../repositories/locationRepository.ts) |
+| User repository | [`src/repositories/userRepository.ts`](../../repositories/userRepository.ts) |
+| Loan repository | [`src/repositories/assetLoanRepository.ts`](../../repositories/assetLoanRepository.ts) |
+| Loan-item repository | [`src/repositories/assetLoanItemRepository.ts`](../../repositories/assetLoanItemRepository.ts) |
+| File repository | [`src/repositories/fileRepository.ts`](../../repositories/fileRepository.ts) |
+| License repository | [`src/repositories/softwareLicenseRepository.ts`](../../repositories/softwareLicenseRepository.ts) |
+| Scope utility | [`src/utils/locationScope.ts`](../../utils/locationScope.ts) |
+| Tests | [`test/unit/services/dashboard.service.test.ts`](../../../test/unit/services/dashboard.service.test.ts) |

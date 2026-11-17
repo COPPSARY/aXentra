@@ -256,8 +256,8 @@ Location-scoped item lookup can return `404` to hide a row.
 
 ## 9. Tests
 
-- `test/unit/utils/rbac.config.test.js`
-- `test/integration/routes/users.routes.test.js`
+- `test/unit/utils/rbac.config.test.ts`
+- `test/integration/routes/users.routes.test.ts`
 - Other integration route test files
 
 The matrix tests verify these items:
@@ -279,10 +279,10 @@ Service tests verify `requirePermission` where services use it.
 
 | Function | File |
 |---|---|
-| Permission matrix | [`src/config/rbac.js`](../../config/rbac.js) |
-| Route middleware | [`src/middleware/rbac.js`](../../middleware/rbac.js) |
-| Permission functions | [`src/utils/rbac.js`](../../utils/rbac.js) |
+| Permission matrix | [`src/config/rbac.ts`](../../config/rbac.ts) |
+| Route middleware | [`src/middleware/rbac.ts`](../../middleware/rbac.ts) |
+| Permission functions | [`src/utils/rbac.ts`](../../utils/rbac.ts) |
 | Authentication module | [`AUTHENTICATION_MODULE.md`](AUTHENTICATION_MODULE.md) |
 | Location-scope module | [`LOCATION_SCOPE_MODULE.md`](LOCATION_SCOPE_MODULE.md) |
-| Matrix tests | [`test/unit/utils/rbac.config.test.js`](../../../test/unit/utils/rbac.config.test.js) |
-| User route tests | [`test/integration/routes/users.routes.test.js`](../../../test/integration/routes/users.routes.test.js) |
+| Matrix tests | [`test/unit/utils/rbac.config.test.ts`](../../../test/unit/utils/rbac.config.test.ts) |
+| User route tests | [`test/integration/routes/users.routes.test.ts`](../../../test/integration/routes/users.routes.test.ts) |

@@ -290,8 +290,8 @@ The repository adds operation context to database errors.
 
 ## 9. Tests
 
-- `test/unit/services/location.service.test.js`
-- `test/integration/routes/locations.routes.test.js`
+- `test/unit/services/location.service.test.ts`
+- `test/integration/routes/locations.routes.test.ts`
 
 The service tests cover these cases:
 
@@ -313,13 +313,13 @@ The delete route tests require a name in the body.
 
 | Layer | File |
 |---|---|
-| Route | [`src/routes/locations.js`](../../routes/locations.js) |
-| Controller | [`src/controllers/locationController.js`](../../controllers/locationController.js) |
-| Service | [`src/services/locationService.js`](../../services/locationService.js) |
-| Repository | [`src/repositories/locationRepository.js`](../../repositories/locationRepository.js) |
-| Model | [`src/models/locationModel.js`](../../models/locationModel.js) |
-| Validator | [`src/validators/location.js`](../../validators/location.js) |
-| Location scope | [`src/utils/locationScope.js`](../../utils/locationScope.js) |
-| Pagination | [`src/utils/pagination.js`](../../utils/pagination.js) |
-| Optimistic locking | [`src/utils/optimisticLocking.js`](../../utils/optimisticLocking.js) |
+| Route | [`src/routes/locations.ts`](../../routes/locations.ts) |
+| Controller | [`src/controllers/locationController.ts`](../../controllers/locationController.ts) |
+| Service | [`src/services/locationService.ts`](../../services/locationService.ts) |
+| Repository | [`src/repositories/locationRepository.ts`](../../repositories/locationRepository.ts) |
+| Model | [`src/models/locationModel.ts`](../../models/locationModel.ts) |
+| Validator | [`src/validators/location.ts`](../../validators/location.ts) |
+| Location scope | [`src/utils/locationScope.ts`](../../utils/locationScope.ts) |
+| Pagination | [`src/utils/pagination.ts`](../../utils/pagination.ts) |
+| Optimistic locking | [`src/utils/optimisticLocking.ts`](../../utils/optimisticLocking.ts) |
 | Scope reference | [`LOCATION_SCOPE_MODULE.md`](LOCATION_SCOPE_MODULE.md) |

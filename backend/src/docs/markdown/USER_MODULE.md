@@ -288,9 +288,9 @@ The response mapper converts a public avatar object path to a public URL.
 
 ## 9. Tests
 
-- `test/unit/services/user.service.test.js`
-- `test/unit/models/user.model.test.js`
-- `test/integration/routes/users.routes.test.js`
+- `test/unit/services/user.service.test.ts`
+- `test/unit/models/user.model.test.ts`
+- `test/integration/routes/users.routes.test.ts`
 
 The route tests cover authentication, authorization, ownership, and validation.
 They also cover avatar uploads and controller arguments.
@@ -305,18 +305,18 @@ They also reject password values that do not contain an Argon2 hash.
 
 | Layer | File |
 |---|---|
-| Route | [`src/routes/users.js`](../../routes/users.js) |
-| Controller | [`src/controllers/userController.js`](../../controllers/userController.js) |
-| Service | [`src/services/userService.js`](../../services/userService.js) |
-| Repository | [`src/repositories/userRepository.js`](../../repositories/userRepository.js) |
-| Model | [`src/models/userModel.js`](../../models/userModel.js) |
-| Location model | [`src/models/userLocationModel.js`](../../models/userLocationModel.js) |
-| Validator | [`src/validators/user.js`](../../validators/user.js) |
-| Password validator | [`src/validators/password.js`](../../validators/password.js) |
-| Authorization middleware | [`src/middleware/rbac.js`](../../middleware/rbac.js) |
-| Upload middleware | [`src/middleware/upload.js`](../../middleware/upload.js) |
-| Permission configuration | [`src/config/rbac.js`](../../config/rbac.js) |
-| Storage service | [`src/services/storageService.js`](../../services/storageService.js) |
-| Response mapper | [`src/utils/userResponse.js`](../../utils/userResponse.js) |
-| Location scope utility | [`src/utils/locationScope.js`](../../utils/locationScope.js) |
-| Pagination utility | [`src/utils/pagination.js`](../../utils/pagination.js) |
+| Route | [`src/routes/users.ts`](../../routes/users.ts) |
+| Controller | [`src/controllers/userController.ts`](../../controllers/userController.ts) |
+| Service | [`src/services/userService.ts`](../../services/userService.ts) |
+| Repository | [`src/repositories/userRepository.ts`](../../repositories/userRepository.ts) |
+| Model | [`src/models/userModel.ts`](../../models/userModel.ts) |
+| Location model | [`src/models/userLocationModel.ts`](../../models/userLocationModel.ts) |
+| Validator | [`src/validators/user.ts`](../../validators/user.ts) |
+| Password validator | [`src/validators/password.ts`](../../validators/password.ts) |
+| Authorization middleware | [`src/middleware/rbac.ts`](../../middleware/rbac.ts) |
+| Upload middleware | [`src/middleware/upload.ts`](../../middleware/upload.ts) |
+| Permission configuration | [`src/config/rbac.ts`](../../config/rbac.ts) |
+| Storage service | [`src/services/storageService.ts`](../../services/storageService.ts) |
+| Response mapper | [`src/utils/userResponse.ts`](../../utils/userResponse.ts) |
+| Location scope utility | [`src/utils/locationScope.ts`](../../utils/locationScope.ts) |
+| Pagination utility | [`src/utils/pagination.ts`](../../utils/pagination.ts) |

@@ -283,8 +283,8 @@ Dynamic asset filters resolve `fieldKey` to this identifier.
 
 ## 9. Tests
 
-- `test/unit/services/assetTypeField.service.test.js`
-- `test/integration/routes/assets.routes.test.js`
+- `test/unit/services/assetTypeField.service.test.ts`
+- `test/integration/routes/assets.routes.test.ts`
 
 The service tests cover these cases:
 
@@ -304,15 +304,15 @@ The route tests verify nested routing, authentication, permission checks, and va
 
 | Layer | File |
 |---|---|
-| Route | [`src/routes/assetTypeFields.js`](../../routes/assetTypeFields.js) |
-| Controller | [`src/controllers/assetTypeFieldController.js`](../../controllers/assetTypeFieldController.js) |
-| Service | [`src/services/assetTypeFieldService.js`](../../services/assetTypeFieldService.js) |
-| Repository | [`src/repositories/assetTypeFieldRepository.js`](../../repositories/assetTypeFieldRepository.js) |
-| Model | [`src/models/assetTypeFieldModel.js`](../../models/assetTypeFieldModel.js) |
-| Validator | [`src/validators/assetTypeField.js`](../../validators/assetTypeField.js) |
-| Parent repository | [`src/repositories/assetTypeRepository.js`](../../repositories/assetTypeRepository.js) |
-| Key generator | [`src/utils/fieldKeyGenerator.js`](../../utils/fieldKeyGenerator.js) |
-| Update mapper | [`src/services/updateHelpers.js`](../../services/updateHelpers.js) |
-| Optimistic locking | [`src/utils/optimisticLocking.js`](../../utils/optimisticLocking.js) |
+| Route | [`src/routes/assetTypeFields.ts`](../../routes/assetTypeFields.ts) |
+| Controller | [`src/controllers/assetTypeFieldController.ts`](../../controllers/assetTypeFieldController.ts) |
+| Service | [`src/services/assetTypeFieldService.ts`](../../services/assetTypeFieldService.ts) |
+| Repository | [`src/repositories/assetTypeFieldRepository.ts`](../../repositories/assetTypeFieldRepository.ts) |
+| Model | [`src/models/assetTypeFieldModel.ts`](../../models/assetTypeFieldModel.ts) |
+| Validator | [`src/validators/assetTypeField.ts`](../../validators/assetTypeField.ts) |
+| Parent repository | [`src/repositories/assetTypeRepository.ts`](../../repositories/assetTypeRepository.ts) |
+| Key generator | [`src/utils/fieldKeyGenerator.ts`](../../utils/fieldKeyGenerator.ts) |
+| Update mapper | [`src/services/updateHelpers.ts`](../../services/updateHelpers.ts) |
+| Optimistic locking | [`src/utils/optimisticLocking.ts`](../../utils/optimisticLocking.ts) |
 | Parent reference | [`ASSET_TYPE_MODULE.md`](ASSET_TYPE_MODULE.md) |
 | Value reference | [`ASSET_SPECIFICATION_VALUE_MODULE.md`](ASSET_SPECIFICATION_VALUE_MODULE.md) |

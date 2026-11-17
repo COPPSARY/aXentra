@@ -253,7 +253,7 @@ Repository failures use the shared repository error handling.
 
 ## 9. Tests
 
-- `test/unit/utils/locationScope.test.js`
+- `test/unit/utils/locationScope.test.ts`
 - Service tests for location-owned modules
 - Integration route tests for location-owned modules
 
@@ -275,11 +275,11 @@ Route tests verify `403` and hidden-item `404` behavior.
 
 | Function | File |
 |---|---|
-| Scope decisions | [`src/utils/locationScope.js`](../../utils/locationScope.js) |
-| Query filter | [`src/repositories/repositoryHelpers.js`](../../repositories/repositoryHelpers.js) |
-| Actor creation | [`src/middleware/rbac.js`](../../middleware/rbac.js) |
-| Assignment read | [`src/repositories/userRepository.js`](../../repositories/userRepository.js) |
-| Token creation | [`src/services/authService.js`](../../services/authService.js) |
+| Scope decisions | [`src/utils/locationScope.ts`](../../utils/locationScope.ts) |
+| Query filter | [`src/repositories/repositoryHelpers.ts`](../../repositories/repositoryHelpers.ts) |
+| Actor creation | [`src/middleware/rbac.ts`](../../middleware/rbac.ts) |
+| Assignment read | [`src/repositories/userRepository.ts`](../../repositories/userRepository.ts) |
+| Token creation | [`src/services/authService.ts`](../../services/authService.ts) |
 | Authentication module | [`AUTHENTICATION_MODULE.md`](AUTHENTICATION_MODULE.md) |
 | Authorization module | [`AUTHORIZATION_MODULE.md`](AUTHORIZATION_MODULE.md) |
-| Scope tests | [`test/unit/utils/locationScope.test.js`](../../../test/unit/utils/locationScope.test.js) |
+| Scope tests | [`test/unit/utils/locationScope.test.ts`](../../../test/unit/utils/locationScope.test.ts) |

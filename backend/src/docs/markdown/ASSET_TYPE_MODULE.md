@@ -380,8 +380,8 @@ five configured `gridSpecs`.
 
 ## 9. Tests
 
-- `test/unit/services/assetType.service.test.js`
-- `test/integration/routes/assets.routes.test.js`
+- `test/unit/services/assetType.service.test.ts`
+- `test/integration/routes/assets.routes.test.ts`
 
 The service tests cover these cases:
 
@@ -405,17 +405,17 @@ The route tests cover authentication, permissions, validation, and route mountin
 
 | Layer | File |
 |---|---|
-| Route | [`src/routes/assetTypes.js`](../../routes/assetTypes.js) |
-| Controller | [`src/controllers/assetTypeController.js`](../../controllers/assetTypeController.js) |
-| Service | [`src/services/assetTypeService.js`](../../services/assetTypeService.js) |
-| Repository | [`src/repositories/assetTypeRepository.js`](../../repositories/assetTypeRepository.js) |
-| Model | [`src/models/assetTypeModel.js`](../../models/assetTypeModel.js) |
-| Validator | [`src/validators/assetType.js`](../../validators/assetType.js) |
-| Field repository | [`src/repositories/assetTypeFieldRepository.js`](../../repositories/assetTypeFieldRepository.js) |
-| Asset repository | [`src/repositories/assetRepository.js`](../../repositories/assetRepository.js) |
-| Asset service | [`src/services/assetService.js`](../../services/assetService.js) |
-| Key generator | [`src/utils/fieldKeyGenerator.js`](../../utils/fieldKeyGenerator.js) |
-| Status constants | [`src/utils/constants.js`](../../utils/constants.js) |
-| Pagination | [`src/utils/pagination.js`](../../utils/pagination.js) |
+| Route | [`src/routes/assetTypes.ts`](../../routes/assetTypes.ts) |
+| Controller | [`src/controllers/assetTypeController.ts`](../../controllers/assetTypeController.ts) |
+| Service | [`src/services/assetTypeService.ts`](../../services/assetTypeService.ts) |
+| Repository | [`src/repositories/assetTypeRepository.ts`](../../repositories/assetTypeRepository.ts) |
+| Model | [`src/models/assetTypeModel.ts`](../../models/assetTypeModel.ts) |
+| Validator | [`src/validators/assetType.ts`](../../validators/assetType.ts) |
+| Field repository | [`src/repositories/assetTypeFieldRepository.ts`](../../repositories/assetTypeFieldRepository.ts) |
+| Asset repository | [`src/repositories/assetRepository.ts`](../../repositories/assetRepository.ts) |
+| Asset service | [`src/services/assetService.ts`](../../services/assetService.ts) |
+| Key generator | [`src/utils/fieldKeyGenerator.ts`](../../utils/fieldKeyGenerator.ts) |
+| Status constants | [`src/utils/constants.ts`](../../utils/constants.ts) |
+| Pagination | [`src/utils/pagination.ts`](../../utils/pagination.ts) |
 | Scope reference | [`LOCATION_SCOPE_MODULE.md`](LOCATION_SCOPE_MODULE.md) |
 | Field reference | [`ASSET_TYPE_FIELD_MODULE.md`](ASSET_TYPE_FIELD_MODULE.md) |

@@ -170,6 +170,16 @@ assetLoanPublicDetailSchema:
       enum: [Active, Returned, Overdue, Cancelled]
     borrowerName:
       type: string
+    locationName:
+      type: string
+      nullable: true
+      description: Name of the loan's location. Null when it cannot be looked up.
+    issuedBy:
+      type: string
+      nullable: true
+      description: >-
+        Display name of the user who issued the loan (full name, else username).
+        Null when it cannot be looked up.
     startDate:
       type: string
       format: date

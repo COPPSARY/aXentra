@@ -266,10 +266,10 @@ It writes a warning instead of failing for this condition.
 
 ## 9. Tests
 
-- `test/unit/services/storage.service.test.js`
-- `test/unit/services/file.service.test.js`
-- `test/unit/services/assets.service.test.js`
-- `test/unit/services/softwareLicense.service.test.js`
+- `test/unit/services/storage.service.test.ts`
+- `test/unit/services/file.service.test.ts`
+- `test/unit/services/assets.service.test.ts`
+- `test/unit/services/softwareLicense.service.test.ts`
 
 The storage tests cover these cases:
 
@@ -289,12 +289,12 @@ Feature tests verify image metadata and response URL decoration.
 
 | Function | File |
 |---|---|
-| Storage operations | [`src/services/storageService.js`](../../services/storageService.js) |
-| Upload middleware | [`src/middleware/upload.js`](../../middleware/upload.js) |
-| Storage configuration | [`src/config/index.js`](../../config/index.js) |
-| Supabase client and bucket creation | [`src/config/supabase.js`](../../config/supabase.js) |
-| Startup sequence | [`src/config/startup.js`](../../config/startup.js) |
-| Image bundles | [`src/utils/imageBundle.js`](../../utils/imageBundle.js) |
+| Storage operations | [`src/services/storageService.ts`](../../services/storageService.ts) |
+| Upload middleware | [`src/middleware/upload.ts`](../../middleware/upload.ts) |
+| Storage configuration | [`src/config/index.ts`](../../config/index.ts) |
+| Supabase client and bucket creation | [`src/config/supabase.ts`](../../config/supabase.ts) |
+| Startup sequence | [`src/config/startup.ts`](../../config/startup.ts) |
+| Image bundles | [`src/utils/imageBundle.ts`](../../utils/imageBundle.ts) |
 | File feature | [`FILE_MODULE.md`](FILE_MODULE.md) |
 | Asset feature | [`ASSET_MODULE.md`](ASSET_MODULE.md) |
 | User feature | [`USER_MODULE.md`](USER_MODULE.md) |

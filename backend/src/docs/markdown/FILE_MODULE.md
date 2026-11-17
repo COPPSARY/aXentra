@@ -373,9 +373,9 @@ softwareLicenses[]
 
 ## 9. Tests
 
-- `test/unit/services/file.service.test.js`
-- `test/integration/routes/files.routes.test.js`
-- `test/unit/services/storage.service.test.js`
+- `test/unit/services/file.service.test.ts`
+- `test/integration/routes/files.routes.test.ts`
+- `test/unit/services/storage.service.test.ts`
 
 The file service tests cover these cases:
 
@@ -397,16 +397,16 @@ Route tests cover multipart fields, authentication, permission checks, validatio
 
 | Layer | File |
 |---|---|
-| Route | [`src/routes/files.js`](../../routes/files.js) |
-| Controller | [`src/controllers/fileController.js`](../../controllers/fileController.js) |
-| Service | [`src/services/fileService.js`](../../services/fileService.js) |
-| Repository | [`src/repositories/fileRepository.js`](../../repositories/fileRepository.js) |
-| Model | [`src/models/fileModel.js`](../../models/fileModel.js) |
-| Validator | [`src/validators/file.js`](../../validators/file.js) |
-| Upload middleware | [`src/middleware/upload.js`](../../middleware/upload.js) |
-| Image helpers | [`src/utils/imageBundle.js`](../../utils/imageBundle.js) |
-| Storage service | [`src/services/storageService.js`](../../services/storageService.js) |
-| Asset repository | [`src/repositories/assetRepository.js`](../../repositories/assetRepository.js) |
-| License repository | [`src/repositories/softwareLicenseRepository.js`](../../repositories/softwareLicenseRepository.js) |
-| Optimistic locking | [`src/utils/optimisticLocking.js`](../../utils/optimisticLocking.js) |
+| Route | [`src/routes/files.ts`](../../routes/files.ts) |
+| Controller | [`src/controllers/fileController.ts`](../../controllers/fileController.ts) |
+| Service | [`src/services/fileService.ts`](../../services/fileService.ts) |
+| Repository | [`src/repositories/fileRepository.ts`](../../repositories/fileRepository.ts) |
+| Model | [`src/models/fileModel.ts`](../../models/fileModel.ts) |
+| Validator | [`src/validators/file.ts`](../../validators/file.ts) |
+| Upload middleware | [`src/middleware/upload.ts`](../../middleware/upload.ts) |
+| Image helpers | [`src/utils/imageBundle.ts`](../../utils/imageBundle.ts) |
+| Storage service | [`src/services/storageService.ts`](../../services/storageService.ts) |
+| Asset repository | [`src/repositories/assetRepository.ts`](../../repositories/assetRepository.ts) |
+| License repository | [`src/repositories/softwareLicenseRepository.ts`](../../repositories/softwareLicenseRepository.ts) |
+| Optimistic locking | [`src/utils/optimisticLocking.ts`](../../utils/optimisticLocking.ts) |
 | Storage reference | [`STORAGE_MODULE.md`](STORAGE_MODULE.md) |

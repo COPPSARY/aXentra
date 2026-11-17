@@ -94,7 +94,8 @@ npm test
 ```
 
 The package has no lint command.
-The package has no build command.
+Run `npm run typecheck` to check types in `src/` and `test/`.
+Run `npm run build` to compile to `dist/`; `npm start` runs the compiled output.
 
 ## 3. System architecture
 
@@ -103,7 +104,7 @@ It supplies a REST application programming interface (API).
 
 ```mermaid
 flowchart LR
-    Request[HTTP request] --> App[app.js]
+    Request[HTTP request] --> App[app.ts]
     App --> Route[Route]
     Route --> Middleware[Route middleware]
     Middleware --> Controller[Controller]
@@ -128,12 +129,12 @@ Real-time services use the Supabase Realtime client directly.
 
 | File or directory | Function |
 |---|---|
-| `src/server.js` | Starts and stops the process |
-| `src/app.js` | Creates Express and mounts routes |
-| `src/config/index.js` | Reads environment configuration |
-| `src/config/startup.js` | Starts database, storage, real-time, and scheduled services |
-| `src/config/supabase.js` | Creates the Supabase client |
-| `src/config/rbac.js` | Defines roles and permissions |
+| `src/server.ts` | Starts and stops the process |
+| `src/app.ts` | Creates Express and mounts routes |
+| `src/config/index.ts` | Reads environment configuration |
+| `src/config/startup.ts` | Starts database, storage, real-time, and scheduled services |
+| `src/config/supabase.ts` | Creates the Supabase client |
+| `src/config/rbac.ts` | Defines roles and permissions |
 | `src/routes/` | Defines URL paths and middleware |
 | `src/controllers/` | Converts HTTP data to service arguments |
 | `src/services/` | Applies business rules |
@@ -179,14 +180,14 @@ sequenceDiagram
 
 The application processes the request in these stages:
 
-1. `app.js` applies global middleware.
-2. `assetRouter.js` applies `requireAuth`.
-3. `assets.js` applies `authorize`.
+1. `app.ts` applies global middleware.
+2. `assetRouter.ts` applies `requireAuth`.
+3. `assets.ts` applies `authorize`.
 4. Multer parses the uploaded files.
 5. Joi validates the request body.
-6. `assetController.js` passes data to the service.
-7. `assetService.js` applies business and location rules.
-8. `assetRepository.js` writes the database row.
+6. `assetController.ts` passes data to the service.
+7. `assetService.ts` applies business and location rules.
+8. `assetRepository.ts` writes the database row.
 9. The model maps the returned row.
 10. The controller sends the response.
 
@@ -218,7 +219,7 @@ The backend supports these roles:
 | `super_admin` | All locations |
 
 The `authorize` middleware checks the requested action.
-The permission matrix is in `src/config/rbac.js`.
+The permission matrix is in `src/config/rbac.ts`.
 
 Services use location helpers for location-owned data.
 Repositories apply the result with `applyLocationScope`.
@@ -240,6 +241,9 @@ Read [Authentication Module](AUTHENTICATION_MODULE.md) for the token lifecycle.
 
 Use these conventions in new code:
 
+- Write TypeScript. Keep `.js` in import paths (`from "./x.js"`); the compiler resolves them to the `.ts` files.
+- Type a service method's actor as `Actor` and its request body with the input interface exported next to the Joi schema in `src/validators/`.
+- Read the actor and uploaded files in controllers with `getActor(req)` and `getUploadedFiles(req)` from `src/middleware/requestContext.ts`.
 - Use two spaces for indentation.
 - Use semicolons.
 - Use double quotation marks in JavaScript.
@@ -309,7 +313,7 @@ Add upload middleware before body validation when files are present.
 
 ### 8.6 Update the permission matrix
 
-Add a resource to `src/config/rbac.js` when necessary.
+Add a resource to `src/config/rbac.ts` when necessary.
 Define actions for both roles.
 Use `manage` only when the role permits every action.
 
@@ -363,7 +367,7 @@ Do not assume that a local SQL file exists in a fresh clone.
 Use a unit test for one service or helper:
 
 ```bash
-npx vitest run test/unit/services/assetLoan.service.test.js
+npx vitest run test/unit/services/assetLoan.service.test.ts
 ```
 
 Use a route test for an HTTP contract:
@@ -396,8 +400,8 @@ Production responses hide unknown error details.
 
 ### 10.3 Check startup failures
 
-Start at `src/server.js`.
-Then read `src/config/startup.js`.
+Start at `src/server.ts`.
+Then read `src/config/startup.ts`.
 
 Check these common causes:
 
@@ -469,21 +473,21 @@ Use one module document for a focused feature change.
 Read these files before your first large change:
 
 1. [`README.md`](../../../README.md)
-2. [`src/app.js`](../../app.js)
-3. [`src/server.js`](../../server.js)
-4. [`src/config/index.js`](../../config/index.js)
-5. [`src/middleware/rbac.js`](../../middleware/rbac.js)
-6. [`src/utils/locationScope.js`](../../utils/locationScope.js)
-7. [`src/repositories/repositoryHelpers.js`](../../repositories/repositoryHelpers.js)
+2. [`src/app.ts`](../../app.ts)
+3. [`src/server.ts`](../../server.ts)
+4. [`src/config/index.ts`](../../config/index.ts)
+5. [`src/middleware/rbac.ts`](../../middleware/rbac.ts)
+6. [`src/utils/locationScope.ts`](../../utils/locationScope.ts)
+7. [`src/repositories/repositoryHelpers.ts`](../../repositories/repositoryHelpers.ts)
 8. One complete route-to-repository flow
 9. [`AUTHENTICATION_MODULE.md`](AUTHENTICATION_MODULE.md)
 
 Use the asset module for the first complete flow:
 
 ```text
-src/routes/assets.js
-→ src/controllers/assetController.js
-→ src/services/assetService.js
-→ src/repositories/assetRepository.js
-→ src/models/assetModel.js
+src/routes/assets.ts
+→ src/controllers/assetController.ts
+→ src/services/assetService.ts
+→ src/repositories/assetRepository.ts
+→ src/models/assetModel.ts
 ```

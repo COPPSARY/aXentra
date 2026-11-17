@@ -346,11 +346,11 @@ Unexpected mapper or broadcast failures can reject its asynchronous task.
 
 ## 9. Tests
 
-- `test/unit/realtime/subscriber.test.js`
-- `test/unit/realtime/eventMapper.test.js`
-- `test/unit/realtime/eventAuthorizer.test.js`
-- `test/unit/realtime/sseHub.test.js`
-- `test/integration/routes/realtime.routes.test.js`
+- `test/unit/realtime/subscriber.test.ts`
+- `test/unit/realtime/eventMapper.test.ts`
+- `test/unit/realtime/eventAuthorizer.test.ts`
+- `test/unit/realtime/sseHub.test.ts`
+- `test/integration/routes/realtime.routes.test.ts`
 
 The subscriber tests cover registration, status logging, payload dispatch, and shutdown.
 
@@ -372,17 +372,17 @@ Route tests cover authentication, dashboard permission, and stream service argum
 
 | Function | File |
 |---|---|
-| Route | [`src/routes/realtime.js`](../../routes/realtime.js) |
-| Controller | [`src/controllers/realtimeController.js`](../../controllers/realtimeController.js) |
-| Service wiring | [`src/services/realtime/service.js`](../../services/realtime/service.js) |
-| Subscriber | [`src/services/realtime/subscriber.js`](../../services/realtime/subscriber.js) |
-| Event mapper | [`src/services/realtime/eventMapper.js`](../../services/realtime/eventMapper.js) |
-| Event authorization | [`src/services/realtime/eventAuthorizer.js`](../../services/realtime/eventAuthorizer.js) |
-| SSE hub | [`src/services/realtime/sseHub.js`](../../services/realtime/sseHub.js) |
-| Table configuration | [`src/services/realtime/tableConfig.js`](../../services/realtime/tableConfig.js) |
-| Supabase configuration | [`src/config/supabase.js`](../../config/supabase.js) |
-| Startup integration | [`src/config/startup.js`](../../config/startup.js) |
-| Authentication service | [`src/services/authService.js`](../../services/authService.js) |
-| User repository | [`src/repositories/userRepository.js`](../../repositories/userRepository.js) |
+| Route | [`src/routes/realtime.ts`](../../routes/realtime.ts) |
+| Controller | [`src/controllers/realtimeController.ts`](../../controllers/realtimeController.ts) |
+| Service wiring | [`src/services/realtime/service.ts`](../../services/realtime/service.ts) |
+| Subscriber | [`src/services/realtime/subscriber.ts`](../../services/realtime/subscriber.ts) |
+| Event mapper | [`src/services/realtime/eventMapper.ts`](../../services/realtime/eventMapper.ts) |
+| Event authorization | [`src/services/realtime/eventAuthorizer.ts`](../../services/realtime/eventAuthorizer.ts) |
+| SSE hub | [`src/services/realtime/sseHub.ts`](../../services/realtime/sseHub.ts) |
+| Table configuration | [`src/services/realtime/tableConfig.ts`](../../services/realtime/tableConfig.ts) |
+| Supabase configuration | [`src/config/supabase.ts`](../../config/supabase.ts) |
+| Startup integration | [`src/config/startup.ts`](../../config/startup.ts) |
+| Authentication service | [`src/services/authService.ts`](../../services/authService.ts) |
+| User repository | [`src/repositories/userRepository.ts`](../../repositories/userRepository.ts) |
 | Unit test folder | [`test/unit/realtime`](../../../test/unit/realtime) |
-| Route tests | [`test/integration/routes/realtime.routes.test.js`](../../../test/integration/routes/realtime.routes.test.js) |
+| Route tests | [`test/integration/routes/realtime.routes.test.ts`](../../../test/integration/routes/realtime.routes.test.ts) |

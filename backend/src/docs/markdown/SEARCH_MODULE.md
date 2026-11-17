@@ -231,8 +231,8 @@ The location helper returns `403` for an out-of-scope valid identifier.
 
 ## 9. Tests
 
-- `test/unit/services/search.service.test.js`
-- `test/integration/routes/search.routes.test.js`
+- `test/unit/services/search.service.test.ts`
+- `test/integration/routes/search.routes.test.ts`
 
 The service tests cover these cases:
 
@@ -254,13 +254,13 @@ The database function itself needs database-level tests outside these unit tests
 
 | Layer | File |
 |---|---|
-| Route | [`src/routes/search.js`](../../routes/search.js) |
-| Controller | [`src/controllers/searchController.js`](../../controllers/searchController.js) |
-| Service | [`src/services/searchService.js`](../../services/searchService.js) |
-| Repository | [`src/repositories/searchRepository.js`](../../repositories/searchRepository.js) |
-| Validator | [`src/validators/search.js`](../../validators/search.js) |
-| Query middleware | [`src/middleware/validate.js`](../../middleware/validate.js) |
-| Location scope | [`src/utils/locationScope.js`](../../utils/locationScope.js) |
-| Service tests | [`test/unit/services/search.service.test.js`](../../../test/unit/services/search.service.test.js) |
-| Route tests | [`test/integration/routes/search.routes.test.js`](../../../test/integration/routes/search.routes.test.js) |
+| Route | [`src/routes/search.ts`](../../routes/search.ts) |
+| Controller | [`src/controllers/searchController.ts`](../../controllers/searchController.ts) |
+| Service | [`src/services/searchService.ts`](../../services/searchService.ts) |
+| Repository | [`src/repositories/searchRepository.ts`](../../repositories/searchRepository.ts) |
+| Validator | [`src/validators/search.ts`](../../validators/search.ts) |
+| Query middleware | [`src/middleware/validate.ts`](../../middleware/validate.ts) |
+| Location scope | [`src/utils/locationScope.ts`](../../utils/locationScope.ts) |
+| Service tests | [`test/unit/services/search.service.test.ts`](../../../test/unit/services/search.service.test.ts) |
+| Route tests | [`test/integration/routes/search.routes.test.ts`](../../../test/integration/routes/search.routes.test.ts) |
 | Scope reference | [`LOCATION_SCOPE_MODULE.md`](LOCATION_SCOPE_MODULE.md) |

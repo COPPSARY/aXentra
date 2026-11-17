@@ -17,7 +17,7 @@ The service manages these resources:
 
 ## Architecture
 
-The service is a Node.js application with an Express API.
+The service is a Node.js application with an Express API, written in TypeScript.
 It uses Supabase for PostgreSQL data, object storage, and real-time events.
 
 ```mermaid
@@ -51,7 +51,8 @@ Storage and real-time services use the Supabase client directly.
 | Area | Technology |
 |---|---|
 | Runtime | Node.js 20 in the Docker image |
-| Module format | Native ECMAScript modules |
+| Language | TypeScript (strict), compiled to `dist/` with `tsc` |
+| Module format | Native ECMAScript modules (`.js` import suffixes) |
 | HTTP API | Express 4 |
 | Database | Supabase PostgreSQL |
 | Validation | Joi |
@@ -103,6 +104,8 @@ Use a database that contains the required project schema.
 npm run dev
 ```
 
+The development server runs the TypeScript source with `tsx` and restarts on change.
+
 ### 4. Check the service
 
 ```bash
@@ -133,7 +136,9 @@ The API documentation is not available in production mode.
 | Task | Command |
 |---|---|
 | Start development mode | `npm run dev` |
-| Start the server | `npm start` |
+| Compile to `dist/` | `npm run build` |
+| Start the compiled server | `npm start` |
+| Type-check without emitting | `npm run typecheck` |
 | Run all tests | `npm test` |
 | Run unit tests | `npm run test:unit` |
 | Run integration tests | `npm run test:integration` |
@@ -151,7 +156,7 @@ These aliases are also available:
 | `npm run tauth` | `npm run test:auth` |
 
 The package has no lint script.
-The package has no build script.
+`npm start` runs `dist/server.js`, so run `npm run build` first.
 The package has no database migration command.
 
 ## API areas
@@ -224,15 +229,18 @@ backend/
 │   ├── services/        Business rules and external services
 │   ├── utils/           Shared functions and error types
 │   ├── validators/      Joi schemas
-│   ├── app.js           Express application
-│   └── server.js        Process entry point
+│   ├── types/           Shared types (Actor, LocationScope) and Express augmentation
+│   ├── app.ts           Express application
+│   └── server.ts        Process entry point
 ├── test/
 │   ├── integration/     Route integration tests
 │   └── unit/            Unit tests
 ├── .env.example
 ├── Dockerfile
 ├── package.json
-└── vitest.config.js
+├── tsconfig.json        Type checking for src and test
+├── tsconfig.build.json  Build for src only, output in dist/
+└── vitest.config.ts
 ```
 
 ## Testing
@@ -246,7 +254,7 @@ They usually replace the service layer with mocks.
 Run one test file with this command:
 
 ```bash
-npx vitest run test/unit/services/auth.service.test.js
+npx vitest run test/unit/services/auth.service.test.ts
 ```
 
 Run one named test with this command:
@@ -272,7 +280,8 @@ It stops scheduled work and real-time subscriptions.
 It then closes the HTTP server.
 
 The Docker image uses Node.js 20.
-It installs production dependencies only.
+It builds the TypeScript in one stage and copies only `dist/` into the runtime stage.
+The runtime stage installs production dependencies only.
 It runs the process as the `node` user.
 
 ## Documentation

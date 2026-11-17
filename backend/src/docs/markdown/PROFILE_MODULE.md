@@ -250,8 +250,8 @@ profiles[]
 
 ## 9. Tests
 
-- `test/unit/services/profile.service.test.js`
-- `test/integration/routes/profiles.routes.test.js`
+- `test/unit/services/profile.service.test.ts`
+- `test/integration/routes/profiles.routes.test.ts`
 
 The service tests cover these cases:
 
@@ -270,14 +270,14 @@ The route tests cover authentication, RBAC, validation, status codes, and contro
 
 | Layer | File |
 |---|---|
-| Route | [`src/routes/profiles.js`](../../routes/profiles.js) |
-| Controller | [`src/controllers/profileController.js`](../../controllers/profileController.js) |
-| Service | [`src/services/profileService.js`](../../services/profileService.js) |
-| Repository | [`src/repositories/profileRepository.js`](../../repositories/profileRepository.js) |
-| Model | [`src/models/profileModel.js`](../../models/profileModel.js) |
-| Validator | [`src/validators/profile.js`](../../validators/profile.js) |
-| Location scope | [`src/utils/locationScope.js`](../../utils/locationScope.js) |
-| Pagination | [`src/utils/pagination.js`](../../utils/pagination.js) |
-| Update mapper | [`src/services/updateHelpers.js`](../../services/updateHelpers.js) |
-| Optimistic locking | [`src/utils/optimisticLocking.js`](../../utils/optimisticLocking.js) |
+| Route | [`src/routes/profiles.ts`](../../routes/profiles.ts) |
+| Controller | [`src/controllers/profileController.ts`](../../controllers/profileController.ts) |
+| Service | [`src/services/profileService.ts`](../../services/profileService.ts) |
+| Repository | [`src/repositories/profileRepository.ts`](../../repositories/profileRepository.ts) |
+| Model | [`src/models/profileModel.ts`](../../models/profileModel.ts) |
+| Validator | [`src/validators/profile.ts`](../../validators/profile.ts) |
+| Location scope | [`src/utils/locationScope.ts`](../../utils/locationScope.ts) |
+| Pagination | [`src/utils/pagination.ts`](../../utils/pagination.ts) |
+| Update mapper | [`src/services/updateHelpers.ts`](../../services/updateHelpers.ts) |
+| Optimistic locking | [`src/utils/optimisticLocking.ts`](../../utils/optimisticLocking.ts) |
 | Scope reference | [`LOCATION_SCOPE_MODULE.md`](LOCATION_SCOPE_MODULE.md) |
