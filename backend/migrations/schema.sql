@@ -928,6 +928,7 @@ CREATE INDEX IF NOT EXISTS idx_files_description_trgm
 -- search_location() RPC
 -- =========================================
 -- Ranks fuzzy matches across every resource within p_location_ids.
+-- A NULL list means "no location filter" (super admin); an empty array matches nothing.
 
 CREATE OR REPLACE FUNCTION public.search_location(
   p_query        text,
@@ -965,7 +966,7 @@ AS $$
         word_similarity(p_query, COALESCE(a.mac_address, ''))
       ) AS score
     FROM public.asset a
-    WHERE a.location_id = ANY(p_location_ids)
+    WHERE (p_location_ids IS NULL OR a.location_id = ANY(p_location_ids))
       AND (
         p_query <% a.asset_name
         OR p_query <% a.serial_number
@@ -988,7 +989,7 @@ AS $$
         word_similarity(p_query, COALESCE(p.department, ''))
       ) AS score
     FROM public.profile p
-    WHERE p.location_id = ANY(p_location_ids)
+    WHERE (p_location_ids IS NULL OR p.location_id = ANY(p_location_ids))
       AND (
         p_query <% p.full_name
         OR p_query <% p.phone
@@ -1009,7 +1010,7 @@ AS $$
         word_similarity(p_query, COALESCE(pr.manufacturer, ''))
       ) AS score
     FROM public.product pr
-    WHERE pr.location_id = ANY(p_location_ids)
+    WHERE (p_location_ids IS NULL OR pr.location_id = ANY(p_location_ids))
       AND (
         p_query <% pr.product_name
         OR p_query <% pr.manufacturer
@@ -1029,7 +1030,7 @@ AS $$
         word_similarity(p_query, COALESCE(sl.software_version, ''))
       ) AS score
     FROM public.software_license sl
-    WHERE sl.location_id = ANY(p_location_ids)
+    WHERE (p_location_ids IS NULL OR sl.location_id = ANY(p_location_ids))
       AND (
         p_query <% sl.software_name
         OR p_query <% sl.software_version
@@ -1046,7 +1047,7 @@ AS $$
       at.type_key        AS subtitle,
       word_similarity(p_query, at.name) AS score
     FROM public.asset_type at
-    WHERE at.location_id = ANY(p_location_ids)
+    WHERE (p_location_ids IS NULL OR at.location_id = ANY(p_location_ids))
       AND p_query <% at.name
     ORDER BY score DESC
     LIMIT p_limit
@@ -1063,7 +1064,7 @@ AS $$
         word_similarity(p_query, COALESCE(f.description, ''))
       ) AS score
     FROM public.files f
-    WHERE f.location_id = ANY(p_location_ids)
+    WHERE (p_location_ids IS NULL OR f.location_id = ANY(p_location_ids))
       AND (
         p_query <% f.file_label
         OR p_query <% f.description
