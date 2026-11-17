@@ -45,6 +45,15 @@ interface ListedUser {
  */
 type UserIdParam = string | number;
 
+/**
+ * Whether a route id names the acting user.
+ *
+ * Route ids are strings and the token's `userId` is a number, so a strict
+ * comparison is never true for a real request.
+ */
+const isSameUser = (userId: UserIdParam, actor: Pick<Actor, "userId">): boolean =>
+  String(userId) === String(actor.userId);
+
 const buildSystemEmail = (username: string): string => {
   const encoded = Buffer.from(username, "utf8").toString("hex");
   return `u${encoded}@local.user`;
@@ -403,7 +412,7 @@ export class UserService {
       }
       // Check if demoting from super_admin
       if (user.role === "super_admin" && payload.role !== "super_admin") {
-        if (userId === actor.userId) {
+        if (isSameUser(userId, actor)) {
           throw new ForbiddenError("Cannot demote your own account");
         }
         const superAdminCount = await UserRepository.countSuperAdmins();
@@ -482,7 +491,7 @@ export class UserService {
       throw new ForbiddenError("Only super admin can delete users");
     }
 
-    if (userId === actor.userId) {
+    if (isSameUser(userId, actor)) {
       throw new ForbiddenError("Cannot delete your own account");
     }
 

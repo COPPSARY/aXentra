@@ -277,6 +277,16 @@ describe("UserService", () => {
       );
     });
 
+    it("should throw error when deleting own account given a string route id", async () => {
+      // Express route params are strings; the token's userId is a number.
+      const actor = { userId: 1, role: "super_admin" } satisfies Actor;
+
+      await expect(UserService.deleteUser("1", actor)).rejects.toThrow(
+        new ForbiddenError("Cannot delete your own account")
+      );
+      expect(UserRepository.deleteUser).not.toHaveBeenCalled();
+    });
+
     it("should throw error when deleting the last super admin", async () => {
       const actor = { userId: 1, role: "super_admin" } satisfies Actor;
       stub(UserRepository.findUserById).mockResolvedValueOnce({
@@ -325,6 +335,22 @@ describe("UserService", () => {
       await expect(UserService.updateUser(1, payload, actor)).rejects.toThrow(
         new ForbiddenError("Cannot demote your own account")
       );
+    });
+
+    it("should throw error when demoting yourself given a string route id", async () => {
+      const actor = { userId: 1, role: "super_admin" } satisfies Actor;
+      stub(UserRepository.findUserById).mockResolvedValueOnce({
+        userId: 1,
+        username: "super-admin",
+        email: "super@admin.com",
+        role: "super_admin",
+      });
+      const payload = { role: "admin", version: 1 } satisfies UpdateUserInput;
+
+      await expect(UserService.updateUser("1", payload, actor)).rejects.toThrow(
+        new ForbiddenError("Cannot demote your own account")
+      );
+      expect(UserRepository.updateUser).not.toHaveBeenCalled();
     });
 
     it("should throw error when demoting the last super admin", async () => {
