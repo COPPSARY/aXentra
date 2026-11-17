@@ -254,8 +254,8 @@ Asset validation checks the product's type and location.
 
 ## 9. Tests
 
-- `test/unit/services/product.service.test.js`
-- `test/integration/routes/assets.routes.test.js`
+- `test/unit/services/product.service.test.ts`
+- `test/integration/routes/assets.routes.test.ts`
 
 The service tests cover these cases:
 
@@ -275,15 +275,15 @@ Route tests verify nested and item routes, permissions, validation, and response
 
 | Layer | File |
 |---|---|
-| Collection route | [`src/routes/assetTypeProducts.js`](../../routes/assetTypeProducts.js) |
-| Item route | [`src/routes/products.js`](../../routes/products.js) |
-| Controller | [`src/controllers/productController.js`](../../controllers/productController.js) |
-| Service | [`src/services/productService.js`](../../services/productService.js) |
-| Repository | [`src/repositories/productRepository.js`](../../repositories/productRepository.js) |
-| Model | [`src/models/productModel.js`](../../models/productModel.js) |
-| Validator | [`src/validators/product.js`](../../validators/product.js) |
-| Parent repository | [`src/repositories/assetTypeRepository.js`](../../repositories/assetTypeRepository.js) |
-| Update mapper | [`src/services/updateHelpers.js`](../../services/updateHelpers.js) |
-| Optimistic locking | [`src/utils/optimisticLocking.js`](../../utils/optimisticLocking.js) |
+| Collection route | [`src/routes/assetTypeProducts.ts`](../../routes/assetTypeProducts.ts) |
+| Item route | [`src/routes/products.ts`](../../routes/products.ts) |
+| Controller | [`src/controllers/productController.ts`](../../controllers/productController.ts) |
+| Service | [`src/services/productService.ts`](../../services/productService.ts) |
+| Repository | [`src/repositories/productRepository.ts`](../../repositories/productRepository.ts) |
+| Model | [`src/models/productModel.ts`](../../models/productModel.ts) |
+| Validator | [`src/validators/product.ts`](../../validators/product.ts) |
+| Parent repository | [`src/repositories/assetTypeRepository.ts`](../../repositories/assetTypeRepository.ts) |
+| Update mapper | [`src/services/updateHelpers.ts`](../../services/updateHelpers.ts) |
+| Optimistic locking | [`src/utils/optimisticLocking.ts`](../../utils/optimisticLocking.ts) |
 | Parent reference | [`ASSET_TYPE_MODULE.md`](ASSET_TYPE_MODULE.md) |
 | Asset reference | [`ASSET_MODULE.md`](ASSET_MODULE.md) |

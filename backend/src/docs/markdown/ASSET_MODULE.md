@@ -421,9 +421,9 @@ assignments[]
 
 ## 9. Tests
 
-- `test/unit/services/assets.service.test.js`
-- `test/integration/routes/assets.routes.test.js`
-- `test/unit/services/storage.service.test.js`
+- `test/unit/services/assets.service.test.ts`
+- `test/integration/routes/assets.routes.test.ts`
+- `test/unit/services/storage.service.test.ts`
 
 The asset service tests cover these cases:
 
@@ -444,19 +444,19 @@ Route tests cover authentication, permission checks, multipart input, validation
 
 | Layer | File |
 |---|---|
-| Parent route | [`src/routes/assetRouter.js`](../../routes/assetRouter.js) |
-| Asset routes | [`src/routes/assets.js`](../../routes/assets.js) |
-| Controller | [`src/controllers/assetController.js`](../../controllers/assetController.js) |
-| Service | [`src/services/assetService.js`](../../services/assetService.js) |
-| Repository | [`src/repositories/assetRepository.js`](../../repositories/assetRepository.js) |
-| Model | [`src/models/assetModel.js`](../../models/assetModel.js) |
-| Validator | [`src/validators/asset.js`](../../validators/asset.js) |
-| Upload middleware | [`src/middleware/upload.js`](../../middleware/upload.js) |
-| Image utility | [`src/utils/imageBundle.js`](../../utils/imageBundle.js) |
-| Storage service | [`src/services/storageService.js`](../../services/storageService.js) |
-| Validation utility | [`src/utils/assetValidation.js`](../../utils/assetValidation.js) |
-| Loan item repository | [`src/repositories/assetLoanItemRepository.js`](../../repositories/assetLoanItemRepository.js) |
-| License assignment repository | [`src/repositories/licenseLinkAssetRepository.js`](../../repositories/licenseLinkAssetRepository.js) |
+| Parent route | [`src/routes/assetRouter.ts`](../../routes/assetRouter.ts) |
+| Asset routes | [`src/routes/assets.ts`](../../routes/assets.ts) |
+| Controller | [`src/controllers/assetController.ts`](../../controllers/assetController.ts) |
+| Service | [`src/services/assetService.ts`](../../services/assetService.ts) |
+| Repository | [`src/repositories/assetRepository.ts`](../../repositories/assetRepository.ts) |
+| Model | [`src/models/assetModel.ts`](../../models/assetModel.ts) |
+| Validator | [`src/validators/asset.ts`](../../validators/asset.ts) |
+| Upload middleware | [`src/middleware/upload.ts`](../../middleware/upload.ts) |
+| Image utility | [`src/utils/imageBundle.ts`](../../utils/imageBundle.ts) |
+| Storage service | [`src/services/storageService.ts`](../../services/storageService.ts) |
+| Validation utility | [`src/utils/assetValidation.ts`](../../utils/assetValidation.ts) |
+| Loan item repository | [`src/repositories/assetLoanItemRepository.ts`](../../repositories/assetLoanItemRepository.ts) |
+| License assignment repository | [`src/repositories/licenseLinkAssetRepository.ts`](../../repositories/licenseLinkAssetRepository.ts) |
 | Scope reference | [`LOCATION_SCOPE_MODULE.md`](LOCATION_SCOPE_MODULE.md) |
 | Specification reference | [`ASSET_SPECIFICATION_VALUE_MODULE.md`](ASSET_SPECIFICATION_VALUE_MODULE.md) |
 | File reference | [`FILE_MODULE.md`](FILE_MODULE.md) |

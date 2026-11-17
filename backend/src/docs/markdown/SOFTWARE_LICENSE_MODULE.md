@@ -394,9 +394,9 @@ Assignment responses use standard pagination and `assignments[]`.
 
 ## 9. Tests
 
-- `test/unit/services/softwareLicense.service.test.js`
-- `test/unit/models/licenseLinkAsset.model.test.js`
-- `test/integration/routes/softwareLicenses.routes.test.js`
+- `test/unit/services/softwareLicense.service.test.ts`
+- `test/unit/models/licenseLinkAsset.model.test.ts`
+- `test/integration/routes/softwareLicenses.routes.test.ts`
 
 The service tests cover these cases:
 
@@ -418,17 +418,17 @@ Route tests verify authentication, permissions, multipart validation, and status
 
 | Layer | File |
 |---|---|
-| Route | [`src/routes/softwareLicenses.js`](../../routes/softwareLicenses.js) |
-| Controller | [`src/controllers/softwareLicenseController.js`](../../controllers/softwareLicenseController.js) |
-| Service | [`src/services/softwareLicenseService.js`](../../services/softwareLicenseService.js) |
-| License repository | [`src/repositories/softwareLicenseRepository.js`](../../repositories/softwareLicenseRepository.js) |
-| Assignment repository | [`src/repositories/licenseLinkAssetRepository.js`](../../repositories/licenseLinkAssetRepository.js) |
-| License model | [`src/models/softwareLicenseModel.js`](../../models/softwareLicenseModel.js) |
-| Assignment model | [`src/models/licenseLinkAssetModel.js`](../../models/licenseLinkAssetModel.js) |
-| Validator | [`src/validators/softwareLicense.js`](../../validators/softwareLicense.js) |
-| Asset repository | [`src/repositories/assetRepository.js`](../../repositories/assetRepository.js) |
-| File repository | [`src/repositories/fileRepository.js`](../../repositories/fileRepository.js) |
-| Storage service | [`src/services/storageService.js`](../../services/storageService.js) |
-| Image helpers | [`src/utils/imageBundle.js`](../../utils/imageBundle.js) |
-| Constants | [`src/utils/constants.js`](../../utils/constants.js) |
+| Route | [`src/routes/softwareLicenses.ts`](../../routes/softwareLicenses.ts) |
+| Controller | [`src/controllers/softwareLicenseController.ts`](../../controllers/softwareLicenseController.ts) |
+| Service | [`src/services/softwareLicenseService.ts`](../../services/softwareLicenseService.ts) |
+| License repository | [`src/repositories/softwareLicenseRepository.ts`](../../repositories/softwareLicenseRepository.ts) |
+| Assignment repository | [`src/repositories/licenseLinkAssetRepository.ts`](../../repositories/licenseLinkAssetRepository.ts) |
+| License model | [`src/models/softwareLicenseModel.ts`](../../models/softwareLicenseModel.ts) |
+| Assignment model | [`src/models/licenseLinkAssetModel.ts`](../../models/licenseLinkAssetModel.ts) |
+| Validator | [`src/validators/softwareLicense.ts`](../../validators/softwareLicense.ts) |
+| Asset repository | [`src/repositories/assetRepository.ts`](../../repositories/assetRepository.ts) |
+| File repository | [`src/repositories/fileRepository.ts`](../../repositories/fileRepository.ts) |
+| Storage service | [`src/services/storageService.ts`](../../services/storageService.ts) |
+| Image helpers | [`src/utils/imageBundle.ts`](../../utils/imageBundle.ts) |
+| Constants | [`src/utils/constants.ts`](../../utils/constants.ts) |
 | Storage reference | [`STORAGE_MODULE.md`](STORAGE_MODULE.md) |

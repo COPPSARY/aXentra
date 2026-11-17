@@ -508,8 +508,8 @@ Item arrays use ascending item identifier order.
 
 ## 9. Tests
 
-- `test/unit/services/assetLoan.service.test.js`
-- `test/integration/routes/assetLoans.routes.test.js`
+- `test/unit/services/assetLoan.service.test.ts`
+- `test/integration/routes/assetLoans.routes.test.ts`
 
 The service tests cover these cases:
 
@@ -533,18 +533,18 @@ Route tests cover public-route order, authentication, permissions, validation, a
 
 | Layer | File |
 |---|---|
-| Route | [`src/routes/assetLoans.js`](../../routes/assetLoans.js) |
-| Controller | [`src/controllers/assetLoanController.js`](../../controllers/assetLoanController.js) |
-| Service | [`src/services/assetLoanService.js`](../../services/assetLoanService.js) |
-| Loan repository | [`src/repositories/assetLoanRepository.js`](../../repositories/assetLoanRepository.js) |
-| Item repository | [`src/repositories/assetLoanItemRepository.js`](../../repositories/assetLoanItemRepository.js) |
-| History repository | [`src/repositories/assetLoanExtensionHistoryRepository.js`](../../repositories/assetLoanExtensionHistoryRepository.js) |
-| Loan model | [`src/models/assetLoanModel.js`](../../models/assetLoanModel.js) |
-| Item model | [`src/models/assetLoanItemModel.js`](../../models/assetLoanItemModel.js) |
-| History model | [`src/models/assetLoanExtensionHistoryModel.js`](../../models/assetLoanExtensionHistoryModel.js) |
-| Validator | [`src/validators/assetLoan.js`](../../validators/assetLoan.js) |
-| Asset repository | [`src/repositories/assetRepository.js`](../../repositories/assetRepository.js) |
-| Profile repository | [`src/repositories/profileRepository.js`](../../repositories/profileRepository.js) |
-| Token utility | [`src/utils/crypto.js`](../../utils/crypto.js) |
-| Status constants | [`src/utils/constants.js`](../../utils/constants.js) |
+| Route | [`src/routes/assetLoans.ts`](../../routes/assetLoans.ts) |
+| Controller | [`src/controllers/assetLoanController.ts`](../../controllers/assetLoanController.ts) |
+| Service | [`src/services/assetLoanService.ts`](../../services/assetLoanService.ts) |
+| Loan repository | [`src/repositories/assetLoanRepository.ts`](../../repositories/assetLoanRepository.ts) |
+| Item repository | [`src/repositories/assetLoanItemRepository.ts`](../../repositories/assetLoanItemRepository.ts) |
+| History repository | [`src/repositories/assetLoanExtensionHistoryRepository.ts`](../../repositories/assetLoanExtensionHistoryRepository.ts) |
+| Loan model | [`src/models/assetLoanModel.ts`](../../models/assetLoanModel.ts) |
+| Item model | [`src/models/assetLoanItemModel.ts`](../../models/assetLoanItemModel.ts) |
+| History model | [`src/models/assetLoanExtensionHistoryModel.ts`](../../models/assetLoanExtensionHistoryModel.ts) |
+| Validator | [`src/validators/assetLoan.ts`](../../validators/assetLoan.ts) |
+| Asset repository | [`src/repositories/assetRepository.ts`](../../repositories/assetRepository.ts) |
+| Profile repository | [`src/repositories/profileRepository.ts`](../../repositories/profileRepository.ts) |
+| Token utility | [`src/utils/crypto.ts`](../../utils/crypto.ts) |
+| Status constants | [`src/utils/constants.ts`](../../utils/constants.ts) |
 | Scheduler reference | [`OVERDUE_LOAN_SCHEDULER_MODULE.md`](OVERDUE_LOAN_SCHEDULER_MODULE.md) |

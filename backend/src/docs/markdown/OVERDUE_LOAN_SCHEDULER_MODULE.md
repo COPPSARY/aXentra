@@ -205,7 +205,7 @@ The startup path does rethrow through the awaited call.
 
 ## 9. Tests
 
-- `test/unit/services/assetLoanOverdueCron.service.test.js`
+- `test/unit/services/assetLoanOverdueCron.service.test.ts`
 
 The tests cover these cases:
 
@@ -226,10 +226,10 @@ Loan service tests separately verify effective overdue response behavior.
 
 | Function | File |
 |---|---|
-| Scheduler | [`src/services/assetLoanOverdueCronService.js`](../../services/assetLoanOverdueCronService.js) |
-| Repository update | [`src/repositories/assetLoanRepository.js`](../../repositories/assetLoanRepository.js) |
-| Startup integration | [`src/config/startup.js`](../../config/startup.js) |
-| Configuration | [`src/config/index.js`](../../config/index.js) |
-| Logger | [`src/utils/logger.js`](../../utils/logger.js) |
-| Tests | [`test/unit/services/assetLoanOverdueCron.service.test.js`](../../../test/unit/services/assetLoanOverdueCron.service.test.js) |
+| Scheduler | [`src/services/assetLoanOverdueCronService.ts`](../../services/assetLoanOverdueCronService.ts) |
+| Repository update | [`src/repositories/assetLoanRepository.ts`](../../repositories/assetLoanRepository.ts) |
+| Startup integration | [`src/config/startup.ts`](../../config/startup.ts) |
+| Configuration | [`src/config/index.ts`](../../config/index.ts) |
+| Logger | [`src/utils/logger.ts`](../../utils/logger.ts) |
+| Tests | [`test/unit/services/assetLoanOverdueCron.service.test.ts`](../../../test/unit/services/assetLoanOverdueCron.service.test.ts) |
 | Loan reference | [`ASSET_LOAN_MODULE.md`](ASSET_LOAN_MODULE.md) |

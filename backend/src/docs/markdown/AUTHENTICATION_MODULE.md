@@ -401,8 +401,8 @@ The service suppresses email-delivery errors after it logs them.
 
 ## 9. Tests
 
-- `test/unit/services/auth.service.test.js`
-- `test/integration/routes/auth.routes.test.js`
+- `test/unit/services/auth.service.test.ts`
+- `test/integration/routes/auth.routes.test.ts`
 
 The service tests cover these cases:
 
@@ -429,19 +429,19 @@ The route tests cover these cases:
 
 | Layer | File |
 |---|---|
-| Route | [`src/routes/auth.js`](../../routes/auth.js) |
-| Controller | [`src/controllers/authController.js`](../../controllers/authController.js) |
-| Service | [`src/services/authService.js`](../../services/authService.js) |
-| Token repository | [`src/repositories/authRepository.js`](../../repositories/authRepository.js) |
-| User repository | [`src/repositories/userRepository.js`](../../repositories/userRepository.js) |
-| Token model | [`src/models/authTokenModel.js`](../../models/authTokenModel.js) |
-| User model | [`src/models/userModel.js`](../../models/userModel.js) |
-| Validator | [`src/validators/auth.js`](../../validators/auth.js) |
-| Password validator | [`src/validators/password.js`](../../validators/password.js) |
-| Authentication middleware | [`src/middleware/rbac.js`](../../middleware/rbac.js) |
-| Rate limiter | [`src/middleware/rateLimiter.js`](../../middleware/rateLimiter.js) |
-| JWT functions | [`src/utils/jwt.js`](../../utils/jwt.js) |
-| Token functions | [`src/utils/crypto.js`](../../utils/crypto.js) |
-| Configuration | [`src/config/index.js`](../../config/index.js) |
-| Email service | [`src/services/emailService.js`](../../services/emailService.js) |
-| Realtime service | [`src/services/realtime/service.js`](../../services/realtime/service.js) |
+| Route | [`src/routes/auth.ts`](../../routes/auth.ts) |
+| Controller | [`src/controllers/authController.ts`](../../controllers/authController.ts) |
+| Service | [`src/services/authService.ts`](../../services/authService.ts) |
+| Token repository | [`src/repositories/authRepository.ts`](../../repositories/authRepository.ts) |
+| User repository | [`src/repositories/userRepository.ts`](../../repositories/userRepository.ts) |
+| Token model | [`src/models/authTokenModel.ts`](../../models/authTokenModel.ts) |
+| User model | [`src/models/userModel.ts`](../../models/userModel.ts) |
+| Validator | [`src/validators/auth.ts`](../../validators/auth.ts) |
+| Password validator | [`src/validators/password.ts`](../../validators/password.ts) |
+| Authentication middleware | [`src/middleware/rbac.ts`](../../middleware/rbac.ts) |
+| Rate limiter | [`src/middleware/rateLimiter.ts`](../../middleware/rateLimiter.ts) |
+| JWT functions | [`src/utils/jwt.ts`](../../utils/jwt.ts) |
+| Token functions | [`src/utils/crypto.ts`](../../utils/crypto.ts) |
+| Configuration | [`src/config/index.ts`](../../config/index.ts) |
+| Email service | [`src/services/emailService.ts`](../../services/emailService.ts) |
+| Realtime service | [`src/services/realtime/service.ts`](../../services/realtime/service.ts) |
