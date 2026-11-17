@@ -9,10 +9,11 @@ import {
   AssetGridRecord,
   AssetViewMode,
 } from '../../models/asset-view.models';
+import { AppButtonDirective } from '../../../../shared/components/app-button/app-button.directive';
 
 @Component({
   selector: 'app-asset-grid',
-  imports: [AssetGridCardComponent, RouterLink],
+  imports: [AppButtonDirective, AssetGridCardComponent, RouterLink],
   templateUrl: './asset-grid.component.html',
   styleUrl: './asset-grid.component.css',
 })

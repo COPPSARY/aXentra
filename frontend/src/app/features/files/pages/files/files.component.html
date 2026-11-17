@@ -2,7 +2,7 @@
   <app-sidebar />
   <app-mobile-tabbar />
 
-  <div class="lg:pl-60">
+  <div class="app-shell-offset">
     <app-topbar
       [displayName]="displayName()"
       [role]="role()"
@@ -216,8 +216,8 @@
                     </div>
                   </div>
 
-                  <button
-                    class="row-action files-preview-action"
+                  <button appButton="ghost" size="sm" iconOnly
+                    class="files-preview-action"
                     type="button"
                     [attr.aria-label]="
                       isAlbumFile(item)
@@ -260,8 +260,7 @@
                     class="files-action-cell"
                     (click)="$event.stopPropagation()"
                   >
-                    <button
-                      class="row-action"
+                    <button appButton="ghost" size="sm" iconOnly
                       type="button"
                       aria-label="Open file actions"
                       aria-haspopup="menu"
@@ -407,16 +406,14 @@
         </div>
 
         <footer class="files-assign-modal-footer">
-          <button
-            class="files-modal-cancel"
+          <button appButton="secondary"
             type="button"
             [disabled]="isRenaming()"
             (click)="closeRenameModal()"
           >
             Cancel
           </button>
-          <button
-            class="files-modal-save"
+          <button appButton
             type="button"
             [disabled]="isRenaming() || !renameDraft().trim()"
             (click)="submitRename()"
@@ -561,9 +558,9 @@
                     </p>
                   </div>
 
-                  <button
+                  <button appButton="secondary" size="sm"
                     type="button"
-                    class="inline-flex min-h-[36px] items-center justify-center rounded-[8px] border border-(--gray-300) bg-white px-3 text-[13px] font-bold text-(--gray-700) transition-[border-color,color,background-color] duration-150 hover:border-(--gray-300) hover:bg-(--gray-50) hover:text-(--gray-900) focus-visible:border-(--gray-300) focus-visible:bg-(--gray-50) focus-visible:text-(--gray-900) focus-visible:outline-none"
+                   
                     (click)="
                       $event.stopPropagation(); openAlbumPreviewItem(item)
                     "
@@ -577,8 +574,7 @@
         </div>
 
         <footer class="files-upload-preview-footer">
-          <button
-            class="files-modal-cancel"
+          <button appButton="secondary"
             type="button"
             (click)="closeAlbumPreview()"
           >
@@ -730,8 +726,8 @@
                   multiple
                   (change)="onAppendUploadSelection($event, detailFile)"
                 />
-                <button
-                  class="files-modal-save inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap px-3"
+                <button appButton
+                  class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap px-3"
                   type="button"
                   [disabled]="isUploading()"
                   (click)="triggerUpload(appendFilePicker)"
@@ -988,24 +984,24 @@
                   </div>
 
                   <div class="mt-3 flex flex-wrap gap-[10px]">
-                    <button
+                    <button appButton size="sm"
                       type="button"
-                      class="inline-flex min-h-[36px] items-center justify-center rounded-[8px] border border-(--accent) bg-(--accent) px-3 text-[13px] font-bold text-white transition-[border-color,color,background-color] duration-150 hover:border-(--accent-hover) hover:bg-(--accent-hover) focus-visible:border-(--accent-hover) focus-visible:bg-(--accent-hover) focus-visible:outline-none"
+                     
                       (click)="openSelectedDetailItem()"
                     >
                       Open
                     </button>
-                    <button
+                    <button appButton="secondary" size="sm"
                       type="button"
-                      class="inline-flex min-h-[36px] items-center justify-center rounded-[8px] border border-(--gray-300) bg-white px-3 text-[13px] font-bold text-(--gray-700) transition-[border-color,color,background-color] duration-150 hover:border-(--gray-300) hover:bg-(--gray-50) hover:text-(--gray-900) focus-visible:border-(--gray-300) focus-visible:bg-(--gray-50) focus-visible:text-(--gray-900) focus-visible:outline-none"
+                     
                       (click)="downloadSelectedDetailItem()"
                     >
                       Download
                     </button>
                     @if (isDetailAlbumItemRemovable(selectedItem)) {
-                      <button
+                      <button appButton="danger" size="sm"
                         type="button"
-                        class="inline-flex min-h-[36px] min-w-[40px] items-center justify-center rounded-[8px] border text-[13px] font-bold border-(--status-error-text) bg-(--status-error-text) px-3 text-white transition-[border-color,background-color] duration-150 hover:border-(--status-error-text) hover:bg-(--status-error-text) focus-visible:border-(--status-error-text) focus-visible:bg-(--status-error-text) focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                       
                         aria-label="Remove file item"
                         [disabled]="isRemovingAlbumItems()"
                         (click)="openDetailAlbumRemoval(selectedItem)"
@@ -1205,8 +1201,7 @@
         </div>
 
         <footer class="files-assign-modal-footer">
-          <button
-            class="files-modal-cancel"
+          <button appButton="secondary"
             type="button"
             (click)="closeDetailModal()"
           >
@@ -1393,8 +1388,7 @@
                   }
                 </div>
 
-                <button
-                  class="files-upload-preview-remove"
+                <button appButton="ghost" size="sm"
                   type="button"
                   (click)="removePendingUpload($index)"
                   [attr.aria-label]="'Remove ' + item.file.name"
@@ -1407,16 +1401,14 @@
         </div>
 
         <footer class="files-upload-preview-footer">
-          <button
-            class="files-modal-cancel"
+          <button appButton="secondary"
             type="button"
             [disabled]="isUploading()"
             (click)="closeUploadPreview()"
           >
             Cancel
           </button>
-          <button
-            class="files-modal-save"
+          <button appButton
             type="button"
             [disabled]="
               isUploading() ||
@@ -1736,16 +1728,14 @@
         </div>
 
         <footer class="files-assign-modal-footer">
-          <button
-            class="files-modal-cancel"
+          <button appButton="secondary"
             type="button"
             [disabled]="isSavingAssignment()"
             (click)="closeAssignmentModal()"
           >
             Cancel
           </button>
-          <button
-            class="files-modal-save"
+          <button appButton
             type="button"
             [disabled]="isAssignmentSaveDisabled()"
             (click)="saveAssignment()"

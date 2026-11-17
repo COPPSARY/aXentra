@@ -48,6 +48,7 @@ import {
   SoftwareLicenseRecord,
   SoftwareLicensesApiService,
 } from '../../../licenses/services/software-licenses-api.service';
+import { AppButtonDirective } from '../../../../shared/components/app-button/app-button.directive';
 
 type FileFilter =
   | 'all'
@@ -123,7 +124,7 @@ const SUPPORTED_FILE_MIME_TYPES = new Set([
 ]);
 
 @Component({
-  imports: [
+  imports: [AppButtonDirective, 
     AppLoadingComponent,
     AppPaginationComponent,
     AppSelectComponent,

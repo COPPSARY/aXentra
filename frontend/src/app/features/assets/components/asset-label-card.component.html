@@ -1,7 +1,7 @@
 <section class="asset-label-card" aria-label="Asset label">
   @if (barcode) {
     <div class="tag-row">
-      <button type="button" class="print-action" (click)="openPrintDialog()">
+      <button appButton="secondary" size="sm" type="button" (click)="openPrintDialog()">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
             d="M7 9V4h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7v-6Z"
@@ -29,9 +29,8 @@
       </div>
 
       <div class="copy-control">
-        <button
+        <button appButton="secondary" size="sm"
           type="button"
-          class="copy-action"
           [disabled]="isCopying()"
           (click)="copyLabelImage()"
         >

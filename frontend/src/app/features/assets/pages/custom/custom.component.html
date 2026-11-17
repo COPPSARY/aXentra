@@ -5,7 +5,7 @@
   <app-sidebar />
   <app-mobile-tabbar />
 
-  <div class="lg:pl-60">
+  <div class="app-shell-offset">
     <app-topbar
       [displayName]="displayName()"
       [role]="role()"
@@ -22,19 +22,8 @@
             </div>
 
             @if (canManageCustom()) {
-              <button
-                class="primary-action shrink-0"
-                type="button"
-                (click)="startCreateAssetType()"
-              >
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="M12 5v14M5 12h14"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  />
-                </svg>
+              <button appButton class="shrink-0" type="button" (click)="startCreateAssetType()">
+                <svg lucidePlus aria-hidden="true"></svg>
                 New type
               </button>
             }
@@ -53,126 +42,600 @@
           <div class="page-state page-state-error app-motion-enter mt-6">
             {{ loadError() }}
           </div>
+        } @else if (assetTypes().length === 0) {
+          <div class="ct-empty-page app-motion-enter mt-6">
+            <p>No asset types yet.</p>
+            @if (canManageCustom()) {
+              <button appButton="secondary" type="button" (click)="startCreateAssetType()">
+                <svg lucidePlus aria-hidden="true"></svg>
+                New type
+              </button>
+            }
+          </div>
         } @else {
-          @if (isTypeFormOpen()) {
-            <form
-              class="form-panel app-motion-enter app-motion-delay-1 mt-6"
-              (ngSubmit)="saveAssetType()"
-            >
-              <div class="form-section form-section-single">
-                <div class="section-label">
-                  <h2>
-                    {{ editingAssetTypeId() ? "Edit asset type" : "Create asset type" }}
-                  </h2>
-                  <p>
-                    {{
-                      editingAssetTypeId()
-                        ? "Update the selected asset type settings."
-                        : "Add a new asset type to organize inventory."
-                    }}
-                  </p>
-                </div>
+          <div class="ct-layout app-motion-enter mt-6" [class.ct-layout-detail]="mobileShowsDetail()">
+            <!-- Type list -->
+            <aside class="ct-list" aria-label="Asset types">
+              <label class="ct-search">
+                <svg lucideSearch aria-hidden="true"></svg>
+                <span class="sr-only">Search types</span>
+                <input
+                  type="search"
+                  placeholder="Search types"
+                  [ngModel]="typeSearch()"
+                  (ngModelChange)="typeSearch.set($event)"
+                />
+              </label>
 
-                <div class="section-fields">
-                  @if (isPreparingTypeForm()) {
-                    <app-loading
-                      variant="inline"
-                      message="Loading asset type..."
-                      ariaLabel="Loading asset type"
-                    />
-                  } @else {
-                    <div class="field-grid">
-                      <label class="form-field">
-                        <span>Asset Type Name <span class="required-mark">*</span></span>
-                        <input
-                          name="assetTypeName"
-                          [(ngModel)]="assetTypeForm.name"
-                          placeholder="Laptop, Router, Lab Kit"
-                        />
-                      </label>
+              @if (filteredAssetTypes().length === 0) {
+                <p class="ct-list-empty">
+                  No types match "{{ typeSearch() }}".
+                  <button appButton="ghost" size="sm" type="button" (click)="typeSearch.set('')">Clear</button>
+                </p>
+              } @else {
+                <ul class="ct-list-items">
+                  @for (assetType of filteredAssetTypes(); track assetType.assetType.assetTypeId) {
+                    <li>
+                      <button
+                        type="button"
+                        class="ct-list-row"
+                        [class.ct-list-row-active]="selectedAssetTypeId() === assetType.assetType.assetTypeId"
+                        [attr.aria-current]="selectedAssetTypeId() === assetType.assetType.assetTypeId ? 'true' : null"
+                        (click)="chooseAssetType(assetType.assetType.assetTypeId)"
+                      >
+                        <ng-container *ngTemplateOutlet="typeIcon; context: { $implicit: assetType }" />
+                        <span class="ct-list-copy">
+                          <span class="ct-list-name">{{ assetType.assetType.name }}</span>
+                          <span class="ct-list-meta tabular">
+                            {{ assetTypeAssetsLabel(assetType.totalItems) }} ·
+                            {{ assetTypeFieldLabel(assetType.assetType.assetTypeId) }} ·
+                            {{ assetTypeProductLabel(assetType.assetType.assetTypeId) }}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </aside>
 
-                      <label class="form-field">
-                        <span>Barcode Prefix</span>
-                        <input
-                          name="assetTypeBarcodePrefix"
-                          [ngModel]="assetTypeForm.barcodePrefix"
-                          maxlength="24"
-                          placeholder="AXENTRA"
-                          (ngModelChange)="handleAssetTypeBarcodePrefixChange($event)"
-                        />
-                        <small class="field-hint">
-                          Stored in this browser for now. Leave
-                          <span class="font-semibold text-(--gray-700)">AXENTRA</span>
-                          as-is to keep the default.
-                        </small>
-                      </label>
+            <!-- Detail panel -->
+            @if (selectedAssetType(); as assetType) {
+              <section class="ct-panel" [attr.aria-label]="assetType.assetType.name">
+                <button type="button" class="ct-back" (click)="showTypeList()">
+                  <svg lucideArrowLeft aria-hidden="true"></svg>
+                  All types
+                </button>
+
+                <header class="ct-panel-head">
+                  <ng-container *ngTemplateOutlet="typeIcon; context: { $implicit: assetType }" />
+                  <div class="ct-panel-title">
+                    <h2>{{ assetType.assetType.name }}</h2>
+                    <a class="ct-view-assets" [routerLink]="['/assets/types', assetType.assetType.assetTypeId]">
+                      {{ assetTypeAssetsLabel(assetType.totalItems) }} · View assets →
+                    </a>
+                  </div>
+
+                  @if (canManageCustom()) {
+                    <div class="menu-shell" (click)="$event.stopPropagation()">
+                      <button appButton="ghost" size="sm" iconOnly
+                        type="button"
+                        aria-label="Type actions"
+                        [attr.aria-expanded]="isActionMenuOpen('assetType', assetType.assetType.assetTypeId)"
+                        (click)="toggleActionMenu({ kind: 'assetType', assetTypeId: assetType.assetType.assetTypeId }, $event)"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 6.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM12 13.25a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM12 19.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z" fill="currentColor" />
+              </svg>
+                      </button>
+                      @if (isActionMenuOpen('assetType', assetType.assetType.assetTypeId)) {
+                        <div class="action-menu-panel">
+                          <button class="action-menu-item" type="button" (click)="startEditAssetType(assetType)">
+                            Edit type
+                          </button>
+                          <button class="action-menu-item action-menu-item-danger" type="button" (click)="confirmDeleteAssetType(assetType)">
+                            Delete type
+                          </button>
+                        </div>
+                      }
                     </div>
                   }
+                </header>
 
-                  @if (assetTypeFormError()) {
-                    <p class="form-error">{{ assetTypeFormError() }}</p>
+                <!-- Fields -->
+                <section class="ct-section" aria-labelledby="ct-fields-title">
+                  <div class="ct-section-head">
+                    <h3 id="ct-fields-title">
+                      <svg lucideListChecks class="ct-section-icon" aria-hidden="true"></svg>
+                      Fields <span class="ct-count tabular">{{ fields().length }}</span>
+                    </h3>
+                    <span
+                      class="ct-grid-note tabular"
+                      [attr.aria-busy]="isGridFieldConfigLoading() || isSavingGridFieldConfig()"
+                    >
+                      @if (isGridFieldConfigLoading()) {
+                        Loading grid settings…
+                      } @else if (isSavingGridFieldConfig()) {
+                        Saving…
+                      } @else {
+                        <strong>{{ gridFieldIds().length }} of {{ gridFieldLimit }}</strong> shown in the asset grid
+                      }
+                    </span>
+                    @if (canManageCustom()) {
+                      <button appButton="secondary" size="sm"
+                        class="ct-add-toggle"
+                        type="button"
+                        [attr.aria-expanded]="isFieldFormOpen() && !editingFieldId()"
+                        (click)="toggleFieldComposer()"
+                      >
+                        <svg lucidePlus aria-hidden="true"></svg>
+                        {{ isFieldFormOpen() && !editingFieldId() ? 'Cancel' : 'Add field' }}
+                      </button>
+                    }
+                  </div>
+
+                  @if (gridFieldConfigError()) {
+                    <p class="ct-inline-error" role="alert">
+                      {{ gridFieldConfigError() }}
+                      <button appButton="ghost" size="sm" type="button" (click)="retryGridFieldConfig()">Retry</button>
+                    </p>
                   }
 
-                  <div class="form-actions">
-                    <button
-                      class="secondary-action"
-                      type="button"
-                      [disabled]="isSavingAssetType()"
-                      (click)="closeAssetTypeForm()"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      class="save-action"
-                      type="submit"
-                      [disabled]="isSavingAssetType() || isPreparingTypeForm()"
-                    >
+                  @if (isFieldFormOpen()) {
+                                  <form class="ct-editor" (ngSubmit)="saveField()">
+                                    <div class="grid gap-4">
+                                      <label class="form-field">
+                                        <span>Field Label <span class="required-mark">*</span></span>
+                                        <input
+                                          name="fieldLabel"
+                                          [(ngModel)]="fieldForm.fieldLabel"
+                                          placeholder="Serial Number, RAM, Warranty Start"
+                                        />
+                                      </label>
+
+                                      <label class="form-field">
+                                        <span>Field Type <span class="required-mark">*</span></span>
+                                        <app-select
+                                          name="fieldType"
+                                          [options]="assetFieldTypes"
+                                          [ngModel]="fieldForm.fieldType"
+                                          ariaLabel="Field type"
+                                          placeholder="Select field type"
+                                          (ngModelChange)="setFieldType($event)"
+                                        />
+                                      </label>
+
+                                      <label class="field-inline-check">
+                                        <input
+                                          name="fieldRequired"
+                                          type="checkbox"
+                                          [(ngModel)]="fieldForm.isRequired"
+                                        />
+                                        Required for asset creation
+                                      </label>
+                                    </div>
+
+                                    @if (fieldForm.fieldType === 'select') {
+                                      <div class="option-editor">
+                                        <div
+                                          class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                                        >
+                                          <div>
+                                            <p class="option-editor-title">
+                                              Select Options
+                                            </p>
+                                            <p class="option-editor-note">
+                                              Add one or more allowed values.
+                                            </p>
+                                          </div>
+                                          <button appButton="secondary"
+                                            class="option-add-button"
+                                            type="button"
+                                            (click)="addFieldOption()"
+                                          >
+                                            Add Option
+                                          </button>
+                                        </div>
+
+                                        <div class="grid gap-2">
+                                          @for (option of fieldForm.optionValues; track $index) {
+                                            <div class="field-option-row">
+                                              <input
+                                                [name]="'fieldOption' + $index"
+                                                [ngModel]="option"
+                                                (ngModelChange)="updateFieldOption($index, $event)"
+                                                [placeholder]="'Option ' + ($index + 1)"
+                                              />
+                                              <button appButton="ghost" size="sm" iconOnly
+                                                type="button"
+                                                [disabled]="fieldForm.optionValues.length === 1"
+                                                (click)="removeFieldOption($index)"
+                                              >
+                                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                  <path
+                                                    d="m6 6 12 12M18 6 6 18"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                    stroke-linecap="round"
+                                                  />
+                                                </svg>
+                                              </button>
+                                            </div>
+                                          }
+                                        </div>
+                                      </div>
+                                    }
+
+                                    @if (fieldFormError()) {
+                                      <p class="form-error">{{ fieldFormError() }}</p>
+                                    }
+
+                                    <div class="form-actions">
+                                      <button appButton="secondary"
+                                        type="button"
+                                        [disabled]="isSavingField()"
+                                        (click)="closeFieldForm()"
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button appButton
+                                        type="submit"
+                                        [disabled]="isSavingField()"
+                                      >
+                                        {{
+                                          isSavingField()
+                                            ? "Saving..."
+                                            : editingFieldId()
+                                              ? "Save Field"
+                                              : "Add Field"
+                                        }}
+                                      </button>
+                                    </div>
+                                  </form>
+
+                  }
+
+                  @if (isFieldsLoading()) {
+                    <app-loading variant="inline" message="Loading custom fields..." ariaLabel="Loading custom fields" />
+                  } @else if (fieldLoadError()) {
+                    <p class="form-error">{{ fieldLoadError() }}</p>
+                  } @else if (fields().length === 0) {
+                    <p class="ct-empty">
+                      No fields yet. Fields describe what you record for each {{ assetType.assetType.name }}.
+                    </p>
+                  } @else {
+                    <div class="ct-fields-head" aria-hidden="true">
+                      <span></span>
+                      <span>Field</span>
+                      <span>Required</span>
+                      @if (canManageCustom()) {
+                        <span>In grid</span>
+                        <span></span>
+                      }
+                    </div>
+                    <ul class="ct-rows">
+                      @for (field of fields(); track field.assetTypeFieldId) {
+                        <li class="ct-row ct-field-row" [class.ct-row-editing]="editingFieldId() === field.assetTypeFieldId">
+                          <span class="ct-type-icon" [attr.title]="fieldTypeLabel(field.fieldType)">
+                            @switch (field.fieldType) {
+                              @case ('number') { <svg lucideHash aria-hidden="true"></svg> }
+                              @case ('date') { <svg lucideCalendar aria-hidden="true"></svg> }
+                              @case ('boolean') { <svg lucideToggleLeft aria-hidden="true"></svg> }
+                              @case ('select') { <svg lucideList aria-hidden="true"></svg> }
+                              @default { <svg lucideType aria-hidden="true"></svg> }
+                            }
+                            <span class="sr-only">{{ fieldTypeLabel(field.fieldType) }}</span>
+                          </span>
+
+                          <span class="ct-row-copy">
+                            <span class="ct-row-title">{{ field.fieldLabel }}</span>
+                            <span class="ct-row-sub">
+                              {{ fieldTypeLabel(field.fieldType) }}
+                              @if (hasOptions(field)) {
+                                · {{ optionsPreview(field) }}
+                              }
+                            </span>
+                          </span>
+
+                          <span class="ct-required">
+                            @if (field.isRequired) {
+                              <svg lucideCheck aria-hidden="true"></svg>
+                              <span class="sr-only">Required</span>
+                            }
+                          </span>
+
+                          @if (canManageCustom()) {
+                            <label
+                              class="ct-switch"
+                              [class.ct-switch-on]="isGridFieldEnabled(field.assetTypeFieldId)"
+                              [class.ct-switch-disabled]="isGridFieldToggleDisabled(field.assetTypeFieldId)"
+                              [attr.title]="gridFieldToggleTitle(field)"
+                            >
+                              <input
+                                type="checkbox"
+                                [checked]="isGridFieldEnabled(field.assetTypeFieldId)"
+                                [disabled]="isGridFieldToggleDisabled(field.assetTypeFieldId)"
+                                [attr.aria-label]="gridFieldToggleTitle(field)"
+                                (change)="toggleGridField(field, $any($event.target).checked)"
+                              />
+                              <span class="ct-switch-track" aria-hidden="true"><span></span></span>
+                              <span class="ct-switch-label">Grid</span>
+                            </label>
+
+                            <div class="menu-shell" (click)="$event.stopPropagation()">
+                              <button appButton="ghost" size="sm" iconOnly
+                                type="button"
+                                aria-label="Field actions"
+                                [attr.aria-expanded]="isActionMenuOpen('field', field.assetTypeFieldId)"
+                                (click)="toggleActionMenu({ kind: 'field', itemId: field.assetTypeFieldId }, $event)"
+                              >
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 6.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM12 13.25a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM12 19.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z" fill="currentColor" />
+              </svg>
+                              </button>
+                              @if (isActionMenuOpen('field', field.assetTypeFieldId)) {
+                                <div class="action-menu-panel action-menu-panel-row">
+                                  <button class="action-menu-item" type="button" (click)="startEditField(field)">
+                                    Edit field
+                                  </button>
+                                  <button class="action-menu-item action-menu-item-danger" type="button" (click)="confirmDeleteField(field)">
+                                    Delete field
+                                  </button>
+                                </div>
+                              }
+                            </div>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  }
+                </section>
+
+                <!-- Products -->
+                <section class="ct-section" aria-labelledby="ct-products-title">
+                  <div class="ct-section-head">
+                    <h3 id="ct-products-title">
+                      <svg lucidePackage class="ct-section-icon" aria-hidden="true"></svg>
+                      Products <span class="ct-count tabular">{{ products().length }}</span>
+                    </h3>
+                    @if (canManageCustom()) {
+                      <button appButton="secondary" size="sm"
+                        class="ct-add-toggle"
+                        type="button"
+                        [attr.aria-expanded]="isProductFormOpen() && !editingProductId()"
+                        (click)="toggleProductComposer()"
+                      >
+                        <svg lucidePlus aria-hidden="true"></svg>
+                        {{ isProductFormOpen() && !editingProductId() ? 'Cancel' : 'Add product' }}
+                      </button>
+                    }
+                  </div>
+
+                  @if (isProductFormOpen()) {
+                                  <form class="ct-editor" (ngSubmit)="saveProduct()">
+                                    <div class="grid gap-4">
+                                      <label class="form-field">
+                                        <span>Product Name <span class="required-mark">*</span></span>
+                                        <input
+                                          name="productName"
+                                          [(ngModel)]="productForm.productName"
+                                          placeholder="Latitude 5450, Cisco 2960X"
+                                        />
+                                      </label>
+
+                                      <div class="grid gap-4 sm:grid-cols-2">
+                                        <label class="form-field">
+                                          <span>Manufacturer</span>
+                                          <input
+                                            name="manufacturer"
+                                            [(ngModel)]="productForm.manufacturer"
+                                            placeholder="Dell, Cisco, APC"
+                                          />
+                                        </label>
+
+                                        <label class="form-field">
+                                          <span>Cost</span>
+                                          <input
+                                            name="productCost"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            [(ngModel)]="productForm.cost"
+                                            placeholder="0.00"
+                                          />
+                                        </label>
+                                      </div>
+                                    </div>
+
+                                    @if (productFormError()) {
+                                      <p class="form-error">{{ productFormError() }}</p>
+                                    }
+
+                                    <div class="form-actions">
+                                      <button appButton="secondary"
+                                        type="button"
+                                        [disabled]="isSavingProduct()"
+                                        (click)="closeProductForm()"
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button appButton
+                                        type="submit"
+                                        [disabled]="isSavingProduct()"
+                                      >
+                                        {{
+                                          isSavingProduct()
+                                            ? "Saving..."
+                                            : editingProductId()
+                                              ? "Save Product"
+                                              : "Add Product"
+                                        }}
+                                      </button>
+                                    </div>
+                                  </form>
+
+                  }
+
+                  @if (isProductsLoading()) {
+                    <app-loading variant="inline" message="Loading products..." ariaLabel="Loading products" />
+                  } @else if (productLoadError()) {
+                    <p class="form-error">{{ productLoadError() }}</p>
+                  } @else if (products().length === 0) {
+                    <p class="ct-empty">
+                      No products yet. Products are the models you stock, like a laptop model.
+                    </p>
+                  } @else {
+                    <div class="ct-products">
+                      <div class="ct-products-head" aria-hidden="true">
+                        <span>Product</span>
+                        <span>Manufacturer</span>
+                        <span class="ct-cost">Cost</span>
+                        <span></span>
+                      </div>
+                      <ul class="ct-rows">
+                        @for (product of products(); track product.productId) {
+                          <li class="ct-row ct-product-row" [class.ct-row-editing]="editingProductId() === product.productId">
+                            <span class="ct-row-title">{{ product.productName }}</span>
+                            <span class="ct-row-sub ct-product-maker">{{ product.manufacturer || '—' }}</span>
+                            <span class="ct-cost tabular">{{ formatCost(product.cost) }}</span>
+                            @if (canManageCustom()) {
+                              <div class="menu-shell" (click)="$event.stopPropagation()">
+                                <button appButton="ghost" size="sm" iconOnly
+                                  type="button"
+                                  aria-label="Product actions"
+                                  [attr.aria-expanded]="isActionMenuOpen('product', product.productId)"
+                                  (click)="toggleActionMenu({ kind: 'product', itemId: product.productId }, $event)"
+                                >
+                                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 6.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM12 13.25a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM12 19.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z" fill="currentColor" />
+              </svg>
+                                </button>
+                                @if (isActionMenuOpen('product', product.productId)) {
+                                  <div class="action-menu-panel action-menu-panel-row">
+                                    <button class="action-menu-item" type="button" (click)="startEditProduct(product)">
+                                      Edit product
+                                    </button>
+                                    <button class="action-menu-item action-menu-item-danger" type="button" (click)="confirmDeleteProduct(product)">
+                                      Delete product
+                                    </button>
+                                  </div>
+                                }
+                              </div>
+                            } @else {
+                              <span></span>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                </section>
+              </section>
+            }
+          </div>
+        }
+      </section>
+    </main>
+  </div>
+
+  <!-- New / edit type: modal -->
+  @if (isTypeFormOpen()) {
+    <div class="ct-modal-backdrop" (click)="closeAssetTypeForm()">
+      <div
+        class="ct-modal app-motion-enter"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ct-type-form-title"
+        (click)="$event.stopPropagation()"
+      >
+              <form
+                class="ct-modal-form"
+                (ngSubmit)="saveAssetType()"
+              >
+                <div class="ct-modal-section">
+                  <div class="section-label">
+                  <h2 id="ct-type-form-title">
+                      {{ editingAssetTypeId() ? "Edit asset type" : "Create asset type" }}
+                    </h2>
+                    <p>
                       {{
-                        isSavingAssetType()
-                          ? "Saving..."
-                          : editingAssetTypeId()
-                            ? "Save Type"
-                            : "Add Type"
+                        editingAssetTypeId()
+                          ? "Update the selected asset type settings."
+                          : "Add a new asset type to organize inventory."
                       }}
-                    </button>
+                    </p>
+                  </div>
+
+                  <div class="section-fields">
+                    @if (isPreparingTypeForm()) {
+                      <app-loading
+                        variant="inline"
+                        message="Loading asset type..."
+                        ariaLabel="Loading asset type"
+                      />
+                    } @else {
+                      <div class="field-grid">
+                        <label class="form-field">
+                          <span>Asset Type Name <span class="required-mark">*</span></span>
+                          <input
+                            name="assetTypeName"
+                            [(ngModel)]="assetTypeForm.name"
+                            placeholder="Laptop, Router, Lab Kit"
+                          />
+                        </label>
+
+                        <label class="form-field">
+                          <span>Barcode Prefix</span>
+                          <input
+                            name="assetTypeBarcodePrefix"
+                            [ngModel]="assetTypeForm.barcodePrefix"
+                            maxlength="24"
+                            placeholder="AXENTRA"
+                            (ngModelChange)="handleAssetTypeBarcodePrefixChange($event)"
+                          />
+                          <small class="field-hint">Saved in this browser only. Default: AXENTRA.</small>
+                        </label>
+                      </div>
+                    }
+
+                    @if (assetTypeFormError()) {
+                      <p class="form-error">{{ assetTypeFormError() }}</p>
+                    }
+
+                    <div class="form-actions">
+                      <button appButton="secondary"
+                        type="button"
+                        [disabled]="isSavingAssetType()"
+                        (click)="closeAssetTypeForm()"
+                      >
+                        Cancel
+                      </button>
+                      <button appButton
+                        type="submit"
+                        [disabled]="isSavingAssetType() || isPreparingTypeForm()"
+                      >
+                        {{
+                          isSavingAssetType()
+                            ? "Saving..."
+                            : editingAssetTypeId()
+                              ? "Save Type"
+                              : "Add Type"
+                        }}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </form>
-          }
+              </form>
 
-          @if (assetTypes().length === 0) {
-            <div class="empty-state app-motion-enter app-motion-delay-1 mt-6">
-              No asset types yet.
-            </div>
-          } @else {
-            <section class="type-card-list app-motion-list mt-6">
-              @for (assetType of assetTypes(); track assetType.assetType.assetTypeId) {
-                <article
-                  class="type-card"
-                  [class.type-card-expanded]="
-                    isAssetTypeExpanded(assetType.assetType.assetTypeId)
-                  "
-                  [class.type-card-menu-open]="
-                    isActionMenuOpen('assetType', assetType.assetType.assetTypeId) ||
-                    (selectedAssetTypeId() === assetType.assetType.assetTypeId &&
-                      openActionMenu() !== null)
-                  "
-                >
-                  <div class="type-card-trigger-row">
-                    <button
-                      class="type-card-trigger"
-                      type="button"
-                      [attr.aria-expanded]="
-                        isAssetTypeExpanded(assetType.assetType.assetTypeId)
-                      "
-                      (click)="toggleAssetType(assetType.assetType.assetTypeId)"
-                    >
-                        <span class="type-card-trigger-main">
-                          <span class="type-card-icon" aria-hidden="true">
+      </div>
+    </div>
+  }
+
+  <ng-template #typeIcon let-assetType>
+                          <span class="ct-icon" aria-hidden="true">
                             @if (assetTypeImageUrl(assetType); as imageUrl) {
                             <img
-                              class="type-card-icon-image"
+                              class="ct-icon-image"
                               [src]="imageUrl"
                               [alt]="assetType.assetType.name + ' icon'"
                               loading="lazy"
@@ -180,7 +643,7 @@
                             />
                             } @else {
                               @if (assetTypeBuiltInIcon(assetType.assetType.name); as builtInIcon) {
-                                <span class="type-card-icon-svg">
+                                <span class="ct-icon-svg">
                                   @switch (builtInIcon) {
                                     @case ('router') {
                                       <svg viewBox="0 0 96 96" fill="none">
@@ -314,628 +777,14 @@
                                   }
                                 </span>
                               } @else {
-                                <span class="type-card-icon-initials">
+                                <span class="ct-icon-initials">
                                   {{ assetTypeInitials(assetType.assetType.name) }}
                                 </span>
                               }
                             }
                           </span>
 
-                        <span class="type-card-copy">
-                          <span class="type-card-title">{{ assetType.assetType.name }}</span>
-                          <span class="type-card-subtitle">
-                            {{ assetTypeAssetsLabel(assetType.totalItems) }}
-                          </span>
-                        </span>
-                      </span>
-
-                      <span class="type-card-trigger-side">
-                        <span class="type-card-count">
-                          {{ assetTypeFieldLabel(assetType.assetType.assetTypeId) }}
-                        </span>
-                        <span class="type-card-count">
-                          {{ assetTypeProductLabel(assetType.assetType.assetTypeId) }}
-                        </span>
-                        <span
-                          class="type-card-chevron"
-                          [class.type-card-chevron-open]="
-                            isAssetTypeExpanded(assetType.assetType.assetTypeId)
-                          "
-                          aria-hidden="true"
-                        >
-                          <svg viewBox="0 0 20 20" fill="none">
-                            <path
-                              d="m6 8 4 4 4-4"
-                              stroke="currentColor"
-                              stroke-width="1.8"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            />
-                          </svg>
-                        </span>
-                      </span>
-                    </button>
-
-                    @if (canManageCustom()) {
-                      <div class="menu-shell type-card-menu" (click)="$event.stopPropagation()">
-                        <button
-                          class="menu-button"
-                          type="button"
-                          aria-label="More actions"
-                          title="More actions"
-                          [attr.aria-expanded]="
-                            isActionMenuOpen('assetType', assetType.assetType.assetTypeId)
-                          "
-                          (click)="toggleActionMenu({ kind: 'assetType', assetTypeId: assetType.assetType.assetTypeId }, $event)"
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path
-                              d="M12 6.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM12 13.25a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM12 19.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z"
-                              fill="currentColor"
-                            />
-                          </svg>
-                        </button>
-
-                        @if (isActionMenuOpen('assetType', assetType.assetType.assetTypeId)) {
-                          <div class="action-menu-panel">
-                            <button
-                              class="action-menu-item"
-                              type="button"
-                              (click)="openSelectedAssets()"
-                            >
-                              Open
-                            </button>
-                            <button
-                              class="action-menu-item"
-                              type="button"
-                              (click)="startEditAssetType(assetType)"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              class="action-menu-item action-menu-item-danger"
-                              type="button"
-                              (click)="confirmDeleteAssetType(assetType)"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        }
-                      </div>
-                    }
-                  </div>
-
-                  <div
-                    class="type-card-collapse"
-                    [class.type-card-collapse-open]="
-                      isAssetTypeExpanded(assetType.assetType.assetTypeId)
-                    "
-                  >
-                    <div class="type-card-collapse-inner">
-                      <div class="type-card-body">
-                        <div class="config-grid">
-                          <section class="config-column">
-                            <div class="config-column-header">
-                              <div class="config-column-heading">
-                                <h2 class="config-column-title">Fields</h2>
-                                <span class="config-column-count">
-                                  {{ fields().length }}
-                                </span>
-                              </div>
-
-                              @if (canManageCustom()) {
-                                <button
-                                  class="config-column-add"
-                                  type="button"
-                                  [class.config-column-add-open]="
-                                    isFieldFormOpen() && !editingFieldId()
-                                  "
-                                  (click)="toggleFieldComposer()"
-                                >
-                                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <path
-                                      d="M12 5v14M5 12h14"
-                                      stroke="currentColor"
-                                      stroke-width="2"
-                                      stroke-linecap="round"
-                                    />
-                                  </svg>
-                                  {{
-                                    isFieldFormOpen() && !editingFieldId()
-                                      ? "Close"
-                                      : "Add Field"
-                                  }}
-                                </button>
-                              }
-                            </div>
-
-                            <div
-                              class="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between"
-                              [attr.aria-busy]="
-                                isGridFieldConfigLoading() ||
-                                isSavingGridFieldConfig()
-                              "
-                            >
-                              <div class="grid min-w-0 gap-0.5">
-                                <strong class="text-sm font-bold text-slate-800">
-                                  Grid card fields
-                                </strong>
-                                <span
-                                  class="text-xs font-medium leading-5 text-slate-500"
-                                >
-                                  Enable up to five fields to show on asset
-                                  cards.
-                                </span>
-                              </div>
-                              <span
-                                class="flex-none text-xs font-bold text-blue-700"
-                              >
-                                @if (isGridFieldConfigLoading()) {
-                                  Loading...
-                                } @else if (isSavingGridFieldConfig()) {
-                                  Saving...
-                                } @else {
-                                  {{ gridFieldIds().length }}/5 selected
-                                }
-                              </span>
-                            </div>
-
-                            @if (gridFieldConfigError()) {
-                              <div
-                                class="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800"
-                                role="alert"
-                              >
-                                <span>{{ gridFieldConfigError() }}</span>
-                                <button
-                                  class="grid-field-retry min-h-11 rounded-lg px-3 font-bold"
-                                  type="button"
-                                  (click)="retryGridFieldConfig()"
-                                >
-                                  Retry
-                                </button>
-                              </div>
-                            }
-
-                            @if (
-                              isAssetTypeExpanded(assetType.assetType.assetTypeId) &&
-                              isFieldFormOpen()
-                            ) {
-                              <form class="editor-panel" (ngSubmit)="saveField()">
-                                <div class="grid gap-4">
-                                  <label class="form-field">
-                                    <span>Field Label <span class="required-mark">*</span></span>
-                                    <input
-                                      name="fieldLabel"
-                                      [(ngModel)]="fieldForm.fieldLabel"
-                                      placeholder="Serial Number, RAM, Warranty Start"
-                                    />
-                                  </label>
-
-                                  <label class="form-field">
-                                    <span>Field Type <span class="required-mark">*</span></span>
-                                    <app-select
-                                      name="fieldType"
-                                      [options]="assetFieldTypes"
-                                      [ngModel]="fieldForm.fieldType"
-                                      ariaLabel="Field type"
-                                      placeholder="Select field type"
-                                      (ngModelChange)="setFieldType($event)"
-                                    />
-                                  </label>
-
-                                  <label class="field-inline-check">
-                                    <input
-                                      name="fieldRequired"
-                                      type="checkbox"
-                                      [(ngModel)]="fieldForm.isRequired"
-                                    />
-                                    Required for asset creation
-                                  </label>
-                                </div>
-
-                                @if (fieldForm.fieldType === 'select') {
-                                  <div class="option-editor">
-                                    <div
-                                      class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-                                    >
-                                      <div>
-                                        <p class="option-editor-title">
-                                          Select Options
-                                        </p>
-                                        <p class="option-editor-note">
-                                          Add one or more allowed values.
-                                        </p>
-                                      </div>
-                                      <button
-                                        class="secondary-action option-add-button"
-                                        type="button"
-                                        (click)="addFieldOption()"
-                                      >
-                                        Add Option
-                                      </button>
-                                    </div>
-
-                                    <div class="grid gap-2">
-                                      @for (option of fieldForm.optionValues; track $index) {
-                                        <div class="field-option-row">
-                                          <input
-                                            [name]="'fieldOption' + $index"
-                                            [ngModel]="option"
-                                            (ngModelChange)="updateFieldOption($index, $event)"
-                                            [placeholder]="'Option ' + ($index + 1)"
-                                          />
-                                          <button
-                                            class="option-remove-button"
-                                            type="button"
-                                            [disabled]="fieldForm.optionValues.length === 1"
-                                            (click)="removeFieldOption($index)"
-                                          >
-                                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                              <path
-                                                d="m6 6 12 12M18 6 6 18"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                                stroke-linecap="round"
-                                              />
-                                            </svg>
-                                          </button>
-                                        </div>
-                                      }
-                                    </div>
-                                  </div>
-                                }
-
-                                @if (fieldFormError()) {
-                                  <p class="form-error">{{ fieldFormError() }}</p>
-                                }
-
-                                <div class="form-actions">
-                                  <button
-                                    class="secondary-action"
-                                    type="button"
-                                    [disabled]="isSavingField()"
-                                    (click)="closeFieldForm()"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    class="save-action"
-                                    type="submit"
-                                    [disabled]="isSavingField()"
-                                  >
-                                    {{
-                                      isSavingField()
-                                        ? "Saving..."
-                                        : editingFieldId()
-                                          ? "Save Field"
-                                          : "Add Field"
-                                    }}
-                                  </button>
-                                </div>
-                              </form>
-                            }
-
-                            @if (isFieldsLoading()) {
-                              <div class="editor-panel">
-                                <app-loading
-                                  variant="inline"
-                                  message="Loading custom fields..."
-                                  ariaLabel="Loading custom fields"
-                                />
-                              </div>
-                            } @else if (fieldLoadError()) {
-                              <p class="form-error">{{ fieldLoadError() }}</p>
-                            } @else if (fields().length === 0) {
-                              <div class="empty-state empty-state-compact">
-                                No custom fields yet.
-                              </div>
-                            } @else {
-                              <div class="config-list">
-                                @for (field of fields(); track field.assetTypeFieldId) {
-                                  <article class="config-row">
-                                    <div class="config-row-copy">
-                                      <div class="config-row-title-line">
-                                        <h3 class="config-row-title">{{ field.fieldLabel }}</h3>
-                                      </div>
-
-                                      @if (hasOptions(field)) {
-                                        <p class="config-row-subtitle">
-                                          {{ field.options?.join(", ") }}
-                                        </p>
-                                      }
-                                    </div>
-
-                                    <div class="config-row-meta">
-                                      <span class="config-tag">
-                                        {{ fieldTypeLabel(field.fieldType) }}
-                                      </span>
-                                      @if (field.isRequired) {
-                                        <span class="config-tag config-tag-danger">Required</span>
-                                      }
-
-                                      @if (canManageCustom()) {
-                                        <label
-                                          class="grid-field-toggle"
-                                          [class.grid-field-toggle-enabled]="
-                                            isGridFieldEnabled(
-                                              field.assetTypeFieldId
-                                            )
-                                          "
-                                          [class.grid-field-toggle-disabled]="
-                                            isGridFieldToggleDisabled(
-                                              field.assetTypeFieldId
-                                            )
-                                          "
-                                          [attr.title]="
-                                            gridFieldToggleTitle(field)
-                                          "
-                                        >
-                                          <input
-                                            type="checkbox"
-                                            [checked]="
-                                              isGridFieldEnabled(
-                                                field.assetTypeFieldId
-                                              )
-                                            "
-                                            [disabled]="
-                                              isGridFieldToggleDisabled(
-                                                field.assetTypeFieldId
-                                              )
-                                            "
-                                            [attr.aria-label]="
-                                              gridFieldToggleTitle(field)
-                                            "
-                                            (change)="
-                                              toggleGridField(
-                                                field,
-                                                $any($event.target).checked
-                                              )
-                                            "
-                                          />
-                                          <span
-                                            class="grid-field-toggle-track"
-                                            aria-hidden="true"
-                                          >
-                                            <span></span>
-                                          </span>
-                                          <span>Show in grid</span>
-                                        </label>
-
-                                        <div class="menu-shell" (click)="$event.stopPropagation()">
-                                          <button
-                                            class="menu-button"
-                                            type="button"
-                                            aria-label="More actions"
-                                            title="More actions"
-                                            [attr.aria-expanded]="
-                                              isActionMenuOpen('field', field.assetTypeFieldId)
-                                            "
-                                            (click)="toggleActionMenu({ kind: 'field', itemId: field.assetTypeFieldId }, $event)"
-                                          >
-                                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                              <path
-                                                d="M12 6.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM12 13.25a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM12 19.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z"
-                                                fill="currentColor"
-                                              />
-                                            </svg>
-                                          </button>
-
-                                          @if (isActionMenuOpen('field', field.assetTypeFieldId)) {
-                                            <div class="action-menu-panel action-menu-panel-row">
-                                              <button
-                                                class="action-menu-item action-menu-item-danger"
-                                                type="button"
-                                                (click)="confirmDeleteField(field)"
-                                              >
-                                                Delete field
-                                              </button>
-                                            </div>
-                                          }
-                                        </div>
-                                      }
-                                    </div>
-                                  </article>
-                                }
-                              </div>
-                            }
-                          </section>
-
-                          <section class="config-column">
-                            <div class="config-column-header">
-                              <div class="config-column-heading">
-                                <h2 class="config-column-title">Products</h2>
-                                <span class="config-column-count">
-                                  {{ products().length }}
-                                </span>
-                              </div>
-
-                              @if (canManageCustom()) {
-                                <button
-                                  class="config-column-add"
-                                  type="button"
-                                  [class.config-column-add-open]="
-                                    isProductFormOpen() && !editingProductId()
-                                  "
-                                  (click)="toggleProductComposer()"
-                                >
-                                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <path
-                                      d="M12 5v14M5 12h14"
-                                      stroke="currentColor"
-                                      stroke-width="2"
-                                      stroke-linecap="round"
-                                    />
-                                  </svg>
-                                  {{
-                                    isProductFormOpen() && !editingProductId()
-                                      ? "Close"
-                                      : "Add Product"
-                                  }}
-                                </button>
-                              }
-                            </div>
-
-                            @if (
-                              isAssetTypeExpanded(assetType.assetType.assetTypeId) &&
-                              isProductFormOpen()
-                            ) {
-                              <form class="editor-panel" (ngSubmit)="saveProduct()">
-                                <div class="grid gap-4">
-                                  <label class="form-field">
-                                    <span>Product Name <span class="required-mark">*</span></span>
-                                    <input
-                                      name="productName"
-                                      [(ngModel)]="productForm.productName"
-                                      placeholder="Latitude 5450, Cisco 2960X"
-                                    />
-                                  </label>
-
-                                  <div class="grid gap-4 sm:grid-cols-2">
-                                    <label class="form-field">
-                                      <span>Manufacturer</span>
-                                      <input
-                                        name="manufacturer"
-                                        [(ngModel)]="productForm.manufacturer"
-                                        placeholder="Dell, Cisco, APC"
-                                      />
-                                    </label>
-
-                                    <label class="form-field">
-                                      <span>Cost</span>
-                                      <input
-                                        name="productCost"
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        [(ngModel)]="productForm.cost"
-                                        placeholder="0.00"
-                                      />
-                                    </label>
-                                  </div>
-                                </div>
-
-                                @if (productFormError()) {
-                                  <p class="form-error">{{ productFormError() }}</p>
-                                }
-
-                                <div class="form-actions">
-                                  <button
-                                    class="secondary-action"
-                                    type="button"
-                                    [disabled]="isSavingProduct()"
-                                    (click)="closeProductForm()"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    class="save-action"
-                                    type="submit"
-                                    [disabled]="isSavingProduct()"
-                                  >
-                                    {{
-                                      isSavingProduct()
-                                        ? "Saving..."
-                                        : editingProductId()
-                                          ? "Save Product"
-                                          : "Add Product"
-                                    }}
-                                  </button>
-                                </div>
-                              </form>
-                            }
-
-                            @if (isProductsLoading()) {
-                              <div class="editor-panel">
-                                <app-loading
-                                  variant="inline"
-                                  message="Loading products..."
-                                  ariaLabel="Loading products"
-                                />
-                              </div>
-                            } @else if (productLoadError()) {
-                              <p class="form-error">{{ productLoadError() }}</p>
-                            } @else if (products().length === 0) {
-                              <div class="empty-state empty-state-compact">
-                                No products yet.
-                              </div>
-                            } @else {
-                              <div class="config-list">
-                                @for (product of products(); track product.productId) {
-                                  <article class="config-row">
-                                    <div class="config-row-copy">
-                                      <h3 class="config-row-title">{{ product.productName }}</h3>
-                                      <p class="config-row-subtitle">
-                                        {{
-                                          product.manufacturer
-                                            ? product.manufacturer
-                                            : "Manufacturer not set"
-                                        }}
-                                      </p>
-                                    </div>
-
-                                    <div class="config-row-meta">
-                                      <span class="config-tag product-cost-tag">
-                                        {{ formatCost(product.cost) }}
-                                      </span>
-
-                                      @if (canManageCustom()) {
-                                        <div class="menu-shell" (click)="$event.stopPropagation()">
-                                          <button
-                                            class="menu-button"
-                                            type="button"
-                                            aria-label="More actions"
-                                            title="More actions"
-                                            [attr.aria-expanded]="
-                                              isActionMenuOpen('product', product.productId)
-                                            "
-                                            (click)="toggleActionMenu({ kind: 'product', itemId: product.productId }, $event)"
-                                          >
-                                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                              <path
-                                                d="M12 6.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM12 13.25a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM12 19.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z"
-                                                fill="currentColor"
-                                              />
-                                            </svg>
-                                          </button>
-
-                                          @if (isActionMenuOpen('product', product.productId)) {
-                                            <div class="action-menu-panel action-menu-panel-row">
-                                              <button
-                                                class="action-menu-item"
-                                                type="button"
-                                                (click)="startEditProduct(product)"
-                                              >
-                                                Edit product
-                                              </button>
-                                              <button
-                                                class="action-menu-item action-menu-item-danger"
-                                                type="button"
-                                                (click)="confirmDeleteProduct(product)"
-                                              >
-                                                Delete product
-                                              </button>
-                                            </div>
-                                          }
-                                        </div>
-                                      }
-                                    </div>
-                                  </article>
-                                }
-                              </div>
-                            }
-                          </section>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              }
-            </section>
-          }
-        }
-      </section>
-    </main>
-  </div>
+  </ng-template>
 
   <app-confirm-delete-modal
     [open]="deleteTarget() !== null"
@@ -948,4 +797,5 @@
     (cancel)="cancelDelete()"
     (confirm)="executeDelete()"
   />
+
 </div>

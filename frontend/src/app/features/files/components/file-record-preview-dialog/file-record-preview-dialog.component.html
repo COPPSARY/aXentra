@@ -18,7 +18,7 @@
             </p>
           }
         </div>
-        <button type="button" aria-label="Close file preview" (click)="close()">
+        <button appButton="ghost" iconOnly type="button" aria-label="Close file preview" (click)="close()">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path
               d="m6 6 12 12M18 6 6 18"
@@ -118,7 +118,7 @@
                   <strong>{{ item.fileName }}</strong>
                   <span>{{ formatFileSize(item.fileSize) }}</span>
                 </div>
-                <button
+                <button appButton="secondary" size="sm"
                   type="button"
                   [disabled]="!previewUrl(item)"
                   (click)="openOriginal(item)"

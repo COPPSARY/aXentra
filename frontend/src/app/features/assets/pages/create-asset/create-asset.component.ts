@@ -76,6 +76,7 @@ import {
   buildGeneratedBarcode,
   getAssetTypeBarcodePrefix,
 } from '../../utils/barcode-prefix.utils';
+import { AppButtonDirective } from '../../../../shared/components/app-button/app-button.directive';
 
 const ASSET_STATUSES: AssetStatus[] = [
   'In Storage',
@@ -138,7 +139,7 @@ type AssetCreatedEvent = {
 
 @Component({
   selector: 'app-create-asset',
-  imports: [
+  imports: [AppButtonDirective, 
     AppHelpTooltipComponent,
     AppLoadingComponent,
     AppDateFieldComponent,

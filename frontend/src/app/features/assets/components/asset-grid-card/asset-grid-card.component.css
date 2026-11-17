@@ -101,61 +101,6 @@
   background: currentColor;
 }
 
-.asset-card-action {
-  position: absolute;
-  z-index: 3;
-  top: 4px;
-  right: 4px;
-  display: inline-flex;
-  height: 44px;
-  width: 44px;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--text-primary);
-}
-
-.asset-card-action::before {
-  position: absolute;
-  inset: 6px;
-  border: 1px solid var(--gray-150);
-  border-radius: var(--radius-control);
-  background: rgb(255 255 255 / 92%);
-  content: "";
-  transition:
-    border-color var(--app-motion-fast) var(--app-motion-ease),
-    background-color var(--app-motion-fast) var(--app-motion-ease);
-}
-
-.asset-card-action:hover,
-.asset-card-action:focus-visible {
-  outline: none;
-}
-
-.asset-card-action:hover::before {
-  border-color: #b8c8df;
-  background: var(--gray-50);
-}
-
-.asset-card-menu-open .asset-card-action::before {
-  border-color: #9fb3d1;
-  background: var(--gray-100);
-}
-
-.asset-card-action:focus-visible::before {
-  border-color: var(--accent);
-  outline-offset: 1px;
-}
-
-.asset-card-action svg {
-  position: relative;
-  z-index: 1;
-  height: 16px;
-  width: 16px;
-}
-
 .asset-card-body {
   padding: 16px;
 }
@@ -270,8 +215,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .asset-card,
-  .asset-card-action::before {
+  .asset-card{
     transition: none;
   }
 }

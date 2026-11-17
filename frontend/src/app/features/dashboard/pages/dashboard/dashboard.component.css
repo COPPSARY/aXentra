@@ -32,35 +32,6 @@
   color: var(--text-disabled);
 }
 
-.dash-refresh {
-  display: inline-grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border: 0;
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition:
-    background-color var(--app-motion-fast) var(--app-motion-ease),
-    color var(--app-motion-fast) var(--app-motion-ease);
-}
-
-.dash-refresh:hover:not(:disabled) {
-  background: var(--surface-hover);
-  color: var(--text-primary);
-}
-
-.dash-refresh:disabled {
-  cursor: default;
-}
-
-.dash-refresh svg {
-  width: 16px;
-  height: 16px;
-}
-
 /* Turns only while a reload is in flight: it reports work, not decoration. */
 .dash-refresh-spinning svg {
   animation: dash-spin 800ms linear infinite;
@@ -885,7 +856,6 @@
 
 .trend-line-assigned { stroke: var(--viz-series-1); }
 .trend-line-returned { stroke: var(--viz-series-2); }
-
 
 .crosshair {
   position: absolute;

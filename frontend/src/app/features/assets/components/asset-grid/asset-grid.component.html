@@ -17,13 +17,13 @@
 } @else if (error) {
   <div class="asset-grid-state asset-grid-error" role="alert">
     <p>{{ error }}</p>
-    <button type="button" (click)="retry.emit()">Retry</button>
+    <button appButton="secondary" size="sm" type="button" (click)="retry.emit()">Retry</button>
   </div>
 } @else if (assets.length === 0) {
   <div class="asset-grid-state">
     @if (hasFilters) {
       <p>No assets match the current filters.</p>
-      <button type="button" (click)="clearFilters.emit()">Clear filters</button>
+      <button appButton="secondary" size="sm" type="button" (click)="clearFilters.emit()">Clear filters</button>
     } @else {
       <p>No assets have been added to this asset type yet.</p>
       @if (canCreate) {

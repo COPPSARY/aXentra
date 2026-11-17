@@ -59,6 +59,7 @@ import { AssetLoansApiService } from '../../../assets/services/asset-loans-api.s
 import { AssetsApiService } from '../../../assets/services/assets-api.service';
 import { DashboardOverviewResponse } from '../../models/dashboard.models';
 import { clearLegacyDashboardCache } from '../../utils/dashboard-cache.util';
+import { AppButtonDirective } from '../../../../shared/components/app-button/app-button.directive';
 
 type DashboardScopeMode = 'overall' | 'location';
 type Tone = 'danger' | 'warning' | 'neutral';
@@ -195,7 +196,7 @@ const TYPE_ICON_RULES: [RegExp, LucideIconData][] = [
 
 @Component({
   selector: 'app-dashboard',
-  imports: [
+  imports: [AppButtonDirective, 
     AppCountUpComponent,
     DatePipe,
     DecimalPipe,

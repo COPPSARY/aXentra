@@ -32,6 +32,25 @@ describe('PublicLoanHeaderComponent', () => {
     expect(element.querySelector('header')).not.toBeNull();
   });
 
+  // Requirement 9.2: Print action, shown only once a loan has loaded.
+  it('hides the print button by default', () => {
+    expect(element.querySelector('[data-testid="public-loan-print-button"]')).toBeNull();
+  });
+
+  it('calls window.print() when the print button is clicked', () => {
+    fixture.componentRef.setInput('showPrint', true);
+    fixture.detectChanges();
+    const printSpy = spyOn(window, 'print');
+
+    const button = element.querySelector(
+      '[data-testid="public-loan-print-button"]',
+    ) as HTMLButtonElement | null;
+    expect(button).not.toBeNull();
+    button!.click();
+
+    expect(printSpy).toHaveBeenCalledTimes(1);
+  });
+
   // Requirement 6.2: excludes internal navigation, sidebar, topbar, and authenticated-only elements
   it('excludes navigation, sidebar, and topbar elements', () => {
     expect(element.querySelector('nav')).toBeNull();

@@ -1,7 +1,21 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { NgTemplateOutlet } from '@angular/common';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import {
+  LucideArrowLeft,
+  LucideCalendar,
+  LucideCheck,
+  LucideHash,
+  LucideList,
+  LucideListChecks,
+  LucidePackage,
+  LucidePlus,
+  LucideSearch,
+  LucideToggleLeft,
+  LucideType,
+} from '@lucide/angular';
 import { environment } from '../../../../../environments/environment';
 
 import { AuthService } from '../../../../core/auth/auth.service';
@@ -31,6 +45,7 @@ import {
   normalizeBarcodePrefix,
   setAssetTypeBarcodePrefix,
 } from '../../utils/barcode-prefix.utils';
+import { AppButtonDirective } from '../../../../shared/components/app-button/app-button.directive';
 
 const ASSET_FIELD_TYPES: Array<{
   value: AssetTypeFieldType;
@@ -78,17 +93,6 @@ const CATEGORY_ICON_BY_NAME: Record<string, AssetCategoryIcon> = {
   github: 'github',
 };
 
-const INITIAL_ICON_PALETTE: Array<{ bg: string; text: string }> = [
-  { bg: '#e0e7ff', text: '#3730a3' },
-  { bg: '#fef3c7', text: '#78350f' },
-  { bg: '#ccfbf1', text: '#115e59' },
-  { bg: '#ffe4e6', text: '#881337' },
-  { bg: '#dbeafe', text: '#1e3a8a' },
-  { bg: '#fce7f3', text: '#9d174d' },
-  { bg: '#ede9fe', text: '#5b21b6' },
-  { bg: '#dcfce7', text: '#166534' },
-];
-
 type DeleteDialogState =
   | {
       kind: 'assetType';
@@ -124,12 +128,25 @@ type ActionMenuState =
 
 @Component({
   selector: 'app-custom',
-  imports: [
+  imports: [AppButtonDirective, 
     AppLoadingComponent,
     AppSelectComponent,
     ConfirmDeleteModalComponent,
     FormsModule,
+    LucideArrowLeft,
+    LucideCalendar,
+    LucideCheck,
+    LucideHash,
+    LucideList,
+    LucideListChecks,
+    LucidePackage,
+    LucidePlus,
+    LucideSearch,
+    LucideToggleLeft,
+    LucideType,
     MobileTabbarComponent,
+    NgTemplateOutlet,
+    RouterLink,
     SidebarComponent,
     TopbarComponent,
   ],
@@ -183,6 +200,18 @@ export class CustomComponent implements OnInit {
 
   readonly assetTypes = signal<AssetTypeSummaryResponse[]>([]);
   readonly selectedAssetTypeId = signal<number | null>(null);
+  /** Client-side filter for the type list. */
+  readonly typeSearch = signal('');
+  /** Small screens show either the list or the detail panel. */
+  readonly mobileShowsDetail = signal(false);
+  readonly gridFieldLimit = 5;
+  readonly filteredAssetTypes = computed(() => {
+    const query = this.typeSearch().trim().toLowerCase();
+    const types = this.assetTypes();
+    return query
+      ? types.filter((type) => type.assetType.name.toLowerCase().includes(query))
+      : types;
+  });
   readonly fields = signal<AssetTypeField[]>([]);
   readonly products = signal<AssetProduct[]>([]);
   readonly isLoading = signal(true);
@@ -355,6 +384,28 @@ export class CustomComponent implements OnInit {
     }
 
     this.selectAssetType(assetTypeId);
+  }
+
+  chooseAssetType(assetTypeId: number): void {
+    this.selectAssetType(assetTypeId);
+    this.mobileShowsDetail.set(true);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { assetTypeId },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  showTypeList(): void {
+    this.mobileShowsDetail.set(false);
+  }
+
+  /** "Windows, macOS, Linux +1" for select fields. */
+  optionsPreview(field: AssetTypeField): string {
+    const options = field.options ?? [];
+    const shown = options.slice(0, 3).join(', ');
+    return options.length > 3 ? `${shown} +${options.length - 3}` : shown;
   }
 
   handleAssetTypeSelectionChange(value: unknown): void {
@@ -1111,14 +1162,6 @@ export class CustomComponent implements OnInit {
     return `${tokens[0][0] ?? ''}${tokens[1][0] ?? ''}`.toUpperCase();
   }
 
-  assetTypeInitialsBg(name: string): string {
-    return this.pickInitialPalette(name).bg;
-  }
-
-  assetTypeInitialsText(name: string): string {
-    return this.pickInitialPalette(name).text;
-  }
-
   assetTypeBuiltInIcon(name: string): AssetCategoryIcon | null {
     return CATEGORY_ICON_BY_NAME[name.trim().toLowerCase()] ?? null;
   }
@@ -1507,16 +1550,6 @@ export class CustomComponent implements OnInit {
     }
 
     return fallbackMessage;
-  }
-
-  private pickInitialPalette(name: string): { bg: string; text: string } {
-    const normalized = name.trim().toLowerCase();
-    let hash = 0;
-    for (let i = 0; i < normalized.length; i += 1) {
-      hash = (hash * 31 + normalized.charCodeAt(i)) >>> 0;
-    }
-
-    return INITIAL_ICON_PALETTE[hash % INITIAL_ICON_PALETTE.length];
   }
 
   private resolveAssetTypeImageUrl(

@@ -504,132 +504,186 @@ input[type="number"]::-webkit-inner-spin-button {
   line-height: var(--type-body-line);
 }
 
+/* =====================================================================
+   BUTTONS: one system for the whole app (applied by the appButton
+   directive). Sizes: md 36px (default), sm 32px, iconOnly squares; touch
+   screens grow every button to a 44px target. Variants: primary (the one
+   solid button per view), secondary, ghost, danger (+ outlined/inverted
+   for compatibility). Hover changes tone only; press scales slightly.
+   ===================================================================== */
 .app-button {
+  --btn-height: 36px;
+  --btn-pad: 14px;
+  --btn-font: 14px;
+  --btn-icon: 16px;
+
   display: inline-flex;
+  min-height: var(--btn-height);
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  min-height: 44px;
-  min-width: 44px;
+  gap: 6px;
   border: 1px solid transparent;
   border-radius: var(--radius-control);
-  padding: 0 1rem;
-  font-size: var(--type-body-size);
-  font-weight: var(--weight-medium);
-  line-height: var(--type-heading-line);
+  padding: 0 var(--btn-pad);
+  font-family: inherit;
+  font-size: var(--btn-font);
+  font-weight: var(--weight-semibold);
+  line-height: 20px;
   white-space: nowrap;
   text-decoration: none;
-  transition:
-    background-color var(--app-motion-fast) var(--app-motion-ease),
-    border-color var(--app-motion-fast) var(--app-motion-ease),
-    color var(--app-motion-fast) var(--app-motion-ease);
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 120ms ease-out,
+    border-color 120ms ease-out,
+    color 120ms ease-out,
+    box-shadow 120ms ease-out,
+    transform 80ms ease-out;
+}
+
+.app-button--sm {
+  --btn-height: 32px;
+  --btn-pad: 10px;
+  --btn-font: 13px;
+  --btn-icon: 14px;
+}
+
+.app-button > svg,
+.app-button > .app-button-icon {
+  height: var(--btn-icon);
+  width: var(--btn-icon);
+  flex: 0 0 auto;
+}
+
+/* Square icon-only buttons. */
+.app-button--icon {
+  --btn-icon: 18px;
+
+  min-width: var(--btn-height);
+  padding: 0;
+}
+
+.app-button--icon.app-button--sm {
+  --btn-icon: 16px;
 }
 
 .app-button:focus-visible {
+  outline: 2px solid var(--brand-600);
   outline-offset: 2px;
+}
+
+.app-button:active:not(:disabled):not([aria-disabled="true"]) {
+  transform: scale(0.98);
 }
 
 .app-button:disabled,
 .app-button[aria-disabled="true"] {
   cursor: not-allowed;
-  opacity: 0.62;
+  opacity: 0.5;
 }
 
-.app-button > svg {
-  width: 1em;
-  height: 1em;
-  flex: 0 0 auto;
-}
-
+/* Primary: solid accent. */
 .app-button--primary {
-  background: var(--accent);
   border-color: var(--accent);
+  background: var(--accent);
   color: var(--accent-foreground);
 }
 
-.app-button--primary:hover:not(:disabled):not([aria-disabled="true"]),
-.app-button--primary:focus-visible:not(:disabled):not([aria-disabled="true"]) {
-  background: var(--accent-hover);
+.app-button--primary:hover:not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--accent-hover);
+  background: var(--accent-hover);
 }
 
 .app-button--primary:active:not(:disabled):not([aria-disabled="true"]) {
-  background: var(--accent-pressed);
   border-color: var(--accent-pressed);
+  background: var(--accent-pressed);
 }
 
-/* Secondary: white with a hairline. Hover is a tone change only. */
-.app-button--secondary {
+/* Secondary: white, hairline, dark text. */
+.app-button--secondary,
+.app-button--outlined,
+.app-button--danger {
+  border-color: var(--gray-300);
   background: var(--surface);
-  border-color: var(--border-strong);
-  color: var(--text-primary);
+  color: var(--gray-900);
+  box-shadow: 0 1px 2px rgb(16 24 40 / 0.05);
 }
 
 .app-button--secondary:hover:not(:disabled):not([aria-disabled="true"]),
-.app-button--secondary:focus-visible:not(:disabled):not(
-    [aria-disabled="true"]
-  ) {
+.app-button--outlined:hover:not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--gray-400);
-  background: var(--surface-sunken);
-  color: var(--text-primary);
+  background: var(--gray-50);
 }
 
-.app-button--secondary:active:not(:disabled):not([aria-disabled="true"]) {
-  background: var(--surface-hover);
-}
-
-.app-button--inverted {
-  background: var(--button-surface-inverted);
-  border-color: var(--button-surface-inverted);
-  color: var(--button-text-inverted);
-}
-
-.app-button--inverted:hover:not(:disabled):not([aria-disabled="true"]),
-.app-button--inverted:focus-visible:not(:disabled):not([aria-disabled="true"]) {
-  background: var(--gray-800);
-  border-color: var(--gray-800);
-}
-
-.app-button--inverted:active:not(:disabled):not([aria-disabled="true"]) {
-  background: var(--gray-700);
-  border-color: var(--gray-700);
-}
-
-.app-button--outlined {
-  background: transparent;
-  border-color: var(--border-strong);
-  color: var(--accent-text);
-}
-
-.app-button--outlined:hover:not(:disabled):not([aria-disabled="true"]),
-.app-button--outlined:focus-visible:not(:disabled):not([aria-disabled="true"]) {
-  border-color: var(--brand-300);
-  background: var(--accent-subtle);
-  color: var(--brand-800);
-}
-
+.app-button--secondary:active:not(:disabled):not([aria-disabled="true"]),
 .app-button--outlined:active:not(:disabled):not([aria-disabled="true"]) {
-  background: var(--gray-200);
+  background: var(--gray-100);
 }
 
-/* Destructive: styled as such, kept away from the primary by layout. */
+/* Outlined: secondary with accent words (link-like). */
+.app-button--outlined {
+  color: var(--accent);
+}
+
+/* Danger: red words; the border turns red on hover, never a pink fill. */
 .app-button--danger {
-  background: var(--surface);
-  border-color: var(--status-error-border);
   color: var(--status-error-text);
 }
 
-.app-button--danger:hover:not(:disabled):not([aria-disabled="true"]),
-.app-button--danger:focus-visible:not(:disabled):not([aria-disabled="true"]) {
-  background: var(--status-error-bg);
+.app-button--danger:hover:not(:disabled):not([aria-disabled="true"]) {
+  border-color: var(--status-error-text);
+  background: var(--surface);
 }
 
-/* Press feedback confirms a deliberate click; hover never moves anything. */
-.app-button:active:not(:disabled):not([aria-disabled="true"]) {
-  transform: scale(0.98);
+/* Ghost: text and icon-only actions; grey tone on hover. */
+.app-button--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--gray-700);
+}
+
+.app-button--ghost:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--gray-100);
+  color: var(--gray-900);
+}
+
+.app-button--ghost:active:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--gray-200);
+}
+
+/* Inverted: for dark surfaces only. */
+.app-button--inverted {
+  border-color: var(--button-surface-inverted);
+  background: var(--button-surface-inverted);
+  color: var(--button-text-inverted);
+}
+
+.app-button--inverted:hover:not(:disabled):not([aria-disabled="true"]) {
+  border-color: var(--gray-800);
+  background: var(--gray-800);
+}
+
+/* Touch screens: a 44px target for every button. */
+@media (pointer: coarse) {
+  .app-button {
+    min-height: 44px;
+  }
+
+  .app-button--icon {
+    min-width: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-button {
+    transition: none;
+  }
+
+  .app-button:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1992,64 +2046,6 @@ main :is(.readonly-item, .extension-card-title, .users-location-list-header, .lo
    ":root .x.x" outranks the per-component encapsulated styles.
    ===================================================================== */
 
-/* -- Primary: the one solid button per view ----------------------------- */
-:root .app-button--primary.app-button--primary:active:not(:disabled) {
-  background: var(--accent-pressed);
-}
-
-/* -- Secondary: white, hairline, grey on hover --------------------------- */
-:root .app-button--secondary.app-button--secondary {
-  border-color: var(--border-strong);
-  background: var(--surface);
-  color: var(--text-primary);
-}
-
-:root .app-button--secondary.app-button--secondary:hover:not(:disabled) {
-  border-color: var(--gray-400);
-  background: var(--surface-subtle);
-}
-
-/* -- Outlined (link-like): blue words on white, grey on hover ------------ */
-:root .app-button--outlined.app-button--outlined:hover:not(:disabled) {
-  border-color: var(--gray-400);
-  background: var(--surface-subtle);
-  color: var(--accent-hover);
-}
-
-/* -- Danger: red words; the border turns red on hover, no pink fill ------ */
-:root .app-button--danger.app-button--danger {
-  border-color: var(--border-strong);
-  background: var(--surface);
-  color: var(--status-error-text);
-}
-
-:root .app-button--danger.app-button--danger:hover:not(:disabled) {
-  border-color: var(--status-error-text);
-  background: var(--surface);
-}
-
-/* -- Icon-only buttons: grey glyph, grey square on hover ----------------- */
-:root :is(.row-action, .menu-button, .icon-button, .drawer-close, .scan-result-close,
-  .location-modal-close, .column-visibility-trigger, .asset-card-action,
-  .filter-trigger, .dash-refresh):is(.row-action, .menu-button, .icon-button,
-  .drawer-close, .scan-result-close, .location-modal-close,
-  .column-visibility-trigger, .asset-card-action, .filter-trigger, .dash-refresh) {
-  color: var(--text-muted);
-  transition:
-    background-color 120ms var(--ease-out-expo),
-    color 120ms var(--ease-out-expo);
-}
-
-:root :is(.row-action, .menu-button, .icon-button, .drawer-close, .scan-result-close,
-  .location-modal-close, .column-visibility-trigger, .asset-card-action,
-  .filter-trigger, .dash-refresh):is(.row-action, .menu-button, .icon-button,
-  .drawer-close, .scan-result-close, .location-modal-close,
-  .column-visibility-trigger, .asset-card-action, .filter-trigger,
-  .dash-refresh):hover:not(:disabled) {
-  background: var(--surface-hover);
-  color: var(--text-primary);
-}
-
 /* -- Toggled on (filter open, view mode, chips): neutral, dark text ------ */
 :root :is(.filter-trigger-active, .asset-view-option-active, .view-button-active,
   .users-location-chip-active, .files-assignment-tab-active):is(.filter-trigger-active,
@@ -2122,3 +2118,48 @@ main :is(.readonly-item, .extension-card-title, .users-location-list-header, .lo
 .auth-link:hover, .auth-link:focus-visible { color: var(--text-primary); text-decoration: underline; }
 .auth-submit { width: 100%; }
 .auth-back { display: inline-block; margin-top: 24px; font-size: var(--type-body-size); }
+
+/* =====================================================================
+   Collapsible sidebar. --sidebar-width drives both the sidebar and the
+   page offset (.app-shell-offset), so they move together. Transitions are
+   only enabled after start-up (html.sidebar-ready) to avoid animating a
+   remembered state on load.
+   ===================================================================== */
+:root {
+  --sidebar-width-collapsed: 68px;
+  --sidebar-motion: 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html.sidebar-collapsed {
+  --sidebar-width: var(--sidebar-width-collapsed);
+}
+
+@media (min-width: 1024px) {
+  .app-shell-offset {
+    padding-left: var(--sidebar-width);
+  }
+
+  html.sidebar-ready .app-shell-offset {
+    transition: padding-left var(--sidebar-motion);
+  }
+}
+
+/* Location switcher in the collapsed rail: pin icon only. */
+html.sidebar-collapsed app-sidebar .switcher .switcher-copy,
+html.sidebar-collapsed app-sidebar .switcher .switcher-chevron {
+  opacity: 0;
+  pointer-events: none;
+}
+
+html.sidebar-ready app-sidebar .switcher .switcher-copy,
+html.sidebar-ready app-sidebar .switcher .switcher-chevron {
+  transition: opacity 160ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.sidebar-ready .app-shell-offset,
+  html.sidebar-ready app-sidebar .switcher .switcher-copy,
+  html.sidebar-ready app-sidebar .switcher .switcher-chevron {
+    transition: none;
+  }
+}

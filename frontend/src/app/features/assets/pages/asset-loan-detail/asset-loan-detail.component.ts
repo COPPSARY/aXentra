@@ -9,6 +9,12 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import {
+  LucideClipboardCheck,
+  LucideInfo,
+  LucideLink,
+  LucideUser,
+} from '@lucide/angular';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   catchError,
@@ -44,8 +50,10 @@ import {
   AssetLoanRecord,
   AssetLoanStatus,
 } from '../../models/asset-loan.models';
-import { AssetRecord } from '../../models/asset-view.models';
+import { ActivityLogItem, AssetRecord } from '../../models/asset-view.models';
+import { ActivityApiService } from '../../services/activity-api.service';
 import { AssetLoansApiService } from '../../services/asset-loans-api.service';
+import { describeDayCount } from '../../../licenses/utils/license-expiry.utils';
 import { AssetsApiService } from '../../services/assets-api.service';
 import {
   readLoanExtensionInfo,
@@ -97,6 +105,10 @@ interface SelectedReturnItem {
     ConfirmDeleteModalComponent,
     FormsModule,
     LoanShareControlsComponent,
+    LucideClipboardCheck,
+    LucideInfo,
+    LucideLink,
+    LucideUser,
     MobileTabbarComponent,
     RouterLink,
     SidebarComponent,
@@ -110,6 +122,7 @@ export class AssetLoanDetailComponent implements OnInit {
     '.loan-action-menu-anchor, .loan-action-menu';
 
   private readonly authService = inject(AuthService);
+  private readonly activityApiService = inject(ActivityApiService);
   private readonly assetLoansApiService = inject(AssetLoansApiService);
   private readonly assetsApiService = inject(AssetsApiService);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
@@ -410,6 +423,102 @@ export class AssetLoanDetailComponent implements OnInit {
       };
     });
   });
+
+  // -------------------------------------------------------------------
+  // Identification, urgency and progress (view-only derivations)
+  // -------------------------------------------------------------------
+
+  readonly activities = signal<ActivityLogItem[]>([]);
+  readonly activitiesTotal = signal(0);
+  readonly activitiesPage = signal(1);
+  readonly isActivitiesLoading = signal(false);
+  readonly activitiesError = signal('');
+  /** True when the role lacks activityLog:read; the History section is hidden. */
+  readonly activitiesForbidden = signal(false);
+
+  readonly borrowerProfileLink = computed(() => {
+    const loan = this.loan();
+    return loan ? ['/users/profiles', loan.borrowerProfileId] : null;
+  });
+  readonly borrowerInitials = computed(() =>
+    this.borrowerName()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join(''),
+  );
+  readonly borrowerPhone = computed(() => this.borrower()?.phone?.trim() || '');
+  readonly borrowerEmail = computed(() => this.borrower()?.email?.trim() || '');
+  readonly borrowerDepartment = computed(
+    () => this.borrower()?.department?.trim() || '',
+  );
+
+  /**
+   * Plain-text due note for the header and Details. Colour is left to the
+   * status pill so the state is said once, not three times.
+   */
+  readonly dueNote = computed(() => {
+    const loan = this.loan();
+    if (!loan) {
+      return '';
+    }
+
+    const status = this.effectiveStatus();
+    if (status === 'Cancelled') {
+      return '';
+    }
+    if (status === 'Returned') {
+      return loan.returnDate ? `Returned ${this.formatDate(loan.returnDate)}` : '';
+    }
+
+    const days = this.daysUntilDue();
+    if (days === null) {
+      return '';
+    }
+    if (days < 0) {
+      return `${describeDayCount(-days)} late`;
+    }
+    if (days === 0) {
+      return 'Due today';
+    }
+    return `Due in ${describeDayCount(days)}`;
+  });
+
+  readonly itemStatusCounts = computed(() => {
+    const counts: Record<AssetLoanItemStatus, number> = {
+      Loaned: 0,
+      Returned: 0,
+      Lost: 0,
+      Damaged: 0,
+      Cancelled: 0,
+    };
+    for (const item of this.loanItems()) {
+      counts[item.itemStatus] += 1;
+    }
+    return counts;
+  });
+  /** Items that have left the borrower's hands (returned, or closed as lost/damaged/cancelled). */
+  readonly settledItemCount = computed(
+    () => this.loanItems().length - this.itemStatusCounts().Loaned,
+  );
+  readonly itemBreakdown = computed(() => {
+    const counts = this.itemStatusCounts();
+    const parts: string[] = [];
+    if (counts.Loaned) parts.push(`${counts.Loaned} on loan`);
+    if (counts.Returned) parts.push(`${counts.Returned} returned`);
+    if (counts.Damaged) parts.push(`${counts.Damaged} damaged`);
+    if (counts.Lost) parts.push(`${counts.Lost} lost`);
+    if (counts.Cancelled) parts.push(`${counts.Cancelled} cancelled`);
+    return parts.join(' · ');
+  });
+
+  readonly historyEntries = computed(() =>
+    this.activities().map((activity) => this.toHistoryEntry(activity)),
+  );
+  readonly hasMoreActivities = computed(
+    () => this.activities().length < this.activitiesTotal(),
+  );
 
   ngOnInit(): void {
     this.isEditMode.set(
@@ -1034,6 +1143,7 @@ export class AssetLoanDetailComponent implements OnInit {
           this.lender.set(lender);
           this.assetSummaries.set(assetSummaries);
           this.hydrateDrafts(loan);
+          this.loadActivities(loan.assetLoanId, 1);
         },
         error: (error: unknown) => {
           this.loan.set(null);
@@ -1168,6 +1278,171 @@ export class AssetLoanDetailComponent implements OnInit {
 
     const durationDays = this.daysBetweenInclusive(start, end);
     return durationDays === 1 ? '1 day' : `${durationDays} days`;
+  }
+
+  loadMoreActivities(): void {
+    const loan = this.loan();
+    if (loan && !this.isActivitiesLoading()) {
+      this.loadActivities(loan.assetLoanId, this.activitiesPage() + 1);
+    }
+  }
+
+  retryActivities(): void {
+    const loan = this.loan();
+    if (loan) {
+      this.loadActivities(loan.assetLoanId, 1);
+    }
+  }
+
+  /** Whole days from today to the due date; negative once past due. */
+  private daysUntilDue(): number | null {
+    const due = this.parseDateOnly(this.loan()?.endLoanDate?.slice(0, 10));
+    if (!due) {
+      return null;
+    }
+    return Math.round((due.getTime() - this.todayDate().getTime()) / 86_400_000);
+  }
+
+  private loadActivities(loanId: number, page: number): void {
+    if (this.activitiesForbidden()) {
+      return;
+    }
+
+    this.isActivitiesLoading.set(true);
+    this.activitiesError.set('');
+
+    this.activityApiService
+      .listEntityActivities({
+        entityType: 'asset_loan',
+        entityId: loanId,
+        page,
+        limit: 10,
+      })
+      .pipe(finalize(() => this.isActivitiesLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          const items = response.activities ?? [];
+          this.activities.update((current) =>
+            page === 1 ? items : [...current, ...items],
+          );
+          this.activitiesTotal.set(response.totalItems ?? items.length);
+          this.activitiesPage.set(page);
+        },
+        error: (error: unknown) => {
+          if (
+            error instanceof HttpErrorResponse &&
+            (error.status === 401 || error.status === 403)
+          ) {
+            this.activitiesForbidden.set(true);
+            return;
+          }
+          this.activitiesError.set('Unable to load history.');
+        },
+      });
+  }
+
+  private toHistoryEntry(activity: ActivityLogItem) {
+    const metadata = activity.metadata ?? {};
+    const text = (key: string) =>
+      typeof metadata[key] === 'string' ? (metadata[key] as string).trim() : '';
+    const changedFields = Array.isArray(metadata['changedFields'])
+      ? (metadata['changedFields'] as unknown[])
+          .filter((field): field is string => typeof field === 'string')
+          .map((field) => field.replace(/[_-]+/g, ' ').toLowerCase())
+      : [];
+
+    let summary: string;
+    let detail = '';
+    switch (activity.action) {
+      case 'created': {
+        const count = metadata['itemCount'];
+        summary =
+          typeof count === 'number'
+            ? `Created the loan with ${count} ${count === 1 ? 'item' : 'items'}`
+            : 'Created the loan';
+        break;
+      }
+      case 'updated':
+        if (metadata['extended'] === true && text('newEndLoanDate')) {
+          summary = `Extended to ${this.formatDate(text('newEndLoanDate'))}`;
+          if (text('previousEndLoanDate')) {
+            detail = `Was due ${this.formatDate(text('previousEndLoanDate'))}`;
+          }
+        } else if (text('itemStatus') && text('assetName')) {
+          summary = `Marked ${text('assetName')} as ${text('itemStatus').toLowerCase()}`;
+        } else {
+          summary = 'Updated details';
+          if (changedFields.length > 0) {
+            detail = `Changed: ${changedFields.join(', ')}`;
+          }
+        }
+        break;
+      case 'returned': {
+        const returnedCount = metadata['returnedItemCount'];
+        if (text('assetName')) {
+          summary = `Returned ${text('assetName')}`;
+        } else if (typeof returnedCount === 'number') {
+          summary = `Returned ${returnedCount} ${returnedCount === 1 ? 'item' : 'items'}`;
+        } else {
+          summary = 'Returned';
+        }
+        break;
+      }
+      case 'cancelled':
+        summary = 'Cancelled the loan';
+        break;
+      case 'deleted':
+        summary = 'Deleted the loan';
+        break;
+      case 'marked_overdue':
+        summary = 'Marked overdue';
+        break;
+      case 'shared':
+        summary =
+          metadata['shareEnabled'] === false
+            ? 'Turned off the public share link'
+            : 'Turned on the public share link';
+        break;
+      default:
+        summary = activity.action.replace(/[_-]+/g, ' ');
+        summary = summary.charAt(0).toUpperCase() + summary.slice(1);
+    }
+
+    return {
+      id: activity.activityLogId,
+      actor: activity.actorName?.trim() || 'System',
+      summary,
+      detail,
+      occurredAt: activity.occurredAt,
+      relative: this.formatRelativeTime(activity.occurredAt),
+      exact: this.formatDateTime(activity.occurredAt),
+    };
+  }
+
+  private formatRelativeTime(value: string | null): string {
+    if (!value) {
+      return '-';
+    }
+    const time = new Date(value).getTime();
+    if (Number.isNaN(time)) {
+      return '-';
+    }
+
+    const seconds = Math.round((Date.now() - time) / 1000);
+    const formatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+    if (seconds < 60) {
+      return 'just now';
+    }
+    if (seconds < 3600) {
+      return formatter.format(-Math.floor(seconds / 60), 'minute');
+    }
+    if (seconds < 86400) {
+      return formatter.format(-Math.floor(seconds / 3600), 'hour');
+    }
+    if (seconds < 86400 * 30) {
+      return formatter.format(-Math.floor(seconds / 86400), 'day');
+    }
+    return this.formatDate(value);
   }
 
   private parseDateOnly(value: string | null | undefined): Date | null {

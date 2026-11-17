@@ -2,7 +2,7 @@
   <app-sidebar />
   <app-mobile-tabbar />
 
-  <div class="lg:pl-60">
+  <div class="app-shell-offset">
     <app-topbar
       [displayName]="displayName()"
       [role]="role()"
@@ -249,8 +249,7 @@
                               }
                             </div>
                             <span class="app-ellipsis album-upload-name">{{ file.name }}</span>
-                            <button
-                              class="option-remove-button"
+                            <button appButton="ghost" size="sm" iconOnly
                               type="button"
                               [attr.aria-label]="'Remove ' + file.name"
                               (click)="removeAlbumFile($index)"

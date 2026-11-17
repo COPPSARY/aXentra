@@ -11,6 +11,7 @@ import { combineLatest, finalize, map, Subscription } from 'rxjs';
 
 import { AuthShellComponent } from '../../../../shared/layout/auth-shell/auth-shell.component';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { AppButtonDirective } from '../../../../shared/components/app-button/app-button.directive';
 
 function passwordsMatchValidator(
   control: AbstractControl,
@@ -27,7 +28,7 @@ function passwordsMatchValidator(
 
 @Component({
   selector: 'app-reset-password',
-  imports: [ReactiveFormsModule, AuthShellComponent],
+  imports: [AppButtonDirective, ReactiveFormsModule, AuthShellComponent],
   templateUrl: './reset-password.component.html',
   styleUrl: './reset-password.component.css',
 })

@@ -112,8 +112,8 @@ describe('PublicLoanPageComponent', () => {
     if (state.kind === 'loaded') {
       expect(state.view.reference).toBe('LN-00007');
       expect(state.view.borrowerName).toBe('Jane Doe');
-      expect(state.view.startDate).toBe('2024-01-01');
-      expect(state.view.endDate).toBe('2024-02-01');
+      expect(state.view.startDate).toBe('Jan 1, 2024');
+      expect(state.view.endDate).toBe('Feb 1, 2024');
       expect(state.view.items).toEqual([{ name: 'Laptop', status: 'Loaned' }]);
     }
   });

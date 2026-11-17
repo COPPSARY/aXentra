@@ -2,7 +2,7 @@
   <app-sidebar />
   <app-mobile-tabbar />
 
-  <div class="lg:pl-60">
+  <div class="app-shell-offset">
     <app-topbar
       [displayName]="displayName()"
       [role]="role()"
@@ -22,9 +22,8 @@
               <span class="dash-context-sep" aria-hidden="true">·</span>
               <span class="tabular">Updated {{ updated | date: 'HH:mm' }}</span>
             }
-            <button
+            <button appButton="ghost" iconOnly
               type="button"
-              class="dash-refresh"
               [class.dash-refresh-spinning]="isRefreshing()"
               [disabled]="isRefreshing() || isLoading()"
               aria-label="Refresh dashboard"
@@ -80,7 +79,7 @@
         <section class="dash-blocked app-surface">
           <p class="dash-blocked-title">Choose a location</p>
           <p>The dashboard shows loans and inventory for one location at a time.</p>
-          <a class="app-button app-button--primary mt-4" routerLink="/location">
+          <a appButton class="mt-4" routerLink="/location">
             Choose location
           </a>
         </section>
@@ -88,7 +87,7 @@
         <section class="dash-blocked app-surface" role="alert">
           <p class="dash-blocked-title">The dashboard could not load</p>
           <p>Check your connection, then try again.</p>
-          <button type="button" class="app-button app-button--secondary mt-4" (click)="refresh()">
+          <button appButton="secondary" type="button" class="mt-4" (click)="refresh()">
             Try again
           </button>
         </section>

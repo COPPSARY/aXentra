@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, forkJoin, map, of, switchMap } from 'rxjs';
@@ -16,6 +16,7 @@ import {
 import { ConfirmDeleteModalComponent } from '../../../../shared/components/confirm-delete-modal/confirm-delete-modal.component';
 import { MobileTabbarComponent } from '../../../../shared/layout/mobile-tabbar/mobile-tabbar.component';
 import { SidebarComponent } from '../../../../shared/layout/sidebar/sidebar.component';
+import { SoftwareLogoComponent } from '../../../../shared/components/software-logo/software-logo.component';
 import { TopbarComponent } from '../../../../shared/layout/topbar/topbar.component';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
 import {
@@ -26,7 +27,14 @@ import {
   AssetListPage,
   FilesApiService,
 } from '../../../files/services/files-api.service';
-import { formatLicenseSeats } from '../../utils/license-seats.utils';
+import {
+  formatLicenseSeats,
+  licenseSeatUsage,
+} from '../../utils/license-seats.utils';
+import {
+  LicenseExpiryNote,
+  describeLicenseExpiry,
+} from '../../utils/license-expiry.utils';
 import {
   SoftwareLicenseAssignment,
   SoftwareLicenseListPage,
@@ -42,16 +50,6 @@ type LicenseFilter = 'all' | SoftwareLicenseStatus;
 const SOFTWARE_LICENSE_LOCATION_FILTER_KEY = 'softwareLicensesLocationFilter';
 const SOFTWARE_LICENSE_PAGE_SIZE = 10;
 const LICENSE_ASSIGNMENT_PAGE_SIZE = 10;
-const LICENSE_BADGE_COLORS = [
-  '#477ce6',
-  '#0f766e',
-  '#b45309',
-  '#7c3aed',
-  '#be185d',
-  '#3561db',
-  '#047857',
-  '#c2410c',
-];
 
 @Component({
   imports: [
@@ -64,12 +62,13 @@ const LICENSE_BADGE_COLORS = [
     MobileTabbarComponent,
     ReactiveFormsModule,
     SidebarComponent,
+    SoftwareLogoComponent,
     TopbarComponent,
   ],
   templateUrl: './software-license.component.html',
   styleUrl: './software-license.component.css',
 })
-export class SoftwareLicenseComponent implements OnInit, OnDestroy {
+export class SoftwareLicenseComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly locationContext = inject(LocationContextService);
   private readonly filesApiService = inject(FilesApiService);
@@ -121,7 +120,6 @@ export class SoftwareLicenseComponent implements OnInit, OnDestroy {
   readonly loadError = signal('');
   readonly filter = signal<LicenseFilter>('all');
   readonly openActionLicenseId = signal<number | null>(null);
-  readonly copiedLicenseId = signal<number | null>(null);
   readonly licenses = signal<SoftwareLicenseRecord[]>([]);
   readonly page = signal(1);
   readonly pageLimit = signal(SOFTWARE_LICENSE_PAGE_SIZE);
@@ -156,7 +154,6 @@ export class SoftwareLicenseComponent implements OnInit, OnDestroy {
   readonly licensePendingDelete = signal<SoftwareLicenseRecord | null>(null);
   readonly isDeleting = signal(false);
   readonly deleteError = signal('');
-  private copyResetTimeoutId: number | null = null;
   readonly filterOptions: SelectOption[] = [
     { label: 'All Licenses', value: 'all' },
     { label: 'Active', value: 'Active' },
@@ -286,12 +283,6 @@ export class SoftwareLicenseComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy(): void {
-    if (this.copyResetTimeoutId !== null) {
-      window.clearTimeout(this.copyResetTimeoutId);
-      this.copyResetTimeoutId = null;
-    }
-  }
 
   setFilter(value: unknown): void {
     const normalized = String(value) as LicenseFilter;
@@ -437,29 +428,6 @@ export class SoftwareLicenseComponent implements OnInit, OnDestroy {
 
   seatsLabel(item: SoftwareLicenseRecord): string {
     return formatLicenseSeats(item);
-  }
-
-  async copyLicenseKey(item: SoftwareLicenseRecord): Promise<void> {
-    const licenseKey = item.licenseKey?.trim();
-    if (!licenseKey) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(licenseKey);
-      this.copiedLicenseId.set(item.softwareLicenseId);
-
-      if (this.copyResetTimeoutId !== null) {
-        window.clearTimeout(this.copyResetTimeoutId);
-      }
-
-      this.copyResetTimeoutId = window.setTimeout(() => {
-        this.copiedLicenseId.set(null);
-        this.copyResetTimeoutId = null;
-      }, 1800);
-    } catch {
-      this.snackbar.error('Unable to copy license key.');
-    }
   }
 
   openCreateLicense(): void {
@@ -768,28 +736,15 @@ export class SoftwareLicenseComponent implements OnInit, OnDestroy {
       : item.softwareName;
   }
 
-  getLicenseInitial(item: SoftwareLicenseRecord): string {
-    return item.softwareName.trim().charAt(0).toUpperCase() || '?';
+  /** Relative expiry under the date: amber within 30 days, red once passed. */
+  expiryNote(item: SoftwareLicenseRecord): LicenseExpiryNote | null {
+    return describeLicenseExpiry(item.expiryDate);
   }
 
-  licenseBadgeBackground(item: SoftwareLicenseRecord): string {
-    const normalizedName = item.softwareName.trim().toLowerCase();
-
-    if (!normalizedName) {
-      return LICENSE_BADGE_COLORS[0];
-    }
-
-    let hash = 0;
-    for (let index = 0; index < normalizedName.length; index += 1) {
-      hash = (hash * 31 + normalizedName.charCodeAt(index)) >>> 0;
-    }
-
-    return LICENSE_BADGE_COLORS[hash % LICENSE_BADGE_COLORS.length];
+  seatUsage(item: SoftwareLicenseRecord): { used: number; total: number } | null {
+    return licenseSeatUsage(item);
   }
 
-  licenseKeyTooltip(item: SoftwareLicenseRecord): string {
-    return item.licenseKey?.trim() || 'No key';
-  }
 
   assignmentAssetLabel(assignment: SoftwareLicenseAssignment): string {
     return (

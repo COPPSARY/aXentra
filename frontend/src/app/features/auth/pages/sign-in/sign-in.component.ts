@@ -10,10 +10,11 @@ import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { AuthShellComponent } from '../../../../shared/layout/auth-shell/auth-shell.component';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
+import { AppButtonDirective } from '../../../../shared/components/app-button/app-button.directive';
 
 @Component({
   selector: 'app-sign-in',
-  imports: [ReactiveFormsModule, AuthShellComponent],
+  imports: [AppButtonDirective, ReactiveFormsModule, AuthShellComponent],
   templateUrl: './sign-in.component.html',
   styleUrl: './sign-in.component.css',
 })

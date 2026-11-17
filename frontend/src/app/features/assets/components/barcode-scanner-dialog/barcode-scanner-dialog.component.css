@@ -232,45 +232,6 @@
   gap: 12px;
 }
 
-.camera-start,
-.primary-action,
-.secondary-action {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: var(--radius-control);
-  padding: 0 18px;
-  font-weight: var(--weight-semibold);
-  transition:
-    border-color var(--app-motion-fast) var(--app-motion-ease),
-    background-color var(--app-motion-fast) var(--app-motion-ease),
-    color var(--app-motion-fast) var(--app-motion-ease),
-    transform var(--app-motion-fast) var(--app-motion-ease);
-}
-
-.camera-start,
-.secondary-action {
-  border: 1px solid var(--gray-300);
-  background: #fff;
-  color: var(--text-secondary);
-}
-
-.camera-start:hover,
-.camera-start:focus-visible,
-.secondary-action:hover,
-.secondary-action:focus-visible {
-  border-color: var(--gray-500);
-  background: var(--gray-50);
-  outline: none;
-}
-
-.camera-start svg {
-  height: 18px;
-  width: 18px;
-}
-
 .scanner-error {
   border-left: 3px solid var(--status-error-text);
   background: var(--status-error-bg);
@@ -308,19 +269,6 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-}
-
-.primary-action {
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: #fff;
-}
-
-.primary-action:hover,
-.primary-action:focus-visible {
-  border-color: var(--accent-hover);
-  background: var(--accent-hover);
-  outline: none;
 }
 
 @keyframes scanner-backdrop-in {
@@ -405,9 +353,6 @@
   .scanner-backdrop,
   .scanner-dialog,
   .camera-panel,
-  .camera-start,
-  .secondary-action,
-  .primary-action,
   .manual-scan input,
   .scanner-beam,
   .camera-spinner {

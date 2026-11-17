@@ -70,13 +70,12 @@
 .licenses-table-row {
   display: grid;
   grid-template-columns:
-    minmax(260px, 2fr)
-    minmax(180px, 1.45fr)
-    minmax(120px, 1fr)
-    minmax(120px, 1fr)
+    minmax(280px, 3fr)
+    minmax(150px, 1.1fr)
+    minmax(140px, 1fr)
     minmax(100px, 0.85fr)
     72px;
-  min-width: 1000px;
+  min-width: 820px;
   align-items: center;
   column-gap: 20px;
 }
@@ -130,21 +129,6 @@
   gap: 12px;
 }
 
-.license-item-leading {
-  display: inline-flex;
-  height: 38px;
-  width: 38px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-container);
-  color: #fff;
-  font-size: var(--type-subtitle-size);
-  font-weight: var(--weight-semibold);
-  line-height: var(--type-heading-line);
-  text-transform: uppercase;
-}
-
 .licenses-table-subtext {
   margin-top: 4px;
   overflow: hidden;
@@ -161,53 +145,6 @@
   font-size: var(--type-body-size);
   font-weight: var(--weight-semibold);
   overflow-wrap: anywhere;
-}
-
-.licenses-table-key {
-  color: var(--text-secondary);
-  font-size: var(--type-body-size);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.licenses-table-key-cell {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  padding-right: 8px;
-}
-
-.license-key-copy {
-  display: inline-flex;
-  height: 28px;
-  width: 28px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--gray-300);
-  border-radius: var(--radius-control);
-  background: #fff;
-  color: var(--text-muted);
-  transition:
-    border-color var(--app-motion-fast) var(--app-motion-ease),
-    background-color var(--app-motion-fast) var(--app-motion-ease),
-    color var(--app-motion-fast) var(--app-motion-ease);
-}
-
-.license-key-copy:hover,
-.license-key-copy:focus-visible {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
-  outline: none;
-}
-
-.license-key-copy svg {
-  height: 15px;
-  width: 15px;
 }
 
 .licenses-table-number {
@@ -239,28 +176,6 @@
 .license-action-cell {
   position: relative;
   justify-self: center;
-}
-
-.row-action {
-  display: flex;
-  height: 36px;
-  width: 36px;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-pill);
-  color: #b8c1cc;
-}
-
-.row-action:hover,
-.row-action:focus-visible {
-  background: var(--gray-50);
-  color: var(--text-muted);
-  outline: none;
-}
-
-.row-action svg {
-  height: 20px;
-  width: 20px;
 }
 
 .action-menu {
@@ -909,13 +824,6 @@
   border-color: var(--border);
 }
 
-.license-item-leading {
-  height: 32px;
-  width: 32px;
-  border-radius: var(--radius-control);
-  font-size: var(--type-body-size);
-}
-
 .licenses-table-name h3 {
   font-size: var(--type-body-size);
   font-weight: var(--weight-semibold);
@@ -926,53 +834,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.licenses-table-key {
-  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  font-size: var(--type-caption-size);
-}
-
-.licenses-table-key-cell {
-  display: flex;
-  gap: 4px;
-  padding-right: 0;
-}
-
-.licenses-table-key-cell .licenses-table-key {
-  min-width: 0;
-}
-
-.license-key-copy {
-  height: 24px;
-  width: 24px;
-  border-color: transparent;
-  background: transparent;
-  opacity: 0;
-}
-
-.licenses-table-row:hover .license-key-copy,
-.license-key-copy:focus-visible {
-  opacity: 1;
-}
-
-.license-key-copy:hover,
-.license-key-copy:focus-visible {
-  border-color: var(--border);
-  background: var(--surface-subtle);
-  color: var(--text-primary);
-}
-
 .licenses-table-number {
-  color: var(--text-primary);
-}
-
-.row-action {
-  border-radius: var(--radius-control);
-  color: var(--text-muted);
-}
-
-.row-action:hover,
-.row-action:focus-visible {
-  background: var(--surface-selected);
   color: var(--text-primary);
 }
 
@@ -1000,3 +862,51 @@
 .license-status-pill.license-status-expiring { --badge-dot: var(--viz-repair); color: var(--text-secondary); }
 .license-status-pill.license-status-expired { --badge-dot: var(--viz-damaged); color: var(--status-error-text); }
 .license-status-pill.license-status-unused { --badge-dot: var(--viz-disposed); color: var(--text-muted); }
+
+/* Expiry: date with a relative note; colour backs up the words, never replaces them. */
+.licenses-table-expiry,
+.licenses-table-seats {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.expiry-note {
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-medium);
+  line-height: 16px;
+}
+
+.expiry-note-muted {
+  color: var(--text-muted);
+}
+
+.expiry-note-warn {
+  color: var(--status-warning-text);
+}
+
+.expiry-note-danger {
+  color: var(--status-error-text);
+}
+
+/* Seats: thin usage bar under "used / total"; amber when every seat is taken. */
+.seat-meter {
+  display: block;
+  height: 4px;
+  width: 72px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--gray-150);
+}
+
+.seat-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gray-500, #6b7280);
+  transition: width var(--app-motion-base, 200ms) var(--app-motion-ease, ease-out);
+}
+
+.seat-meter-full > span {
+  background: var(--status-warning, #b54708);
+}

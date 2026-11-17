@@ -22,8 +22,7 @@
           }
         </p>
       </div>
-      <button
-        class="icon-button"
+      <button appButton="ghost" iconOnly
         type="button"
         aria-label="Close print label dialog"
         [disabled]="isGenerating()"
@@ -157,16 +156,14 @@
       <span class="print-status" aria-live="polite">
         {{ isGenerating() ? "Preparing vector label document…" : "" }}
       </span>
-      <button
-        class="secondary-action"
+      <button appButton="secondary"
         type="button"
         [disabled]="isGenerating()"
         (click)="close()"
       >
         Cancel
       </button>
-      <button
-        class="primary-action"
+      <button appButton
         type="button"
         [disabled]="isGenerating() || printableAssets.length === 0"
         (click)="print()"

@@ -275,3 +275,26 @@ export interface AssetCreatePayload extends AssetUpdatePayload {
 export type AssetProductUpdatePayload = Partial<AssetProductCreatePayload> & {
   version?: number | null;
 };
+
+export interface ActivityLogItem {
+  activityLogId: number;
+  occurredAt: string;
+  entityType: string;
+  entityId: number | null;
+  entityLabel: string | null;
+  action: string;
+  status: string | null;
+  locationId: number | null;
+  locationName: string | null;
+  actorUserId: number | null;
+  actorName: string | null;
+  metadata: Record<string, unknown>;
+}
+
+export interface ActivityLogListResponse {
+  activities: ActivityLogItem[];
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+}

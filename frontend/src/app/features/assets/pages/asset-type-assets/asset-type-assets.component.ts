@@ -64,6 +64,7 @@ import {
   buildGeneratedBarcode,
   getAssetTypeBarcodePrefix,
 } from '../../utils/barcode-prefix.utils';
+import { AppButtonDirective } from '../../../../shared/components/app-button/app-button.directive';
 
 const ASSET_STATUSES: AssetStatus[] = [
   'In Storage',
@@ -192,7 +193,7 @@ const ASSET_TABLE_COLUMNS: AssetTableColumnDefinition[] = [
 
 @Component({
   selector: 'app-asset-type-assets',
-  imports: [
+  imports: [AppButtonDirective, 
     AppLoadingComponent,
     AppDateFieldComponent,
     AppPaginationComponent,

@@ -1,228 +1,158 @@
-<section class="receipt-page" data-testid="public-loan-content">
-  <div class="receipt-toolbar print:hidden">
-    <p>Shared asset custody record</p>
-
-    <button
-      type="button"
-      (click)="print()"
-      class="receipt-print-button print:hidden"
-      data-testid="public-loan-print-button"
-    >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M6 9V3h12v6M6 18H4v-6h16v6h-2M8 14h8v7H8v-7Z"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linejoin="round"
-        />
-      </svg>
-      Print contract
-    </button>
-  </div>
-
-  <article class="loan-receipt" aria-labelledby="contract-title">
-    <header class="receipt-heading">
-      <div class="receipt-title-block">
-        <div class="receipt-title-meta">
-          <p class="receipt-eyebrow">Asset loan contract</p>
-          <span class="receipt-status">{{ view.statusLabel }}</span>
-        </div>
-        <h1 id="contract-title">Loan {{ view.reference }}</h1>
-        <p class="receipt-subtitle">
-          Contractual record of temporary asset custody
-        </p>
-      </div>
-
-      <aside class="receipt-qr" data-testid="public-loan-qr">
-        <div
-          #qrCodeContainer
-          class="receipt-qr-code"
-          role="img"
-          [attr.aria-label]="'QR code for public loan ' + view.reference"
-          data-testid="public-loan-qr-code"
-        ></div>
-        <div class="receipt-qr-copy">
-          <p>Scan to verify</p>
-          <span>Scan to open this loan</span>
-        </div>
-      </aside>
-    </header>
-
-    <section class="receipt-section receipt-information" aria-labelledby="loan-information-title">
-      <div class="receipt-section-heading">
-        <div>
-          <p class="receipt-section-kicker">Record details</p>
-          <h2 id="loan-information-title">Loan information</h2>
-        </div>
-        <span class="receipt-reference">{{ view.reference }}</span>
-      </div>
-
-      <div class="receipt-info-grid">
-        <div class="receipt-info-group">
-          <p class="receipt-info-label">Borrower</p>
-          <strong class="receipt-borrower">{{ view.borrowerName }}</strong>
-
-          <dl class="receipt-detail-grid">
-            <div>
-              <dt>Loan status</dt>
-              <dd>{{ view.statusLabel }}</dd>
-            </div>
-
-            @if (view.updatedAt) {
-              <div data-testid="public-loan-updated-at">
-                <dt>Last updated</dt>
-                <dd>{{ view.updatedAt }}</dd>
-              </div>
-            }
-          </dl>
-        </div>
-
-        <div class="receipt-info-group">
-          <p class="receipt-info-label">Custody period</p>
-
-          <div class="receipt-date-range" aria-label="Loan period">
-            <div>
-              <span>Issued</span>
-              <strong>{{ view.startDate }}</strong>
-            </div>
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M5 12h14m-5-5 5 5-5 5"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-            <div>
-              <span>Due</span>
-              <strong>{{ view.endDate }}</strong>
-            </div>
-          </div>
-
-          @if (view.returnDate) {
-            <dl class="receipt-detail-grid receipt-return-detail">
-              <div data-testid="public-loan-return-date">
-                <dt>Returned</dt>
-                <dd>{{ view.returnDate }}</dd>
-              </div>
-            </dl>
-          }
-        </div>
-      </div>
-    </section>
-
-    <section class="receipt-section receipt-assets" aria-labelledby="asset-register-title">
-      <div class="receipt-section-heading">
-        <div>
-          <p class="receipt-section-kicker">Custody register</p>
-          <h2 id="asset-register-title">Assets on this loan</h2>
-        </div>
-        <span class="receipt-count">
-          {{ view.items.length }}
-          {{ view.items.length === 1 ? 'asset' : 'assets' }}
+<article class="loan-doc" data-testid="public-loan-content" aria-labelledby="loan-title">
+  <!-- Title: reference, status, one identity line, QR -->
+  <header class="doc-head">
+    <div class="doc-head-main">
+      <p class="doc-kind">Asset loan</p>
+      <div class="doc-title-row">
+        <h1 id="loan-title" class="tabular">{{ view.reference }}</h1>
+        <span class="status-dot status-dot-{{ view.statusTone }}">
+          <span aria-hidden="true"></span>
+          {{ view.statusLabel }}
         </span>
       </div>
+      <p class="doc-identity">
+        <strong>{{ view.borrowerName }}</strong>
+        <span class="tabular">{{ view.period }}</span>
+        @if (view.dueNote) {
+          <span data-testid="public-loan-due-note">{{ view.dueNote }}</span>
+        }
+      </p>
+    </div>
 
-      @if (view.hasItems) {
-        <div
-          class="asset-register"
-          role="table"
-          aria-label="Assets included in this loan"
-        >
-          <div class="asset-register-head" role="row">
-            <span role="columnheader">No.</span>
-            <span role="columnheader">Asset</span>
-            <span role="columnheader">Identifier</span>
-            <span role="columnheader">Status</span>
-          </div>
+    <figure class="doc-qr" data-testid="public-loan-qr">
+      <div
+        #qrCodeContainer
+        class="doc-qr-code"
+        role="img"
+        [attr.aria-label]="'QR code for loan ' + view.reference"
+        data-testid="public-loan-qr-code"
+      ></div>
+      <figcaption>Scan to open this record</figcaption>
+    </figure>
+  </header>
 
-          <ol
-            class="asset-register-body"
-            role="rowgroup"
-            data-testid="public-loan-item-list"
-          >
-            @for (item of view.items; track $index) {
-              <li class="asset-register-row" role="row">
-                <span class="asset-number" role="cell">{{ $index + 1 }}</span>
-
-                <div class="asset-identity" role="cell">
-                  <strong>{{ item.name }}</strong>
-                  @if (item.description) {
-                    <p>{{ item.description }}</p>
-                  }
-                </div>
-
-                <div class="asset-identifier" role="cell">
-                  <span class="asset-mobile-label">Identifier</span>
-                  @if (item.identifier) {
-                    <span>{{ item.identifier }}</span>
-                  } @else {
-                    <span class="asset-empty-value">Not provided</span>
-                  }
-                </div>
-
-                <div class="asset-state" role="cell">
-                  <span class="asset-mobile-label">Status</span>
-                  @if (item.status) {
-                    <span>{{ item.status }}</span>
-                  } @else {
-                    <span class="asset-empty-value">Not recorded</span>
-                  }
-                </div>
-              </li>
-            }
-          </ol>
-        </div>
-      } @else {
-        <p class="receipt-empty" data-testid="public-loan-empty-items">
-          No assets are associated with this loan.
-        </p>
-      }
-    </section>
-
-    @if (view.remark) {
-      <section
-        class="receipt-section receipt-notes"
-        aria-labelledby="receipt-notes-title"
-        data-testid="public-loan-remark"
-      >
-        <p class="receipt-section-kicker">Additional information</p>
-        <h2 id="receipt-notes-title">Remarks</h2>
-        <p>{{ view.remark }}</p>
-      </section>
-    }
-
-    <section class="receipt-acknowledgement" aria-labelledby="acknowledgement-title">
+  <!-- Facts -->
+  <section class="doc-card" aria-label="Loan details">
+    <dl class="doc-facts">
       <div>
-        <p class="receipt-section-kicker">Custody confirmation</p>
-        <h2 id="acknowledgement-title">Acknowledgement</h2>
-        <p>
-          This contract confirms that the assets listed above are assigned to
-          the named borrower for the stated custody period. It records the
-          terms of asset custody and does not represent a financial transaction.
-        </p>
+        <dt>Borrower</dt>
+        <dd>{{ view.borrowerName }}</dd>
       </div>
+      @if (view.issuedBy) {
+        <div data-testid="public-loan-issued-by">
+          <dt>Issued by</dt>
+          <dd>{{ view.issuedBy }}</dd>
+        </div>
+      }
+      @if (view.locationName) {
+        <div data-testid="public-loan-branch">
+          <dt>Branch</dt>
+          <dd>{{ view.locationName }}</dd>
+        </div>
+      }
+      <div>
+        <dt>Borrowed</dt>
+        <dd class="tabular">{{ view.startDate }}</dd>
+      </div>
+      <div>
+        <dt>Due</dt>
+        <dd class="tabular">{{ view.endDate }}</dd>
+      </div>
+      @if (view.returnDate) {
+        <div data-testid="public-loan-return-date">
+          <dt>Returned</dt>
+          <dd class="tabular">{{ view.returnDate }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
 
-      <div class="receipt-signatures" aria-label="Contract signature fields">
-        <div>
-          <span aria-hidden="true"></span>
-          <p>Borrower signature</p>
-        </div>
-        <div>
-          <span aria-hidden="true"></span>
-          <p>Date</p>
-        </div>
-      </div>
+  <!-- Items -->
+  <section class="doc-card" aria-labelledby="items-title">
+    <h2 id="items-title" class="doc-card-title">
+      Items <span class="doc-count tabular">{{ view.items.length }}</span>
+    </h2>
+
+    @if (view.hasItems) {
+      <table class="doc-items" data-testid="public-loan-item-list">
+        <thead>
+          <tr>
+            <th scope="col" class="col-no">No.</th>
+            <th scope="col">Asset</th>
+            <th scope="col" class="col-status">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of view.items; track $index) {
+            <tr>
+              <td class="col-no tabular">{{ $index + 1 }}</td>
+              <td>
+                <span class="item-name">{{ item.name }}</span>
+                @if (item.identifier) {
+                  <span class="item-id">{{ item.identifier }}</span>
+                }
+              </td>
+              <td class="col-status">{{ item.status || '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <p class="doc-empty" data-testid="public-loan-empty-items">No items on this loan.</p>
+    }
+  </section>
+
+  <!-- Extensions -->
+  @if (view.extensions.length > 0) {
+    <section class="doc-card" aria-labelledby="extensions-title" data-testid="public-loan-extensions">
+      <h2 id="extensions-title" class="doc-card-title">Extensions</h2>
+      <ol class="doc-extensions">
+        @for (extension of view.extensions; track $index) {
+          <li>
+            <span class="tabular">{{ extension.range }}</span>
+            @if (extension.when) {
+              <span class="doc-muted">{{ extension.when }}</span>
+            }
+          </li>
+        }
+      </ol>
     </section>
+  }
 
-    <footer class="receipt-document-footer">
-      <p>Public verification record</p>
-      <p>{{ view.reference }} · {{ view.items.length }} {{ view.items.length === 1 ? 'asset' : 'assets' }}</p>
-    </footer>
-  </article>
-</section>
+  <!-- Remark -->
+  @if (view.remark) {
+    <section class="doc-card" aria-labelledby="remark-title" data-testid="public-loan-remark">
+      <h2 id="remark-title" class="doc-card-title">Remark</h2>
+      <p class="doc-remark">{{ view.remark }}</p>
+    </section>
+  }
+
+  <!-- Print only: acknowledgement + signatures for the handover copy -->
+  <section class="doc-sign" aria-labelledby="sign-title" data-testid="public-loan-signatures">
+    <h2 id="sign-title" class="doc-card-title">Acknowledgement</h2>
+    <p>
+      The borrower confirms receipt of the items listed above and agrees to return
+      them to {{ view.locationName || 'the issuing branch' }} by {{ view.endDate }}.
+    </p>
+    <div class="doc-sign-grid">
+      <div class="doc-sign-block">
+        <span class="doc-sign-line" aria-hidden="true"></span>
+        <p>Borrower · {{ view.borrowerName }}</p>
+        <span class="doc-sign-line doc-sign-line-short" aria-hidden="true"></span>
+        <p>Date</p>
+      </div>
+      <div class="doc-sign-block">
+        <span class="doc-sign-line" aria-hidden="true"></span>
+        <p>Issued by{{ view.issuedBy ? ' · ' + view.issuedBy : '' }}</p>
+        <span class="doc-sign-line doc-sign-line-short" aria-hidden="true"></span>
+        <p>Date</p>
+      </div>
+    </div>
+  </section>
+
+  @if (view.updatedAt) {
+    <p class="doc-updated" data-testid="public-loan-updated-at">
+      Last updated {{ view.updatedAt }}
+    </p>
+  }
+</article>

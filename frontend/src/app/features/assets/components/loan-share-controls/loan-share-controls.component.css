@@ -1,3 +1,83 @@
 :host {
   display: block;
 }
+
+/* Neutral, compact: the share link is a secondary tool on the loan page.
+   No filled or tinted buttons; colour only on focus rings and links. */
+.share-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-medium);
+  line-height: 20px;
+}
+
+.share-hint {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+  line-height: 16px;
+}
+
+.share-spinner {
+  height: 14px;
+  width: 14px;
+  border: 2px solid var(--gray-200, #e5e7eb);
+  border-top-color: var(--gray-500, #6b7280);
+  border-radius: 999px;
+  animation: share-spin 0.8s linear infinite;
+}
+
+@keyframes share-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* URL field with inline icon buttons. */
+.share-url {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  border: 1px solid var(--gray-150);
+  border-radius: var(--radius-control);
+  background: var(--gray-25, #fbfcfd);
+  padding-right: 2px;
+}
+
+.share-url:focus-within {
+  border-color: var(--gray-400, #9ca3af);
+}
+
+.share-url-input {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 0;
+  background: transparent;
+  padding: 8px 10px;
+  color: var(--text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--type-caption-size);
+  text-overflow: ellipsis;
+  outline: none;
+}
+
+.share-text-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 0 0 -8px;
+}
+
+.share-text-button-quiet {
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-spinner {
+    animation: none;
+  }
+}

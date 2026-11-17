@@ -1,74 +1,244 @@
-.mobile-tabbar {
-  isolation: isolate;
-  min-width: 0;
+/* Mobile tab bar: solid surface, hairline top edge, one icon set (same
+   drawings as the desktop sidebar). Inactive is grey; the current tab is
+   dark with a short brand bar. Nothing moves on press; hover only on
+   devices that actually hover. */
+
+.tabbar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+  border-top: 1px solid var(--border);
+  background: #fff;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-.tab-item {
+.tabbar-inner {
+  display: grid;
+  max-width: 560px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0 auto;
+}
+
+.tab {
   position: relative;
   display: flex;
-  min-height: 70px;
+  min-height: 56px;
   min-width: 0;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  color: var(--text-primary);
-  font-size: var(--type-caption-size);
-  font-weight: var(--weight-semibold);
-  line-height: var(--type-caption-line);
-  text-decoration: none;
-  touch-action: manipulation;
-  transition:
-    color var(--app-motion-fast) var(--app-motion-ease),
-    transform var(--app-motion-fast) var(--app-motion-ease);
-  -webkit-tap-highlight-color: transparent;
-}
-
-.tab-item::before {
-  position: absolute;
-  top: 0;
-  right: 12px;
-  left: 12px;
-  height: 4px;
-  border-radius: 0 0 var(--radius-pill) var(--radius-pill);
+  gap: 3px;
+  border: 0;
   background: transparent;
-  content: "";
+  padding: 6px 2px 8px;
+  color: var(--gray-500, #667085);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 120ms ease-out,
+    opacity 80ms ease-out;
 }
 
-.tab-item svg {
-  height: 30px;
-  width: 30px;
+.tab svg {
+  height: 22px;
+  width: 22px;
   flex: 0 0 auto;
 }
 
-.tab-item span {
+.tab-label {
   max-width: 100%;
-  min-width: 0;
   overflow: hidden;
+  color: var(--gray-600, #475467);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.tab-item:hover,
-.tab-item:focus-visible {
-  color: var(--accent);
-  outline: none;
+/* Current tab: dark icon + label, short brand bar under the label. */
+.tab::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  height: 3px;
+  width: 16px;
+  border-radius: 999px;
+  background: var(--brand-600);
+  opacity: 0;
+  transform: translateX(-50%) scaleX(0.4);
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.tab-item:active {
-  transform: translateY(1px);
+.tab-active {
+  color: var(--gray-900);
 }
 
-.tab-item-active {
-  color: var(--accent);
+.tab-active .tab-label {
+  color: var(--gray-900);
+  font-weight: 600;
 }
 
-.tab-item-active::before {
-  background: var(--accent);
+.tab-active::after {
+  opacity: 1;
+  transform: translateX(-50%) scaleX(1);
+}
+
+.tab:active {
+  opacity: 0.6;
+}
+
+@media (hover: hover) {
+  .tab:hover {
+    color: var(--gray-700, #344054);
+  }
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--brand-600);
+  outline-offset: -4px;
+  border-radius: 8px;
+}
+
+/* ---------------------------------------------------------------------
+   More bottom sheet
+   --------------------------------------------------------------------- */
+.sheet-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+}
+
+.sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(15 23 42 / 0.4);
+  animation: backdrop-in 200ms ease-out both;
+}
+
+.sheet {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  max-height: 80vh;
+  max-width: 560px;
+  flex-direction: column;
+  margin: 0 auto;
+  border-radius: 16px 16px 0 0;
+  background: var(--background, #f6f7f9);
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -8px 32px rgb(15 23 42 / 0.12);
+  animation: sheet-in 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sheet-dragging {
+  transition: none;
+}
+
+.sheet-layer-closing .sheet-backdrop {
+  animation: backdrop-out 180ms ease-in forwards;
+}
+
+.sheet-layer-closing .sheet {
+  animation: sheet-out 180ms ease-in forwards;
+}
+
+.sheet-grab {
+  flex: 0 0 auto;
+  padding: 8px 16px 4px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.sheet-handle {
+  display: block;
+  height: 4px;
+  width: 36px;
+  margin: 0 auto 8px;
+  border-radius: 999px;
+  background: var(--gray-300, #d0d5dd);
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.sheet-head h2 {
+  margin: 0;
+  color: var(--gray-900);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.sheet-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 16px 20px;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tab-item {
+  .tab,
+  .tab::after,
+  .sheet {
     transition: none;
+  }
+
+  .sheet {
+    animation: backdrop-in 150ms ease-out;
+  }
+
+  .sheet-layer-closing .sheet {
+    animation: backdrop-out 150ms ease-in forwards;
   }
 }

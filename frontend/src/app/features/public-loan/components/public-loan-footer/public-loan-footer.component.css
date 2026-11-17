@@ -2,8 +2,20 @@
   display: block;
 }
 
+.public-footer {
+  border-top: 1px solid var(--gray-150, #e5e9f0);
+  padding: 16px;
+  text-align: center;
+}
+
+.public-footer p {
+  margin: 0;
+  color: var(--text-muted, #5b6573);
+  font-size: 12px;
+}
+
 @media print {
   :host {
-    display: none !important;
+    display: none;
   }
 }

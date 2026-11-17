@@ -11,13 +11,14 @@ import { STATUS_TOKENS, StatusToken } from '../../tokens/token-table';
  * Covers:
  * - The `.app-button` base class is applied to both button and anchor hosts
  *   (Requirement 2.1).
- * - Each of the four variant modifiers maps to its correct modifier class, and
+ * - Each variant modifier maps to its correct modifier class, and
  *   empty/unknown variants default to primary (Requirements 2.2, 2.3).
  * - Actions that previously used bespoke button styles (`.primary-action`,
  *   `.secondary-action`, `.save-action`) now render via `app-button` variants
  *   with no bespoke class remaining on the element (Requirement 2.4).
- * - The base class guarantees a >= 44x44 touch target and the standardized
- *   disabled appearance (Requirements 2.5, 2.6).
+ * - Buttons are 36px on desktop and grow to a >= 44x44 touch target on
+ *   coarse pointers, with the standardized disabled appearance (Requirements
+ *   2.5, 2.6). Size (sm) and icon-only modifiers map to their classes.
  * - The standardized status color tokens (`--status-info`, `--status-success`,
  *   `--status-error`) resolve to three distinct colors (Requirement 3.4).
  *
@@ -32,6 +33,10 @@ import { STATUS_TOKENS, StatusToken } from '../../tokens/token-table';
     <button type="button" appButton="secondary" class="test-secondary">Secondary</button>
     <button type="button" appButton="inverted" class="test-inverted">Inverted</button>
     <button type="button" appButton="outlined" class="test-outlined">Outlined</button>
+    <button type="button" appButton="ghost" class="test-ghost">Ghost</button>
+    <button type="button" appButton="danger" class="test-danger">Danger</button>
+    <button type="button" appButton="secondary" size="sm" class="test-small">Small</button>
+    <button type="button" appButton="ghost" iconOnly aria-label="More" class="test-icon">x</button>
     <a href="#" appButton class="test-anchor">Anchor</a>
     <button type="button" appButton="primary" [disabled]="true" class="test-disabled">
       Disabled
@@ -80,6 +85,8 @@ describe('AppButtonDirective (unit/example)', () => {
       { selector: '.test-secondary', modifier: 'app-button--secondary' },
       { selector: '.test-inverted', modifier: 'app-button--inverted' },
       { selector: '.test-outlined', modifier: 'app-button--outlined' },
+      { selector: '.test-ghost', modifier: 'app-button--ghost' },
+      { selector: '.test-danger', modifier: 'app-button--danger' },
     ];
 
     for (const { selector, modifier } of cases) {
@@ -93,6 +100,8 @@ describe('AppButtonDirective (unit/example)', () => {
           'app-button--secondary',
           'app-button--inverted',
           'app-button--outlined',
+          'app-button--ghost',
+          'app-button--danger',
         ].filter((cls) => node.classList.contains(cls));
         expect(active).toEqual([modifier]);
       });
@@ -131,24 +140,57 @@ describe('AppButtonDirective (unit/example)', () => {
   });
 
   describe('touch target and disabled appearance (Requirements 2.5, 2.6)', () => {
-    it('renders every variant with a >= 44x44 touch target', () => {
+    it('renders every variant at least 36px tall on a mouse pointer', () => {
       const selectors = [
         '.test-default',
         '.test-primary',
         '.test-secondary',
         '.test-inverted',
         '.test-outlined',
+        '.test-ghost',
+        '.test-danger',
         '.test-anchor',
       ];
       for (const selector of selectors) {
         const style = getComputedStyle(el(selector));
         expect(parseFloat(style.minHeight))
           .withContext(`${selector} min-height`)
-          .toBeGreaterThanOrEqual(44);
-        expect(parseFloat(style.minWidth))
-          .withContext(`${selector} min-width`)
-          .toBeGreaterThanOrEqual(44);
+          .toBeGreaterThanOrEqual(36);
       }
+    });
+
+    it('declares a >= 44x44 target for touch (coarse) pointers', () => {
+      const coarseRules: CSSStyleRule[] = [];
+      for (const sheet of Array.from(document.styleSheets)) {
+        let rules: CSSRuleList;
+        try {
+          rules = sheet.cssRules;
+        } catch {
+          continue;
+        }
+        for (const rule of Array.from(rules)) {
+          if (rule instanceof CSSMediaRule && /pointer:\s*coarse/.test(rule.conditionText)) {
+            coarseRules.push(
+              ...Array.from(rule.cssRules).filter(
+                (inner): inner is CSSStyleRule => inner instanceof CSSStyleRule,
+              ),
+            );
+          }
+        }
+      }
+      const base = coarseRules.find((rule) => rule.selectorText.trim() === '.app-button');
+      const icon = coarseRules.find((rule) => rule.selectorText.trim() === '.app-button--icon');
+      expect(base).withContext('coarse-pointer .app-button rule').toBeTruthy();
+      expect(parseFloat(base!.style.minHeight)).toBeGreaterThanOrEqual(44);
+      expect(icon).withContext('coarse-pointer .app-button--icon rule').toBeTruthy();
+      expect(parseFloat(icon!.style.minWidth)).toBeGreaterThanOrEqual(44);
+    });
+
+    it('applies the small size and icon-only modifiers', () => {
+      expect(el('.test-small').classList.contains('app-button--sm')).toBeTrue();
+      expect(el('.test-primary').classList.contains('app-button--sm')).toBeFalse();
+      expect(el('.test-icon').classList.contains('app-button--icon')).toBeTrue();
+      expect(el('.test-primary').classList.contains('app-button--icon')).toBeFalse();
     });
 
     it('reflects disabled state to disabled and aria-disabled attributes', () => {
