@@ -1,0 +1,379 @@
+assetsDashboardPath:
+  get:
+    tags: [Dashboard]
+    summary: Get dashboard overview
+    description: >
+      Requires authentication. Returns aggregated dashboard data for the dashboard KPI
+      cards, location utilisation chart, asset age distribution, assignment trend,
+      category breakdown, and the legacy overview widgets. Optional query `locationId`
+      filters to one accessible location. `recentActivities` is a mixed feed derived
+      from recent row changes within the actor's scope: super admins see global
+      activity, admins see activity in their allowed locations.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/locationIdQueryParam
+      - in: query
+        name: expiringDays
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 365
+          default: 30
+        description: Warranty lookahead window in days.
+      - in: query
+        name: recentLimit
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 8
+        description: Maximum number of items in recent activities.
+      - in: query
+        name: upcomingLimit
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+        description: Maximum number of upcoming loan follow-up items.
+      - in: query
+        name: refreshWindowDays
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 730
+          default: 180
+        description: Lookahead window in days used for the `dueForRefresh` KPI.
+      - in: query
+        name: trendMonths
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 24
+          default: 6
+        description: Number of months included in the `assignmentTrend` chart.
+    responses:
+      '200':
+        description: Dashboard overview fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/assetDashboardOverviewResponse
+      '400':
+        description: Invalid query params
+      '401':
+        description: Authentication required or invalid token
+
+assetsPath:
+  get:
+    tags: [Assets]
+    summary: List assets
+    description: Requires authentication. Optional query `locationId` filters to one accessible location.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/locationIdQueryParam
+      - $ref: ./assetCommon.yaml#/pageQueryParam
+      - $ref: ./assetCommon.yaml#/limitQueryParam
+    responses:
+      '200':
+        description: Assets fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/paginatedAssetsResponse
+      '401':
+        description: Authentication required or invalid token
+  post:
+    tags: [Assets]
+    summary: Create asset
+    description: |
+      Requires authentication. Admin or super_admin role required.
+      Required body fields: `assetName`, `assetTypeId`, `productId`, `locationId`.
+      Other body fields are optional. `assetTag` may supply a globally unique tag; when omitted, the backend generates one. `displayImage` uploads one public image, while `albumImages` uploads private album files separate from the shared `fileId` link.
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./assetCommon.yaml#/assetCreateBody
+        multipart/form-data:
+          schema:
+            allOf:
+              - $ref: ./assetCommon.yaml#/assetCreateBody
+              - type: object
+                properties:
+                  displayImage:
+                    type: string
+                    format: binary
+                  albumImages:
+                    type: array
+                    items:
+                      type: string
+                      format: binary
+    responses:
+      '201':
+        description: Asset created successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/assetSchema
+      '400':
+        description: Validation failed
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: Asset type or product not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+      '409':
+        description: Duplicate asset name, serial number, or asset tag
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/conflictErrorResponse
+
+assetByAssetTagPath:
+  get:
+    tags: [Assets]
+    summary: Get asset by asset tag
+    description: Requires authentication. Retrieves a single asset using the universal asset tag encoded by its barcode or QR code.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/assetTagParam
+    responses:
+      '200':
+        description: Asset fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/assetSchema
+      '400':
+        description: Invalid asset tag
+      '401':
+        description: Authentication required or invalid token
+      '404':
+        description: Asset not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+
+assetLicensesActiveOnlyQueryParam:
+  in: query
+  name: activeOnly
+  required: false
+  schema:
+    type: boolean
+    default: true
+  description: When true, only active software license assignments are returned.
+
+assetSoftwareLicenseAssignmentSchema:
+  type: object
+  properties:
+    licenseLinkAssetId:
+      type: integer
+      example: 15
+    assetId:
+      type: integer
+      example: 101
+    softwareLicenseId:
+      type: integer
+      example: 12
+    assignedAt:
+      type: string
+      format: date-time
+    unassignedAt:
+      type: string
+      format: date-time
+      nullable: true
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+      nullable: true
+    createdBy:
+      type: integer
+      nullable: true
+    updatedBy:
+      type: integer
+      nullable: true
+    softwareLicense:
+      allOf:
+        - $ref: ./softwareLicenses.yaml#/softwareLicenseSchema
+      nullable: true
+
+paginatedAssetSoftwareLicensesResponse:
+  allOf:
+    - $ref: ./assetCommon.yaml#/paginationMeta
+    - type: object
+      properties:
+        asset:
+          $ref: ./assetCommon.yaml#/assetSchema
+        assignments:
+          type: array
+          items:
+            $ref: '#/assetSoftwareLicenseAssignmentSchema'
+      required:
+        - asset
+        - assignments
+
+assetByIdPath:
+  get:
+    tags: [Assets]
+    summary: Get asset by id
+    description: Requires authentication.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/assetIdParam
+    responses:
+      '200':
+        description: Asset fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/assetSchema
+      '400':
+        description: Invalid assetId
+      '401':
+        description: Authentication required or invalid token
+      '404':
+        description: Asset not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+  patch:
+    tags: [Assets]
+    summary: Update asset
+    description: |
+      Requires authentication. Admin or super_admin role required.
+      Partial update: send only fields you want to change.
+      At least one field or upload is required. Upload `displayImage` to replace the public display image. Upload `albumImages` to append private asset album files, or set `replaceImages=true` to replace the bundle.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/assetIdParam
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./assetCommon.yaml#/assetUpdateBody
+        multipart/form-data:
+          schema:
+            allOf:
+              - $ref: ./assetCommon.yaml#/assetUpdateBody
+              - type: object
+                properties:
+                  displayImage:
+                    type: string
+                    format: binary
+                  albumImages:
+                    type: array
+                    items:
+                      type: string
+                      format: binary
+    responses:
+      '200':
+        description: Asset updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/assetSchema
+      '400':
+        description: Validation failed
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: Asset, asset type, or product not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+      '409':
+        description: Duplicate asset name, serial number, or asset tag, or version mismatch (resource was modified by another user)
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/conflictErrorResponse
+  delete:
+    tags: [Assets]
+    summary: Delete asset
+    description: |
+      Requires authentication. Admin or super_admin role required.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/assetIdParam
+    responses:
+      '200':
+        description: Asset deleted successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/assetSchema
+      '400':
+        description: Invalid assetId or missing/invalid version
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: Asset not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+      '409':
+        $ref: ./assetCommon.yaml#/conflictResponse
+
+assetLicensesPath:
+  get:
+    tags: [Assets]
+    summary: List software licenses for asset
+    description: Requires authentication. Returns software license assignments for one asset. By default only active assignments are returned.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/assetIdParam
+      - $ref: '#/assetLicensesActiveOnlyQueryParam'
+      - $ref: ./assetCommon.yaml#/pageQueryParam
+      - $ref: ./assetCommon.yaml#/limitQueryParam
+    responses:
+      '200':
+        description: Asset software licenses fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/paginatedAssetSoftwareLicensesResponse'
+      '400':
+        description: Invalid assetId or query params
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: Asset not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse

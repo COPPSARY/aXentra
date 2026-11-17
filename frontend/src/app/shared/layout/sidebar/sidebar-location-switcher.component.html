@@ -1,0 +1,91 @@
+@if (locations().length > 0) {
+  <div class="switcher">
+    <button
+      type="button"
+      class="switcher-trigger"
+      [class.switcher-trigger-open]="isOpen()"
+      aria-haspopup="listbox"
+      [attr.aria-expanded]="isOpen()"
+      aria-label="Switch location"
+      (click)="toggle()"
+    >
+      <span class="switcher-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M12 21s6.5-5.8 6.5-11.2a6.5 6.5 0 1 0-13 0C5.5 15.2 12 21 12 21Z"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linejoin="round"
+          />
+          <circle cx="12" cy="9.8" r="2.3" stroke="currentColor" stroke-width="1.8" />
+        </svg>
+      </span>
+      <span class="switcher-copy">
+        <span class="switcher-name">{{ current()?.name || 'Select location' }}</span>
+        <span class="switcher-meta">{{ current()?.address || 'Location' }}</span>
+      </span>
+      <svg class="switcher-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="m8 9 4-4 4 4M8 15l4 4 4-4"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+
+    @if (isOpen()) {
+      <div class="switcher-panel" role="listbox" aria-label="Locations">
+        @if (showSearch()) {
+          <div class="switcher-search">
+            <input
+              type="search"
+              placeholder="Find a location"
+              aria-label="Find a location"
+              [value]="query()"
+              (input)="onSearch($event)"
+            />
+          </div>
+        }
+
+        <div class="switcher-list">
+          @for (location of filtered(); track location.locationId) {
+            <button
+              type="button"
+              class="switcher-option"
+              [class.switcher-option-current]="isCurrent(location.locationId)"
+              role="option"
+              [attr.aria-selected]="isCurrent(location.locationId)"
+              (click)="select(location.locationId)"
+            >
+              <span class="switcher-option-copy">
+                <span class="switcher-option-name">{{ location.name }}</span>
+                @if (location.address) {
+                  <span class="switcher-option-meta">{{ location.address }}</span>
+                }
+              </span>
+              @if (isCurrent(location.locationId)) {
+                <svg class="switcher-check" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path
+                    d="m5.5 10 3 3 6-6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              }
+            </button>
+          } @empty {
+            <p class="switcher-empty">No location matches “{{ query() }}”.</p>
+          }
+        </div>
+
+        <button type="button" class="switcher-footer" (click)="openDirectory()">
+          All locations
+        </button>
+      </div>
+    }
+  </div>
+}

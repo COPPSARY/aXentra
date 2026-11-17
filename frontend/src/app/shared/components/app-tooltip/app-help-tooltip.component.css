@@ -1,0 +1,43 @@
+:host {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.app-help-tooltip {
+  position: relative;
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  color: var(--text-muted);
+  transition:
+    background-color var(--app-motion-fast) var(--app-motion-ease),
+    color var(--app-motion-fast) var(--app-motion-ease);
+}
+
+.app-help-tooltip::before {
+  position: absolute;
+  inset: -8px;
+  content: "";
+}
+
+.app-help-tooltip svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+
+.app-help-tooltip:hover,
+.app-help-tooltip:focus-visible {
+  background: var(--surface-selected);
+  color: var(--brand-700);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-help-tooltip {
+    transition: none;
+  }
+}

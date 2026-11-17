@@ -1,0 +1,157 @@
+@if (open) {
+  <div
+    class="date-form-backdrop"
+    role="presentation"
+    (click)="requestCancel()"
+  >
+    <section
+      class="date-form"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="date-form-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="date-form-header">
+        <h2 id="date-form-title">{{ title }}</h2>
+        @if (description) {
+          <p>{{ description }}</p>
+        }
+      </div>
+
+      <div class="date-form-body">
+        <div class="date-form-nav">
+          <button
+            type="button"
+            class="date-form-nav-btn"
+            [attr.aria-label]="previousViewLabel"
+            [disabled]="!canGoToPreviousView"
+            (click)="goToPreviousView()"
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="m15 6-6 6 6 6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            class="date-form-period-btn"
+            [class.date-form-period-btn-active]="pickerView === 'years'"
+            [attr.aria-label]="
+              pickerView === 'years'
+                ? 'Return to calendar days'
+                : 'Choose year'
+            "
+            [attr.aria-expanded]="pickerView === 'years'"
+            [disabled]="isBusy"
+            (click)="pickerView === 'years' ? showDayPicker() : showYearPicker()"
+          >
+            <span>{{ headerLabel }}</span>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="m6 9 6 6 6-6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            class="date-form-nav-btn"
+            [attr.aria-label]="nextViewLabel"
+            [disabled]="!canGoToNextView"
+            (click)="goToNextView()"
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="m9 6 6 6-6 6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        @if (pickerView === 'years') {
+          <div class="date-form-panel date-form-year-panel">
+            <div class="date-form-year-grid">
+              @for (yearEntry of yearOptions; track yearEntry.year) {
+                <button
+                  type="button"
+                  class="date-form-year"
+                  [class.date-form-year-current]="yearEntry.isCurrentYear"
+                  [class.date-form-year-selected]="yearEntry.isSelectedYear"
+                  [disabled]="yearEntry.isDisabled || isBusy"
+                  (click)="selectYear(yearEntry)"
+                >
+                  {{ yearEntry.year }}
+                </button>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="date-form-panel">
+            <div class="date-form-weekdays">
+              @for (weekday of weekdayLabels; track weekday) {
+                <span>{{ weekday }}</span>
+              }
+            </div>
+
+            <div class="date-form-grid">
+              @for (dayEntry of calendarDays; track dayEntry.date.getTime()) {
+                <button
+                  type="button"
+                  class="date-form-day"
+                  [class.date-form-day-muted]="!dayEntry.isCurrentMonth"
+                  [class.date-form-day-today]="dayEntry.isToday"
+                  [class.date-form-day-selected]="dayEntry.isSelected"
+                  [disabled]="dayEntry.isDisabled || isBusy"
+                  (click)="selectDay(dayEntry)"
+                >
+                  {{ dayEntry.day }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="date-form-selected">
+          <span>Selected date</span>
+          <strong>{{ selectedDateLabel }}</strong>
+        </div>
+      </div>
+
+      <footer class="date-form-footer">
+        <button
+          class="date-form-cancel"
+          type="button"
+          [disabled]="isBusy"
+          (click)="requestCancel()"
+        >
+          {{ cancelLabel }}
+        </button>
+        <button
+          class="date-form-confirm"
+          type="button"
+          [disabled]="isBusy || !selectedDate"
+          (click)="requestConfirm()"
+        >
+          @if (isBusy) {
+            <span class="date-form-spinner" aria-hidden="true"></span>
+          }
+          {{ confirmLabel }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}

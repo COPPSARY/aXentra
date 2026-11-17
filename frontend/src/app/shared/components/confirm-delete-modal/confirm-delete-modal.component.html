@@ -1,0 +1,77 @@
+@if (open) {
+  <div
+    class="delete-modal-backdrop"
+    role="presentation"
+    (click)="requestCancel()"
+  >
+    <section
+      class="delete-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-modal-title"
+      aria-describedby="delete-modal-description"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="delete-modal-header">
+        <div class="delete-modal-heading">
+          <span
+            class="delete-modal-icon"
+            [class.delete-modal-icon-warning]="variant === 'warning'"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 8v5M12 16.5h.01M10.2 4.8 3.4 16.6A2.2 2.2 0 0 0 5.3 20h13.4a2.2 2.2 0 0 0 1.9-3.4L13.8 4.8a2.1 2.1 0 0 0-3.6 0Z"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <h2 id="delete-modal-title">{{ title }}</h2>
+        </div>
+      </div>
+
+      <div class="delete-modal-copy">
+        <p id="delete-modal-description">{{ message }}</p>
+        @if (detailLines.length) {
+          <div class="delete-modal-details">
+            @for (line of detailLines; track line) {
+              <p>{{ line }}</p>
+            }
+          </div>
+        }
+        @if (itemName) {
+          <p class="delete-modal-item">{{ itemName }}</p>
+        }
+        @if (error) {
+          <p class="delete-modal-error" aria-live="polite">{{ error }}</p>
+        }
+      </div>
+
+      <footer>
+        <button
+          class="delete-modal-cancel"
+          type="button"
+          [disabled]="isBusy"
+          (click)="requestCancel()"
+        >
+          {{ cancelLabel }}
+        </button>
+        <button
+          class="delete-modal-confirm"
+          [class.delete-modal-confirm-warning]="variant === 'warning'"
+          type="button"
+          [disabled]="isBusy"
+          (click)="requestConfirm()"
+        >
+          @if (isBusy) {
+            <span class="delete-modal-spinner" aria-hidden="true"></span>
+          }
+          {{ confirmButtonLabel() }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}

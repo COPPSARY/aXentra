@@ -1,0 +1,30 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.label-preview-viewport {
+  display: grid;
+  width: 100%;
+  max-width: 100%;
+  place-items: center;
+  overflow: hidden;
+}
+
+.label-preview-frame {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.label-preview-host {
+  position: absolute;
+  inset: 0 auto auto 0;
+  transform-origin: top left;
+}
+
+.label-render-error {
+  margin: 8px 0 0;
+  color: var(--status-error);
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-semibold);
+}

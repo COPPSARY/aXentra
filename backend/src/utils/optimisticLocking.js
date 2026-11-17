@@ -1,0 +1,16 @@
+import { BadRequestError, ConflictError } from "./AppError.js";
+
+export const parseExpectedVersion = (value, fieldName = "version") => {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new BadRequestError(`${fieldName} must be a positive integer`);
+  }
+
+  return parsed;
+};
+
+export const throwOptimisticLockConflict = (resourceName) => {
+  throw new ConflictError(
+    `${resourceName} was modified by another user. Please refresh and try again.`
+  );
+};

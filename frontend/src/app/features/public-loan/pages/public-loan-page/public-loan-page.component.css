@@ -1,0 +1,26 @@
+:host {
+  display: block;
+}
+
+@media print {
+  :host {
+    background: #fff;
+  }
+
+  :host > div {
+    display: block !important;
+    width: auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  main {
+    display: block !important;
+    width: auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+}

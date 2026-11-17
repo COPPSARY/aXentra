@@ -1,0 +1,40 @@
+<article class="panel">
+  <header class="panel-header">
+    <h2>{{ title }}</h2>
+    @if (subtitle) {
+      <p>{{ subtitle }}</p>
+    }
+  </header>
+
+  @if (items.length === 0) {
+    <p class="panel-empty">{{ emptyMessage }}</p>
+  } @else {
+    <div class="stack-bars">
+      @for (item of items; track item.label) {
+        <div
+          class="stack-row"
+          [class.stack-row-clickable]="isItemInteractive(item)"
+          [attr.role]="isItemInteractive(item) ? 'button' : null"
+          [attr.tabindex]="isItemInteractive(item) ? 0 : null"
+          [attr.title]="itemTitle(item)"
+          (click)="onBarSelect(item)"
+          (keydown.enter)="onBarSelect(item)"
+          (keydown.space)="onBarSelect(item)"
+        >
+          <div class="stack-row-head">
+            <span>{{ item.label }}</span>
+            <strong>{{ displayValue(item) }}</strong>
+          </div>
+          <div class="bar-track">
+            <span
+              class="bar-fill"
+              [style.width.%]="item.value"
+              [style.background]="item.color"
+              data-tone="hit"
+            ></span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</article>

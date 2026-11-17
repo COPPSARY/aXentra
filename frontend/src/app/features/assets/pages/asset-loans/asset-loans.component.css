@@ -1,0 +1,586 @@
+:host {
+  display: block;
+}
+
+.page-header {
+  position: relative;
+  z-index: 32;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--gray-150);
+  padding-bottom: 20px;
+}
+
+.page-header h1 {
+  margin: 0;
+  color: var(--gray-900);
+  font-size: var(--type-heading-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-heading-line);
+}
+
+.page-header p {
+  margin: 8px 0 0;
+  color: var(--gray-600);
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-medium);
+}
+
+.page-primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.page-primary-actions svg {
+  height: 18px;
+  width: 18px;
+}
+
+.loan-table {
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid var(--gray-150);
+  border-radius: var(--radius-container);
+  background: #fff;
+}
+
+.table-toolbar {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--gray-150);
+  background: var(--gray-50);
+  padding: 0 20px;
+}
+
+.table-toolbar-leading {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.loan-status-mobile {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.loan-status-mobile app-select {
+  width: 100%;
+}
+
+.loan-search {
+  position: relative;
+  display: flex;
+  width: min(100%, 320px);
+  min-width: 0;
+  align-items: center;
+}
+
+.loan-search svg {
+  position: absolute;
+  left: 14px;
+  height: 18px;
+  width: 18px;
+  color: var(--gray-600);
+  pointer-events: none;
+}
+
+.loan-search input {
+  min-height: 40px;
+  width: 100%;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-control);
+  background: #fff;
+  padding: 0 42px 0 42px;
+  color: var(--gray-900);
+  outline: none;
+  transition:
+    border-color var(--app-motion-fast) var(--app-motion-ease),
+    box-shadow var(--app-motion-fast) var(--app-motion-ease);
+}
+
+.loan-search input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.loan-search-clear {
+  position: absolute;
+  right: 10px;
+  display: inline-flex;
+  height: 24px;
+  width: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  color: var(--gray-600);
+}
+
+.loan-search-clear:hover,
+.loan-search-clear:focus-visible {
+  background: var(--gray-100);
+  color: var(--gray-900);
+  outline: none;
+}
+
+.loan-search-clear svg {
+  position: static;
+  height: 14px;
+  width: 14px;
+  pointer-events: auto;
+}
+
+.table-summary {
+  color: var(--gray-700);
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-semibold);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-semibold);
+}
+
+.pagination button {
+  display: inline-flex;
+  height: 30px;
+  width: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--gray-150);
+  border-radius: var(--radius-control);
+  background: #fff;
+  color: var(--text-secondary);
+  transition:
+    background-color var(--app-motion-fast) var(--app-motion-ease),
+    border-color var(--app-motion-fast) var(--app-motion-ease),
+    color var(--app-motion-fast) var(--app-motion-ease);
+}
+
+.pagination button:hover:not(:disabled),
+.pagination button:focus-visible:not(:disabled) {
+  border-color: var(--gray-300);
+  background: var(--gray-50);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pagination svg {
+  height: 16px;
+  width: 16px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table-state {
+  padding: 48px 24px;
+  color: var(--gray-600);
+  font-weight: var(--weight-medium);
+  text-align: center;
+}
+
+.table-state-error {
+  color: var(--status-error-text);
+}
+
+.table-head,
+.table-row {
+  display: grid;
+  grid-template-columns:
+    minmax(140px, 0.95fr)
+    minmax(190px, 1.15fr)
+    minmax(150px, 0.95fr)
+    minmax(230px, 1.25fr)
+    minmax(130px, 0.8fr)
+    64px;
+  min-width: 980px;
+  align-items: center;
+  column-gap: 16px;
+}
+
+.table-head {
+  min-height: 48px;
+  border-bottom: 1px solid var(--gray-150);
+  padding: 0 20px;
+  color: var(--gray-900);
+  font-size: var(--type-subtitle-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-subtitle-line);
+}
+
+.table-head-actions {
+  text-align: center;
+}
+
+.table-body {
+  padding: 0 20px;
+}
+
+.table-row {
+  position: relative;
+  min-height: 82px;
+  border-bottom: 1px solid var(--gray-100);
+  color: var(--gray-900);
+  cursor: pointer;
+  transition:
+    background-color var(--app-motion-fast) var(--app-motion-ease),
+    box-shadow var(--app-motion-fast) var(--app-motion-ease);
+}
+
+.table-row-menu-open {
+  z-index: 16;
+}
+
+.table-row:hover,
+.table-row:focus-visible {
+  background: var(--gray-100);
+  outline: none;
+}
+
+.table-row:last-child {
+  border-bottom: 0;
+}
+
+.loan-no-cell,
+.table-copy-cell,
+.row-action-cell {
+  min-width: 0;
+}
+
+.loan-no-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.loan-status-icon {
+  position: relative;
+  display: inline-flex;
+  height: 48px;
+  width: 48px;
+  flex: 0 0 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--gray-900);
+  color: #fff;
+}
+
+.loan-status-icon > svg {
+  height: 24px;
+  width: 24px;
+}
+
+.loan-status-icon-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: inline-flex;
+  height: 23px;
+  width: 23px;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #fff;
+  border-radius: var(--radius-pill);
+  color: #fff;
+}
+
+.loan-status-icon-badge svg {
+  height: 11px;
+  width: 11px;
+  color: #fff;
+  stroke-width: 3;
+}
+
+.loan-status-icon-badge.status-active {
+  background: var(--status-info);
+}
+
+.loan-status-icon-badge.status-returned {
+  background: var(--status-success);
+}
+
+.loan-status-icon-badge.status-overdue {
+  background: var(--status-error);
+}
+
+.loan-status-icon-badge.status-cancelled {
+  background: var(--text-muted);
+}
+
+.loan-no-text {
+  color: var(--gray-900);
+  font-size: var(--type-subtitle-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-subtitle-line);
+}
+
+.cell-primary {
+  display: block;
+  color: var(--gray-900);
+  font-size: var(--type-subtitle-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-subtitle-line);
+}
+
+.cell-primary-emphasis {
+  font-weight: var(--weight-semibold);
+}
+
+.table-copy-cell span {
+  display: block;
+  margin-top: 4px;
+  color: var(--gray-600);
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-body-line);
+}
+
+.table-copy-cell > .cell-primary {
+  margin-top: 0;
+  color: var(--gray-900);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-body-line);
+}
+
+.status-pill span {
+  height: 8px;
+  width: 8px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+}
+
+.status-caption {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-body-line);
+}
+
+.status-active {
+  color: var(--status-info);
+}
+
+.status-returned {
+  color: var(--status-success);
+}
+
+.status-overdue {
+  color: var(--status-error);
+}
+
+.status-cancelled {
+  color: var(--text-muted);
+}
+
+.row-action-cell {
+  position: relative;
+  justify-self: center;
+}
+
+.row-action {
+  display: inline-flex;
+  height: 36px;
+  width: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  color: var(--gray-500);
+  transition:
+    background-color var(--app-motion-fast) var(--app-motion-ease),
+    color var(--app-motion-fast) var(--app-motion-ease);
+}
+
+.row-action:hover,
+.row-action:focus-visible {
+  background: var(--gray-100);
+  color: var(--gray-700);
+  outline: none;
+}
+
+.row-action svg {
+  height: 18px;
+  width: 18px;
+}
+
+.row-action-menu {
+  position: absolute;
+  right: 0;
+  z-index: 24;
+  width: 168px;
+  overflow: hidden;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-control);
+  background: #fff;
+  box-shadow: 0 12px 24px rgb(15 23 42 / 12%);
+  transform-origin: top right;
+}
+
+.row-action-menu {
+  top: 38px;
+  width: 196px;
+}
+
+.row-action-menu button {
+  display: flex;
+  min-height: 38px;
+  width: 100%;
+  align-items: center;
+  background: #fff;
+  padding: 0 12px;
+  color: var(--gray-900);
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-medium);
+  text-align: left;
+  transition: background-color var(--app-motion-fast) var(--app-motion-ease);
+}
+
+.row-action-menu button:hover,
+.row-action-menu button:focus-visible {
+  background: var(--gray-100);
+  outline: none;
+}
+
+.row-action-menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 767px) {
+  .page-header {
+    align-items: stretch;
+  }
+
+  .page-primary-actions,
+  .page-primary-actions > button {
+    width: 100%;
+  }
+
+  .table-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 12px 16px;
+  }
+
+  .table-toolbar-leading {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .loan-search {
+    width: 100%;
+  }
+
+  .table-body {
+    padding: 0 16px;
+  }
+
+  .table-head {
+    padding: 0 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .table-row,
+  .pagination button,
+  .loan-search input,
+  .loan-search-clear,
+  .row-action,
+  .row-action-menu button {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Table density (minimal revamp): quiet caption header, 52px rows that
+   span edge to edge, hover is a tone change only.
+   ------------------------------------------------------------------ */
+.table-head {
+  min-height: 40px;
+  border-bottom-color: var(--border);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-medium);
+}
+
+.table-body {
+  padding: 0 0 0;
+}
+
+.table-body .table-row {
+  min-height: 52px;
+  border-bottom-color: var(--border);
+  padding: 8px 20px;
+  transition: background-color var(--app-motion-fast) var(--app-motion-ease);
+}
+
+.table-body .table-row:hover {
+  background: var(--surface-subtle);
+}
+
+.table-body .table-row.table-row-selected {
+  background: var(--surface-selected);
+}
+
+/* ---------------------------------------------------------------------
+   Status, app-wide convention: a coloured dot from the shared status
+   palette and a neutral label. Only failure states turn the words red.
+   --------------------------------------------------------------------- */
+.status-pill {
+  --badge-dot: var(--gray-400);
+  gap: 7px;
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.status-pill > span:first-child {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  background: var(--badge-dot);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--badge-dot) 18%, transparent);
+}
+
+.status-pill.status-storage,
+.status-pill.status-returned { --badge-dot: var(--viz-available); color: var(--text-secondary); }
+.status-pill.status-loaned,
+.status-pill.status-active { --badge-dot: var(--viz-loaned); color: var(--text-secondary); }
+.status-pill.status-repair { --badge-dot: var(--viz-repair); color: var(--text-secondary); }
+.status-pill.status-danger,
+.status-pill.status-overdue { --badge-dot: var(--viz-damaged); color: var(--status-error-text); }
+.status-pill.status-muted,
+.status-pill.status-cancelled { --badge-dot: var(--viz-disposed); color: var(--text-muted); }

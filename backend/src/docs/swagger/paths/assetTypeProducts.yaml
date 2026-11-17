@@ -1,0 +1,63 @@
+assetTypeProductsPath:
+  get:
+    tags: [Asset Type Products]
+    summary: List products by asset type
+    description: Requires authentication. Latest products appear first. Optional query `locationId` filters to one accessible location.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/assetTypeIdParam
+      - $ref: ./assetCommon.yaml#/locationIdQueryParam
+    responses:
+      '200':
+        description: Products fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/productsByAssetTypeResponse
+      '400':
+        description: Invalid assetTypeId
+      '401':
+        description: Authentication required or invalid token
+      '404':
+        description: Asset type not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+  post:
+    tags: [Asset Type Products]
+    summary: Create product for an asset type
+    description: |
+      Requires authentication. Admin or super_admin role required.
+      Required body fields: `productName`, `locationId`.
+      Other body fields are optional.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/assetTypeIdParam
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./assetCommon.yaml#/productCreateBody
+    responses:
+      '201':
+        description: Product created successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/productSchema
+      '400':
+        description: Validation failed
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: Asset type not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse

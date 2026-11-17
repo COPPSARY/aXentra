@@ -1,0 +1,475 @@
+fileIdParam:
+  in: path
+  name: fileId
+  required: true
+  schema:
+    type: integer
+  description: File id
+
+fileAssignmentTypeQueryParam:
+  in: query
+  name: type
+  required: false
+  schema:
+    type: string
+    enum: [asset, software]
+  description: Optional assignment filter. Omit to return both assets and software licenses.
+
+fileSchema:
+  type: object
+  properties:
+    fileId:
+      type: integer
+      example: 12
+    fileLabel:
+      type: string
+      nullable: true
+      example: Laptop Photos
+    locationId:
+      type: integer
+      nullable: true
+      example: 2
+    description:
+      type: string
+      nullable: true
+      example: User manual for laptop model X
+    images:
+      $ref: ./assetCommon.yaml#/imageBundleField
+    createdBy:
+      type: integer
+      nullable: true
+      example: 1
+    updatedBy:
+      type: integer
+      nullable: true
+      example: null
+    createdAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-04-29T02:30:00.000Z
+    updatedAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-04-29T02:30:00.000Z
+  required:
+    - fileId
+
+fileListItemSchema:
+  allOf:
+    - $ref: '#/fileSchema'
+    - type: object
+      properties:
+        total:
+          type: integer
+          minimum: 0
+          description: Combined count of assigned assets and software licenses for this file.
+          example: 4
+
+fileDetailSchema:
+  allOf:
+    - $ref: '#/fileSchema'
+    - type: object
+      properties:
+        total:
+          type: integer
+          minimum: 0
+          description: Combined count of assigned assets and software licenses for this file.
+          example: 4
+        assets:
+          type: array
+          items:
+            $ref: ./assetCommon.yaml#/assetSchema
+        softwareLicenses:
+          type: array
+          items:
+            $ref: ./softwareLicenses.yaml#/softwareLicenseSchema
+      required:
+        - total
+        - assets
+        - softwareLicenses
+
+fileUploadResponse:
+  $ref: '#/fileSchema'
+
+fileAssignAssetsBody:
+  type: object
+  properties:
+    assets:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        required:
+          - assetId
+          - version
+        properties:
+          assetId:
+            type: integer
+            minimum: 1
+          version:
+            type: integer
+            minimum: 1
+            description: Current version of the asset (optimistic locking).
+      example:
+        - assetId: 101
+          version: 1
+        - assetId: 102
+          version: 3
+    softwareLicenses:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        required:
+          - softwareLicenseId
+          - version
+        properties:
+          softwareLicenseId:
+            type: integer
+            minimum: 1
+          version:
+            type: integer
+            minimum: 1
+            description: Current version of the software license (optimistic locking).
+      example:
+        - softwareLicenseId: 21
+          version: 2
+  anyOf:
+    - required: [assets]
+    - required: [softwareLicenses]
+
+fileAssignAssetsResponse:
+  type: object
+  properties:
+    fileId:
+      type: integer
+      example: 12
+    assignedAssetCount:
+      type: integer
+      minimum: 0
+      example: 3
+    assignedSoftwareLicenseCount:
+      type: integer
+      minimum: 0
+      example: 1
+    total:
+      type: integer
+      minimum: 0
+      description: Combined number of asset and software license assignments returned by this request.
+      example: 4
+    assets:
+      type: array
+      items:
+        $ref: ./assetCommon.yaml#/assetSchema
+    softwareLicenses:
+      type: array
+      items:
+        $ref: ./softwareLicenses.yaml#/softwareLicenseSchema
+  required:
+    - fileId
+    - assignedAssetCount
+    - assignedSoftwareLicenseCount
+    - total
+    - assets
+    - softwareLicenses
+
+fileUpdateBody:
+  type: object
+  required:
+    - version
+  description: |
+    Update file payload (multipart form). `version` is required for optimistic locking.
+  properties:
+    version:
+      $ref: ./assetCommon.yaml#/versionField
+    fileLabel:
+      type: string
+      maxLength: 255
+      nullable: true
+      example: Updated Laptop Manual
+    description:
+      type: string
+      nullable: true
+      example: Updated file description
+    removeImageId:
+      type: string
+      description: Identifier of the single attachment to remove
+      example: 38dfc846-0f68-4e53-b15a-c94b8c293ae2
+
+fileUpdateResponse:
+  allOf:
+    - $ref: '#/fileSchema'
+
+fileDeleteResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: File deleted successfully
+    fileId:
+      type: integer
+      example: 12
+  required:
+    - message
+    - fileId
+
+paginatedFilesResponse:
+  allOf:
+    - $ref: ./assetCommon.yaml#/paginationMeta
+    - type: object
+      properties:
+        files:
+          type: array
+          items:
+            $ref: '#/fileListItemSchema'
+      required:
+        - files
+
+fileListPath:
+  get:
+    tags: [Files]
+    summary: List files
+    description: Requires authentication. Admin or super_admin role required. Optional query `locationId` filters to one accessible location. Each file item is an album container with signed image URLs in `images`.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/locationIdQueryParam
+      - $ref: ./assetCommon.yaml#/pageQueryParam
+      - $ref: ./assetCommon.yaml#/limitQueryParam
+    responses:
+      '200':
+        description: Files fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/paginatedFilesResponse'
+      '400':
+        description: Invalid query params
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+
+fileUploadPath:
+  post:
+    tags: [Files]
+    summary: Upload file
+    description: |
+      Requires authentication. Admin or super_admin role required.
+      Required body fields: `locationId` plus at least one of `file` or `images`.
+      `images` is the preferred album upload field. `file` is kept as a compatibility alias for a single uploaded item.
+      Optional body fields: `fileLabel`, `description`.
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              file:
+                type: string
+                format: binary
+                description: Optional compatibility alias for uploading a single album item.
+              images:
+                type: array
+                description: Optional album/bundle images stored in the `images` JSONB field.
+                items:
+                  type: string
+                  format: binary
+              fileLabel:
+                type: string
+                nullable: true
+                description: Optional file label or name
+              locationId:
+                type: integer
+                description: Required location id for this file.
+              description:
+                type: string
+                nullable: true
+                description: Optional file description
+            required:
+              - locationId
+    responses:
+      '201':
+        description: File uploaded and metadata saved
+        content:
+          application/json:
+            schema:
+              $ref: '#/fileUploadResponse'
+      '400':
+        description: Validation failed or invalid file type/size
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '500':
+        description: Upload/storage error
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/serverErrorResponse
+
+fileAssignmentsPath:
+  post:
+    tags: [Files]
+    summary: Create assignments for a file
+    description: |
+      Requires authentication. Admin or super_admin role required.
+      Provide `assets`, `softwareLicenses`, or both.
+      `assets` is an array of `{ assetId, version }` pairs.
+      `softwareLicenses` is an array of `{ softwareLicenseId, version }` pairs.
+      Every supplied `version` must match the current row version (optimistic locking) or the request returns 409.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/fileIdParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/fileAssignAssetsBody'
+    responses:
+      '200':
+        description: File assigned successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/fileAssignAssetsResponse'
+      '400':
+        description: Validation failed
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: File, asset, or software license not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+      '409':
+        $ref: ./assetCommon.yaml#/conflictResponse
+
+fileIdPath:
+  get:
+    tags: [Files]
+    summary: Get file by id
+    description: Requires authentication. Returns a single file album plus assigned assets and software licenses, scoped to the actor's accessible locations. Optional query `type=asset` or `type=software` filters the returned assignments; omit it to return both.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/fileIdParam'
+      - $ref: '#/fileAssignmentTypeQueryParam'
+    responses:
+      '200':
+        description: File found
+        content:
+          application/json:
+            schema:
+              $ref: '#/fileDetailSchema'
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: File not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+  patch:
+    tags: [Files]
+    summary: Update file
+    description: Requires authentication. Admin or super_admin role required. Partially updates file metadata, appends uploaded items, or removes one attachment using `removeImageId`. The final attachment cannot be removed; delete the file record instead. `file` remains available as a compatibility alias for uploading one item.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/fileIdParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/fileUpdateBody'
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+              - version
+            properties:
+              version:
+                $ref: ./assetCommon.yaml#/versionField
+              file:
+                type: string
+                format: binary
+                nullable: true
+                description: Optional compatibility alias for uploading a single album item
+              images:
+                type: array
+                description: Optional album images to append
+                items:
+                  type: string
+                  format: binary
+              fileLabel:
+                type: string
+                maxLength: 255
+                nullable: true
+                description: Optional file label update
+              description:
+                type: string
+                nullable: true
+                description: Optional file description update
+              removeImageId:
+                type: string
+                description: Identifier of the single attachment to remove
+    responses:
+      '200':
+        description: File updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/fileSchema'
+      '400':
+        description: Validation failed
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: File not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+      '409':
+        $ref: ./assetCommon.yaml#/conflictResponse
+  delete:
+    tags: [Files]
+    summary: Delete file
+    description: Requires authentication. Admin or super_admin role required. Deletes file metadata and unlinks from assets and software licenses.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/fileIdParam'
+    responses:
+      '200':
+        description: File deleted successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/fileDeleteResponse'
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: File not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse

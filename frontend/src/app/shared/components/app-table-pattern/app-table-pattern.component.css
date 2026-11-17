@@ -1,0 +1,58 @@
+:host {
+  display: block;
+}
+
+.app-table-pattern {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--button-border);
+  border-radius: var(--radius-container);
+  background: var(--button-surface);
+  overflow: hidden;
+}
+
+.app-table-pattern__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 52px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--button-border);
+  background: var(--button-surface-muted);
+}
+
+.app-table-pattern__tabs {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 30px;
+  overflow-x: auto;
+}
+
+.app-table-pattern__toolbar-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-table-pattern__table {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.app-table-pattern__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--button-border);
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  font-weight: var(--weight-regular);
+}

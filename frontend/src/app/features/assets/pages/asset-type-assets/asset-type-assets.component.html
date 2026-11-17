@@ -1,0 +1,1783 @@
+<div
+  class="min-h-screen bg-(--background) text-(--text-primary)"
+  (click)="closeActionMenu(); closeFilterPanel()"
+>
+  <app-sidebar />
+  <app-mobile-tabbar />
+
+  <div class="lg:pl-[240px]">
+    <app-topbar
+      [displayName]="displayName()"
+      [role]="role()"
+      [initials]="initials()"
+      [avatarUrl]="avatarUrl()"
+      (signOut)="logout()"
+    />
+
+    <main class="px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8 lg:pb-12">
+      <section class="mx-auto max-w-(--content-max)">
+        <header class="list-page-header app-motion-enter">
+          <div class="min-w-0">
+            <nav class="app-page-heading__breadcrumb" aria-label="Breadcrumb">
+              <a routerLink="/assets">Assets</a>
+              <span aria-hidden="true">/</span>
+              <span class="inline-block max-w-[240px] truncate align-bottom">{{
+                assetTypeName()
+              }}</span>
+            </nav>
+            <h1 class="app-page-heading__title truncate">
+              {{ assetTypeName() }}
+            </h1>
+            <p class="app-page-heading__description">
+              {{ currentLocationName() || "Current location" }}
+            </p>
+          </div>
+
+          <div class="asset-page-actions">
+            <button
+              class="print-selection-trigger"
+              type="button"
+              [class.print-selection-trigger-active]="isPrintSelectionMode()"
+              [attr.aria-pressed]="isPrintSelectionMode()"
+              [disabled]="assets().length === 0"
+              (click)="
+                isPrintSelectionMode()
+                  ? cancelPrintSelectionMode()
+                  : startPrintSelectionMode()
+              "
+            >
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M7 9V4h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7v-6Z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              {{ isPrintSelectionMode() ? "Selecting labels" : "Print labels" }}
+            </button>
+
+            <a
+              class="app-button app-button--primary"
+              [routerLink]="['/assets/types', currentAssetTypeId(), 'new']"
+            >
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+              New asset
+            </a>
+          </div>
+        </header>
+
+        <div class="asset-type-actions mt-6">
+          @if (data()) {
+            <div class="asset-type-mobile-filter min-w-0 md:hidden">
+              <app-select
+                [options]="mobileStatusOptions()"
+                [ngModel]="selectedStatus()"
+                ariaLabel="Filter assets by status"
+                (ngModelChange)="setMobileStatusFilter($event)"
+              />
+            </div>
+          }
+
+          <div class="asset-type-utilities">
+            <div class="filter-trigger-wrap">
+              <button
+                class="filter-trigger"
+                type="button"
+                [class.filter-trigger-active]="
+                  showFilterPanel() || hasActiveFilters()
+                "
+                aria-label="Filter assets"
+                aria-haspopup="dialog"
+                [attr.aria-expanded]="showFilterPanel()"
+                title="Filter assets"
+                (click)="toggleFilterPanel(); $event.stopPropagation()"
+              >
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M4 6h16M7 12h10M10 18h4"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                @if (hasActiveFilters()) {
+                  <span class="filter-trigger-count">{{
+                    activeFilterChips().length
+                  }}</span>
+                }
+              </button>
+
+              @if (showFilterPanel()) {
+                <div
+                  class="filter-panel"
+                  role="dialog"
+                  aria-label="Filter assets"
+                  (click)="$event.stopPropagation()"
+                >
+                  @if (isFilterOptionsLoading()) {
+                    <p class="filter-panel-empty">Loading filters...</p>
+                  } @else if (
+                    filterProducts().length === 0 && filterFields().length === 0
+                  ) {
+                    <p class="filter-panel-empty">
+                      No product or field filters available.
+                    </p>
+                  } @else {
+                    <div class="filter-panel-fields">
+                      <section
+                        class="filter-section"
+                        aria-labelledby="product-filter-title"
+                      >
+                        <h3
+                          id="product-filter-title"
+                          class="filter-section-title"
+                        >
+                          Product
+                        </h3>
+                        @if (filterProducts().length > 0) {
+                          <app-select
+                            ariaLabel="Filter assets by product"
+                            [options]="productFilterOptions()"
+                            [ngModel]="selectedProductId()"
+                            (ngModelChange)="setProductFilter($event)"
+                          />
+                        } @else {
+                          <p class="filter-section-empty">
+                            No products available.
+                          </p>
+                        }
+                      </section>
+
+                      <section
+                        class="filter-section filter-section-divided"
+                        aria-labelledby="field-filter-title"
+                      >
+                        <h3
+                          id="field-filter-title"
+                          class="filter-section-title"
+                        >
+                          Fields
+                        </h3>
+                        @if (filterFields().length > 0) {
+                          <div class="filter-field-list">
+                            @for (
+                              field of filterFields();
+                              track field.assetTypeFieldId
+                            ) {
+                              <div class="filter-field-row">
+                                <div class="filter-field-heading">
+                                  <span>{{ field.fieldLabel }}</span>
+                                  <label
+                                    class="filter-switch"
+                                    [attr.aria-label]="
+                                      'Has ' + field.fieldLabel
+                                    "
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      [checked]="
+                                        isHasFieldActive(field.fieldKey)
+                                      "
+                                      [disabled]="
+                                        getFieldValues(field.fieldKey).length >
+                                        0
+                                      "
+                                      (change)="
+                                        onHasFieldSwitchChange(
+                                          field.fieldKey,
+                                          $event
+                                        )
+                                      "
+                                    />
+                                    <span class="filter-switch-track"></span>
+                                  </label>
+                                </div>
+
+                                @switch (field.fieldType) {
+                                  @case ("boolean") {
+                                    <app-select
+                                      ariaLabel="{{ field.fieldLabel }} filter"
+                                      placeholder="Any"
+                                      [options]="[
+                                        { label: 'Any', value: '' },
+                                        { label: 'Yes', value: 'true' },
+                                        { label: 'No', value: 'false' },
+                                      ]"
+                                      [ngModel]="
+                                        getFieldValues(field.fieldKey)[0] || ''
+                                      "
+                                      (ngModelChange)="
+                                        onFilterBooleanChange(
+                                          field.fieldKey,
+                                          $event
+                                        )
+                                      "
+                                    />
+                                  }
+                                  @default {
+                                    <input
+                                      class="filter-field-input"
+                                      type="text"
+                                      [attr.inputmode]="
+                                        field.fieldType === 'number'
+                                          ? 'decimal'
+                                          : null
+                                      "
+                                      [placeholder]="
+                                        'Type a value and press Enter'
+                                      "
+                                      [ngModel]="
+                                        getFieldValueDraft(field.fieldKey)
+                                      "
+                                      (ngModelChange)="
+                                        onFilterDraftInput(
+                                          field.fieldKey,
+                                          $event
+                                        )
+                                      "
+                                      (keydown)="
+                                        onFilterDraftKeydown(
+                                          field.fieldKey,
+                                          $event
+                                        )
+                                      "
+                                      (blur)="
+                                        commitFieldValueDraft(field.fieldKey)
+                                      "
+                                    />
+                                  }
+                                }
+                              </div>
+                            }
+                          </div>
+                        } @else {
+                          <p class="filter-section-empty">
+                            No custom fields available.
+                          </p>
+                        }
+                      </section>
+                    </div>
+                  }
+
+                  <div class="filter-panel-footer">
+                    <button
+                      class="filter-panel-clear"
+                      type="button"
+                      [disabled]="!hasActiveFilters()"
+                      (click)="clearAllFilters()"
+                    >
+                      Clear Filters
+                    </button>
+                    <button
+                      class="filter-panel-done"
+                      type="button"
+                      (click)="closeFilterPanel()"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div
+              class="asset-view-switch"
+              role="group"
+              aria-label="Asset display"
+            >
+              <button
+                type="button"
+                [class.asset-view-option-active]="viewMode() === 'list'"
+                [attr.aria-pressed]="viewMode() === 'list'"
+                aria-label="Show assets as list"
+                (click)="setViewMode('list')"
+              >
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </button>
+              <button
+                type="button"
+                [class.asset-view-option-active]="viewMode() === 'grid'"
+                [attr.aria-pressed]="viewMode() === 'grid'"
+                aria-label="Show assets as grid"
+                (click)="setViewMode('grid')"
+              >
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect
+                    x="4"
+                    y="4"
+                    width="6"
+                    height="6"
+                    rx="1"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <rect
+                    x="14"
+                    y="4"
+                    width="6"
+                    height="6"
+                    rx="1"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <rect
+                    x="4"
+                    y="14"
+                    width="6"
+                    height="6"
+                    rx="1"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <rect
+                    x="14"
+                    y="14"
+                    width="6"
+                    height="6"
+                    rx="1"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        @if (hasActiveFilters()) {
+          <div
+            class="active-filters-bar app-motion-enter mt-3"
+            role="group"
+            aria-label="Active filters"
+          >
+            <div class="active-filters-chips">
+              @for (
+                chip of activeFilterChips();
+                track chip.fieldKey + ":" + chip.value
+              ) {
+                <button
+                  class="filter-chip"
+                  type="button"
+                  [attr.aria-label]="'Remove filter ' + chip.label"
+                  (click)="removeFilter(chip.fieldKey, chip.value)"
+                >
+                  <span>{{ chip.label }}</span>
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="m6 6 12 12M18 6 6 18"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </button>
+              }
+            </div>
+
+            <div class="active-filters-meta">
+              @if (data(); as response) {
+                <span class="active-filters-summary">
+                  Showing {{ getVisibleAssetCount(response) }} result{{
+                    getVisibleAssetCount(response) === 1 ? "" : "s"
+                  }}
+                </span>
+              }
+              <button
+                class="active-filters-clear"
+                type="button"
+                (click)="clearAllFilters()"
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+        }
+
+        <section
+          class="asset-table app-motion-enter app-motion-delay-2 mt-4"
+          [attr.aria-label]="
+            viewMode() === 'list' ? 'Assets list' : 'Assets grid'
+          "
+        >
+          @if (data(); as response) {
+            <div
+              class="table-toolbar asset-table-toolbar max-md:!justify-end max-md:!px-3"
+            >
+              <div class="tabs-scroll max-md:!hidden">
+                <button
+                  class="table-tab"
+                  [class.table-tab-active]="selectedStatus() === null"
+                  type="button"
+                  (click)="setStatusFilter(null)"
+                >
+                  All ({{ getAllAssetCount(response) }})
+                </button>
+                @for (status of statusTabs(); track status.label) {
+                  <button
+                    class="table-tab"
+                    [class.table-tab-active]="selectedStatus() === status.label"
+                    type="button"
+                    (click)="setStatusFilter(status.label)"
+                  >
+                    {{ status.label }} ({{ status.value }})
+                  </button>
+                }
+              </div>
+
+              <app-pagination
+                class="asset-table-pagination"
+                [currentPage]="response.page"
+                [totalPages]="response.totalPages"
+                (pageChange)="goToPage($event)"
+              />
+            </div>
+          }
+
+          @if (viewMode() === "list" && isPrintSelectionMode()) {
+            <div
+              class="label-selection-bar app-motion-enter"
+              role="region"
+              aria-label="Select assets to print"
+              aria-live="polite"
+            >
+              <div>
+                <strong>
+                  @if (selectedLabelAssets().length > 0) {
+                    {{ selectedLabelAssets().length }}
+                    {{
+                      selectedLabelAssets().length === 1 ? "asset" : "assets"
+                    }}
+                    selected
+                  } @else {
+                    Select assets to print
+                  }
+                </strong>
+                <span>
+                  @if (selectedLabelAssets().length > 0) {
+                    Your selection stays checked as you move between pages.
+                  } @else {
+                    Tick the boxes below or select every asset on this page.
+                  }
+                </span>
+              </div>
+              <div class="label-selection-actions">
+                <button
+                  type="button"
+                  class="selection-cancel"
+                  (click)="cancelPrintSelectionMode()"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  class="selection-clear"
+                  (click)="toggleAllAssetsForPrint()"
+                >
+                  {{
+                    areAllVisibleAssetsSelected()
+                      ? "Clear this page"
+                      : "Select all " + assets().length
+                  }}
+                </button>
+                <button
+                  type="button"
+                  class="selection-print"
+                  [disabled]="selectedLabelAssets().length === 0"
+                  (click)="openBulkPrint()"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M7 9V4h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7v-6Z"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  Print selected ({{ selectedLabelAssets().length }})
+                </button>
+              </div>
+            </div>
+          }
+
+          @if (viewMode() === "list") {
+            <div class="table-scroll">
+              <div
+                class="table-head"
+                [style.gridTemplateColumns]="tableGridTemplate()"
+                [style.minWidth.px]="tableMinWidth()"
+              >
+                @if (isPrintSelectionMode()) {
+                  <label class="checkbox-control table-selection-control">
+                    <input
+                      type="checkbox"
+                      [checked]="areAllVisibleAssetsSelected()"
+                      [indeterminate]="areSomeVisibleAssetsSelected()"
+                      aria-label="Select all visible assets for label printing"
+                      (change)="onToggleAllVisibleAssets($event)"
+                    />
+                  </label>
+                }
+
+                @if (isColumnVisible("name")) {
+                  <div class="table-head-cell">
+                    <span>Name</span>
+                  </div>
+                }
+
+                @if (isColumnVisible("serialNumber")) {
+                  <div class="table-head-cell">
+                    <span>Serial Number</span>
+                  </div>
+                }
+
+                @if (isColumnVisible("status")) {
+                  <div class="table-head-cell">
+                    <span>Status</span>
+                  </div>
+                }
+
+                @if (isColumnVisible("warrantyExpiry")) {
+                  <div class="table-head-cell">
+                    <span>Warranty Expiry</span>
+                  </div>
+                }
+
+                @if (isColumnVisible("createdBy")) {
+                  <div class="table-head-cell">
+                    <span>Created By</span>
+                  </div>
+                }
+
+                <div class="table-head-action-spacer" aria-hidden="true"></div>
+              </div>
+
+              @if (isLoading()) {
+                <div class="table-state">
+                  <app-loading
+                    variant="inline"
+                    message="Loading assets..."
+                    ariaLabel="Loading assets"
+                  />
+                </div>
+              } @else if (loadError()) {
+                <div class="table-state table-state-error" role="alert">
+                  <p>{{ loadError() }}</p>
+                  <button
+                    class="secondary-action"
+                    type="button"
+                    (click)="retryAssets()"
+                  >
+                    Retry
+                  </button>
+                </div>
+              } @else if (assets().length === 0) {
+                <div class="table-state asset-empty-state">
+                  @if (hasActiveFilters() || selectedStatus()) {
+                    <p>No assets match the current filters.</p>
+                    <button
+                      class="secondary-action"
+                      type="button"
+                      (click)="clearAllFilters()"
+                    >
+                      Clear filters
+                    </button>
+                  } @else {
+                    <p>No assets have been added to this asset type yet.</p>
+                    @if (isAdmin()) {
+                      <a
+                        class="primary-action"
+                        [routerLink]="[
+                          '/assets/types',
+                          currentAssetTypeId(),
+                          'new',
+                        ]"
+                        [queryParams]="{ view: viewMode() }"
+                      >
+                        New Asset
+                      </a>
+                    }
+                  }
+                </div>
+              } @else {
+                <div class="table-body app-motion-list">
+                  @for (asset of assets(); track asset.assetId) {
+                    <div
+                      class="table-row cursor-pointer transition-colors hover:bg-(--gray-50)"
+                      [class.table-row-menu-open]="
+                        openActionAssetId() === asset.assetId
+                      "
+                      [class.table-row-selected]="
+                        isAssetSelected(asset.assetId)
+                      "
+                      [style.gridTemplateColumns]="tableGridTemplate()"
+                      [style.minWidth.px]="tableMinWidth()"
+                      (click)="handleAssetRowClick(asset)"
+                    >
+                      @if (isPrintSelectionMode()) {
+                        <label
+                          class="checkbox-control table-selection-control"
+                          (click)="$event.stopPropagation()"
+                        >
+                          <input
+                            type="checkbox"
+                            [checked]="isAssetSelected(asset.assetId)"
+                            [attr.aria-label]="
+                              'Select ' +
+                              asset.assetName +
+                              ' for label printing'
+                            "
+                            (change)="
+                              onToggleAssetSelection(asset.assetId, $event)
+                            "
+                          />
+                        </label>
+                      }
+
+                      @if (isColumnVisible("name")) {
+                        <div class="asset-name-cell justify-self-stretch">
+                          <a
+                            class="flex w-full min-w-0 items-center gap-3 text-inherit no-underline"
+                            [routerLink]="
+                              isPrintSelectionMode()
+                                ? null
+                                : [
+                                    '/assets/types',
+                                    asset.assetTypeId,
+                                    'assets',
+                                    asset.assetId,
+                                  ]
+                            "
+                            [queryParams]="{
+                              assetTypeName: assetTypeName(),
+                              view: viewMode(),
+                            }"
+                            (click)="handleAssetNameClick($event, asset)"
+                          >
+                            @if (assetImageUrl(asset); as imageUrl) {
+                              <span
+                                class="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg border border-(--gray-150) bg-(--gray-100)"
+                                aria-hidden="true"
+                              >
+                                <img
+                                  class="block h-full w-full object-cover object-center"
+                                  [src]="imageUrl"
+                                  alt=""
+                                  loading="lazy"
+                                  decoding="async"
+                                  (error)="onAssetImageError(imageUrl)"
+                                />
+                              </span>
+                            } @else {
+                              <span
+                                class="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg border border-(--gray-150) bg-(--gray-100) text-(--gray-600)"
+                                aria-hidden="true"
+                              >
+                                <svg
+                                  class="h-[22px] w-[22px]"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                >
+                                  <rect
+                                    x="3"
+                                    y="5"
+                                    width="18"
+                                    height="14"
+                                    rx="2"
+                                    stroke="currentColor"
+                                    stroke-width="1.7"
+                                  />
+                                  <path
+                                    d="m5.5 16 4.2-4.2 3.2 3.2 2.1-2.1 3.5 3.6"
+                                    stroke="currentColor"
+                                    stroke-width="1.7"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                  />
+                                  <circle
+                                    cx="16.5"
+                                    cy="9"
+                                    r="1.3"
+                                    fill="currentColor"
+                                  />
+                                </svg>
+                              </span>
+                            }
+                            <span class="min-w-0">
+                              <span class="block font-medium text-(--gray-900)">{{
+                                asset.assetName
+                              }}</span>
+                            </span>
+                          </a>
+                        </div>
+                      }
+
+                      @if (isColumnVisible("serialNumber")) {
+                        <span class="table-cell-value cell-muted">{{
+                          asset.serialNumber || displayIdentifier(asset) || "-"
+                        }}</span>
+                      }
+
+                      @if (isColumnVisible("status")) {
+                        <span
+                          class="status-pill {{ statusTone(asset.status) }}"
+                        >
+                          <span></span>
+                          {{ asset.status }}
+                        </span>
+                      }
+
+                      @if (isColumnVisible("warrantyExpiry")) {
+                        <span class="table-cell-value cell-muted">{{
+                          displayWarrantyExpiry(asset)
+                        }}</span>
+                      }
+
+                      @if (isColumnVisible("createdBy")) {
+                        <span class="table-cell-value cell-muted">{{
+                          displayCreatedBy(asset)
+                        }}</span>
+                      }
+
+                      <div
+                        class="row-action-cell"
+                        (click)="$event.stopPropagation()"
+                      >
+                        <button
+                          class="row-action"
+                          type="button"
+                          aria-label="Open asset actions"
+                          aria-haspopup="menu"
+                          [attr.aria-expanded]="
+                            openActionAssetId() === asset.assetId
+                          "
+                          (click)="toggleActionMenu(asset.assetId, $event)"
+                          (keydown.escape)="closeActionMenu()"
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M6 12h.01M12 12h.01M18 12h.01"
+                              stroke="currentColor"
+                              stroke-width="3"
+                              stroke-linecap="round"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <app-asset-grid
+              [assets]="assets()"
+              [assetTypeId]="currentAssetTypeId()"
+              [assetTypeName]="assetTypeName()"
+              [viewMode]="viewMode()"
+              [loading]="isLoading()"
+              [error]="loadError()"
+              [hasFilters]="!!(hasActiveFilters() || selectedStatus())"
+              [canCreate]="isAdmin()"
+              [openActionAssetId]="openActionAssetId()"
+              (retry)="retryAssets()"
+              (clearFilters)="clearAllFilters()"
+              (menuToggle)="toggleActionMenu($event.assetId, $event.event)"
+              (menuClose)="closeActionMenu()"
+            />
+          }
+        </section>
+      </section>
+    </main>
+  </div>
+
+  @if (editAsset(); as asset) {
+    <div class="drawer-backdrop" (click)="closeEditDrawer()">
+      <aside
+        class="edit-drawer"
+        aria-label="Edit asset"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="drawer-header">
+          <div class="min-w-0">
+            <p class="drawer-eyebrow">Update asset</p>
+            <h2 class="app-ellipsis">{{ asset.assetName }}</h2>
+          </div>
+          <button
+            class="drawer-close"
+            type="button"
+            aria-label="Close edit drawer"
+            (click)="closeEditDrawer()"
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="m6 6 12 12M18 6 6 18"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        </header>
+
+        <form class="drawer-body" (ngSubmit)="saveEditDrawer()">
+          <section class="drawer-section">
+            <div class="section-label">
+              <h3>General</h3>
+              <p>Basic inventory details.</p>
+            </div>
+
+            <div class="section-fields">
+              <label class="form-field">
+                <span>Asset Name <span class="required-mark">*</span></span>
+                <input
+                  name="assetName"
+                  [(ngModel)]="editForm.assetName"
+                  [class.invalid-field]="fieldError('assetName')"
+                  (ngModelChange)="clearFieldError('assetName')"
+                  required
+                />
+                @if (fieldError("assetName")) {
+                  <small class="field-error">{{
+                    fieldError("assetName")
+                  }}</small>
+                }
+              </label>
+
+              <div class="field-grid">
+                <label class="form-field">
+                  <span>Status <span class="required-mark">*</span></span>
+                  <app-select
+                    name="status"
+                    ariaLabel="Status"
+                    [options]="assetStatusOptions"
+                    [invalid]="fieldError('status') !== ''"
+                    [(ngModel)]="editForm.status"
+                    (ngModelChange)="handleStatusChange()"
+                  />
+                  @if (fieldError("status")) {
+                    <small class="field-error">{{
+                      fieldError("status")
+                    }}</small>
+                  }
+                </label>
+
+                <label class="form-field">
+                  <span>Loanable</span>
+                  <span class="checkbox-field">
+                    <input
+                      name="loanable"
+                      type="checkbox"
+                      [(ngModel)]="editForm.loanable"
+                      [disabled]="editForm.status !== 'In Storage'"
+                      (ngModelChange)="handleLoanableChange()"
+                    />
+                    Available to loan
+                  </span>
+                  @if (editForm.status !== "In Storage") {
+                    <small class="field-hint">
+                      Loanable is available only when status is In Storage.
+                    </small>
+                  }
+                  @if (fieldError("loanable")) {
+                    <small class="field-error">{{
+                      fieldError("loanable")
+                    }}</small>
+                  }
+                </label>
+              </div>
+
+              @if (editForm.status === "Loaned") {
+                <div class="field-grid">
+                  <label class="form-field">
+                    <span>From <span class="required-mark">*</span></span>
+                    <app-select
+                      name="loanFromUserId"
+                      ariaLabel="Loan from"
+                      [options]="adminUserOptions()"
+                      [invalid]="fieldError('loanFromUserId') !== ''"
+                      [(ngModel)]="editForm.loanFromUserId"
+                      (ngModelChange)="clearFieldError('loanFromUserId')"
+                    />
+                    @if (fieldError("loanFromUserId")) {
+                      <small class="field-error">{{
+                        fieldError("loanFromUserId")
+                      }}</small>
+                    }
+                  </label>
+
+                  <label class="form-field">
+                    <span>To User <span class="required-mark">*</span></span>
+                    <app-select
+                      name="assignedUserId"
+                      ariaLabel="Loan to user"
+                      [options]="assignableUserOptions()"
+                      [invalid]="fieldError('assignedUserId') !== ''"
+                      [(ngModel)]="editForm.assignedUserId"
+                      (ngModelChange)="clearFieldError('assignedUserId')"
+                    />
+                    @if (fieldError("assignedUserId")) {
+                      <small class="field-error">{{
+                        fieldError("assignedUserId")
+                      }}</small>
+                    }
+                  </label>
+                </div>
+              }
+
+              <div class="field-grid items-start">
+                <label class="form-field">
+                  <span>Serial Number</span>
+                  <input
+                    name="serialNumber"
+                    [(ngModel)]="editForm.serialNumber"
+                    [class.invalid-field]="fieldError('serialNumber')"
+                    (ngModelChange)="clearFieldError('serialNumber')"
+                  />
+                  @if (fieldError("serialNumber")) {
+                    <small class="field-error">{{
+                      fieldError("serialNumber")
+                    }}</small>
+                  }
+                </label>
+
+                <label class="form-field">
+                  <span>Barcode</span>
+                  <div
+                    class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2.5 max-sm:grid-cols-1"
+                  >
+                    <input
+                      name="barcode"
+                      [(ngModel)]="editForm.barcode"
+                      [class.invalid-field]="fieldError('barcode')"
+                      [disabled]="!canGenerateEditBarcode()"
+                      (ngModelChange)="clearFieldError('barcode')"
+                    />
+                    <div class="flex gap-2">
+                      @if (canGenerateEditBarcode()) {
+                        <button
+                          class="barcode-scan inline-flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[8px] border bg-white"
+                          type="button"
+                          aria-label="Scan asset"
+                          title="Scan asset"
+                          [disabled]="isSaving()"
+                          (click)="openScanner()"
+                        >
+                          <svg
+                            class="h-[18px] w-[18px] shrink-0"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M4 7V5h4M16 5h4v4M20 15v4h-4M8 19H4v-4M7 12h10M8 9v6M11 9v6M15 9v6"
+                              stroke="currentColor"
+                              stroke-width="1.9"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          class="barcode-generate inline-flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[8px] border border-(--gray-300) bg-white text-(--gray-700)"
+                          type="button"
+                          aria-label="Generate barcode"
+                          title="Generate barcode"
+                          [disabled]="isSaving()"
+                          (click)="generateEditBarcode()"
+                        >
+                          <svg
+                            class="h-[18px] w-[18px] shrink-0"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M20 12a8 8 0 0 1-13.7 5.6M4 12A8 8 0 0 1 17.7 6.4M7 18H4v3M17 6h3V3"
+                              stroke="currentColor"
+                              stroke-width="1.9"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        </button>
+                      } @else if (editForm.barcode) {
+                        <button
+                          class="barcode-generate barcode-copy inline-flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[8px] border border-(--gray-300) bg-white text-(--gray-700)"
+                          type="button"
+                          [attr.aria-label]="
+                            editBarcodeCopied()
+                              ? 'Barcode copied'
+                              : 'Copy barcode'
+                          "
+                          [attr.title]="
+                            editBarcodeCopied()
+                              ? 'Barcode copied'
+                              : 'Copy barcode'
+                          "
+                          (click)="copyEditBarcode()"
+                        >
+                          @if (editBarcodeCopied()) {
+                            <svg
+                              class="h-[18px] w-[18px] shrink-0"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="m5 12 4.2 4.2L19 6.5"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          } @else {
+                            <svg
+                              class="h-[18px] w-[18px] shrink-0"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M8 8.5V6.8c0-1 .8-1.8 1.8-1.8h7.4c1 0 1.8.8 1.8 1.8v7.4c0 1-.8 1.8-1.8 1.8h-1.7M6.8 8h7.4c1 0 1.8.8 1.8 1.8v7.4c0 1-.8 1.8-1.8 1.8H6.8c-1 0-1.8-.8-1.8-1.8V9.8C5 8.8 5.8 8 6.8 8Z"
+                                stroke="currentColor"
+                                stroke-width="1.9"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          }
+                        </button>
+                      }
+                    </div>
+                  </div>
+                  <small class="text-xs font-semibold text-(--gray-600)">
+                    Tag prefix
+                    <span class="text-(--gray-700)">{{ barcodePrefix() }}</span>
+                    is used only when issuing a missing tag. Existing tags stay
+                    unchanged when labels are reprinted.
+                  </small>
+                  @if (fieldError("barcode")) {
+                    <small class="field-error">{{
+                      fieldError("barcode")
+                    }}</small>
+                  }
+                </label>
+              </div>
+
+              <div class="field-grid">
+                <label class="form-field">
+                  <span>MAC Address</span>
+                  <input
+                    name="ipAddress"
+                    [(ngModel)]="editForm.ipAddress"
+                    [class.invalid-field]="fieldError('ipAddress')"
+                    (ngModelChange)="clearFieldError('ipAddress')"
+                  />
+                  @if (fieldError("ipAddress")) {
+                    <small class="field-error">{{
+                      fieldError("ipAddress")
+                    }}</small>
+                  }
+                </label>
+
+                <label class="form-field">
+                  <span>Warranty Expiry</span>
+                  <app-date-field
+                    name="warrantyExpiryDate"
+                    title="Warranty Expiry"
+                    placeholder="Select warranty expiry"
+                    [invalid]="!!fieldError('warrantyExpiryDate')"
+                    [ngModel]="editForm.warrantyExpiryDate"
+                    (ngModelChange)="
+                      editForm.warrantyExpiryDate = $event || '';
+                      clearFieldError('warrantyExpiryDate')
+                    "
+                  />
+                  @if (fieldError("warrantyExpiryDate")) {
+                    <small class="field-error">{{
+                      fieldError("warrantyExpiryDate")
+                    }}</small>
+                  }
+                </label>
+              </div>
+
+              <label class="form-field">
+                <span>Description</span>
+                <textarea
+                  name="description"
+                  rows="3"
+                  [(ngModel)]="editForm.description"
+                  [class.invalid-field]="fieldError('description')"
+                  (ngModelChange)="clearFieldError('description')"
+                ></textarea>
+                @if (fieldError("description")) {
+                  <small class="field-error">{{
+                    fieldError("description")
+                  }}</small>
+                }
+              </label>
+
+              <label class="form-field">
+                <span>Remark</span>
+                <textarea
+                  name="remark"
+                  rows="3"
+                  [(ngModel)]="editForm.remark"
+                  [class.invalid-field]="fieldError('remark')"
+                  (ngModelChange)="clearFieldError('remark')"
+                ></textarea>
+                @if (fieldError("remark")) {
+                  <small class="field-error">{{ fieldError("remark") }}</small>
+                }
+              </label>
+            </div>
+          </section>
+
+          <section class="drawer-section">
+            <div class="section-label">
+              <h3>Specifications</h3>
+              <p>Custom fields for this asset type.</p>
+            </div>
+
+            <div class="section-fields">
+              @if (isSpecLoading()) {
+                <app-loading
+                  variant="inline"
+                  message="Loading specifications..."
+                  ariaLabel="Loading specifications"
+                />
+              } @else if (specFields().length === 0) {
+                <p class="drawer-note">No custom fields yet.</p>
+              } @else {
+                @for (field of specFields(); track field.assetTypeFieldId) {
+                  <div class="form-field spec-field-row">
+                    <div class="spec-field-heading">
+                      <span>
+                        {{ field.fieldLabel }}
+                        @if (field.isRequired) {
+                          <span class="required-mark">*</span>
+                        }
+                      </span>
+                      @if (canManageSpecField(field)) {
+                        <span class="spec-field-actions">
+                          @if (editingFieldId() === field.assetTypeFieldId) {
+                            <button
+                              class="spec-field-action"
+                              type="button"
+                              [attr.aria-label]="
+                                'Cancel editing ' + field.fieldLabel
+                              "
+                              [disabled]="isAddingField()"
+                              (click)="toggleFieldBuilder()"
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="m6 6 12 12M18 6 6 18"
+                                  stroke="currentColor"
+                                  stroke-width="1.9"
+                                  stroke-linecap="round"
+                                />
+                              </svg>
+                              Cancel
+                            </button>
+                            <button
+                              class="spec-field-action spec-field-action-save"
+                              type="button"
+                              [attr.aria-label]="'Save ' + field.fieldLabel"
+                              [disabled]="isAddingField()"
+                              (click)="saveSpecFieldDefinition()"
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="m5 12 4 4 10-10"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                />
+                              </svg>
+                              {{ isAddingField() ? "Saving..." : "Save" }}
+                            </button>
+                          } @else {
+                            <button
+                              class="spec-field-action"
+                              type="button"
+                              [attr.aria-label]="'Edit ' + field.fieldLabel"
+                              [disabled]="isAddingField()"
+                              (click)="startEditSpecField(field)"
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="m4 16.5-.5 4 4-.5L18.8 8.7a2.1 2.1 0 0 0 0-3L18.3 5a2.1 2.1 0 0 0-3 0L4 16.5Z"
+                                  stroke="currentColor"
+                                  stroke-width="1.8"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                />
+                                <path
+                                  d="m13.8 6.5 3.7 3.7"
+                                  stroke="currentColor"
+                                  stroke-width="1.8"
+                                  stroke-linecap="round"
+                                />
+                              </svg>
+                              Edit
+                            </button>
+                            <button
+                              class="spec-field-action spec-field-action-danger"
+                              type="button"
+                              [attr.aria-label]="'Delete ' + field.fieldLabel"
+                              [disabled]="
+                                deletingFieldId() === field.assetTypeFieldId
+                              "
+                              (click)="requestDeleteSpecField(field)"
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="M5 7h14M10 11v6M14 11v6M9 7l.5-2h5L15 7M7 7l1 13h8l1-13"
+                                  stroke="currentColor"
+                                  stroke-width="1.8"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                />
+                              </svg>
+                              Delete
+                            </button>
+                          }
+                        </span>
+                      }
+                    </div>
+                    @switch (field.fieldType) {
+                      @case ("number") {
+                        <input
+                          [name]="'spec-' + field.assetTypeFieldId"
+                          type="number"
+                          min="0"
+                          [(ngModel)]="specForm[field.assetTypeFieldId]"
+                          [class.invalid-field]="
+                            specError(field.assetTypeFieldId)
+                          "
+                          (ngModelChange)="
+                            clearSpecError(field.assetTypeFieldId)
+                          "
+                        />
+                      }
+                      @case ("date") {
+                        <app-date-field
+                          [name]="'spec-' + field.assetTypeFieldId"
+                          title="Select date"
+                          placeholder="Select date"
+                          [invalid]="!!specError(field.assetTypeFieldId)"
+                          [ngModel]="specForm[field.assetTypeFieldId]"
+                          (ngModelChange)="
+                            specForm[field.assetTypeFieldId] = $event || '';
+                            clearSpecError(field.assetTypeFieldId)
+                          "
+                        />
+                      }
+                      @case ("boolean") {
+                        <span class="checkbox-field">
+                          <input
+                            [name]="'spec-' + field.assetTypeFieldId"
+                            type="checkbox"
+                            [(ngModel)]="specForm[field.assetTypeFieldId]"
+                            (ngModelChange)="
+                              clearSpecError(field.assetTypeFieldId)
+                            "
+                          />
+                          Enabled
+                        </span>
+                      }
+                      @case ("select") {
+                        <app-select
+                          [name]="'spec-' + field.assetTypeFieldId"
+                          ariaLabel="Specification value"
+                          placeholder="Select value"
+                          [options]="specSelectOptions(field)"
+                          [invalid]="specError(field.assetTypeFieldId) !== ''"
+                          [(ngModel)]="specForm[field.assetTypeFieldId]"
+                          (ngModelChange)="
+                            clearSpecError(field.assetTypeFieldId)
+                          "
+                        />
+                      }
+                      @default {
+                        <input
+                          [name]="'spec-' + field.assetTypeFieldId"
+                          [(ngModel)]="specForm[field.assetTypeFieldId]"
+                          [class.invalid-field]="
+                            specError(field.assetTypeFieldId)
+                          "
+                          (ngModelChange)="
+                            clearSpecError(field.assetTypeFieldId)
+                          "
+                        />
+                      }
+                    }
+                    @if (specError(field.assetTypeFieldId)) {
+                      <small class="field-error">{{
+                        specError(field.assetTypeFieldId)
+                      }}</small>
+                    }
+
+                    @if (
+                      editingFieldId() === field.assetTypeFieldId &&
+                      canManageSpecField(field)
+                    ) {
+                      <div class="field-definition-editor">
+                        <div class="field-grid">
+                          <label class="form-field field-grid-full">
+                            <span>
+                              Field Label <span class="required-mark">*</span>
+                            </span>
+                            <input
+                              name="editSpecFieldLabel"
+                              [ngModel]="newSpecFieldForm.fieldLabel"
+                              (ngModelChange)="updateNewFieldLabel($event)"
+                              placeholder="RAM GB"
+                            />
+                          </label>
+                        </div>
+
+                        <div class="field-grid items-end">
+                          <div class="form-field">
+                            <span>
+                              Field Type <span class="required-mark">*</span>
+                            </span>
+                            <app-select
+                              name="editSpecFieldType"
+                              ariaLabel="Field type"
+                              [options]="assetFieldTypes"
+                              [(ngModel)]="newSpecFieldForm.fieldType"
+                              (ngModelChange)="handleNewFieldTypeChange()"
+                            />
+                          </div>
+
+                          <label
+                            class="inline-flex min-h-[42px] items-center gap-2.5 text-sm font-bold text-(--gray-700)"
+                          >
+                            <input
+                              class="h-[18px] w-[18px] accent-(--accent)"
+                              name="editSpecFieldRequired"
+                              type="checkbox"
+                              [(ngModel)]="newSpecFieldForm.isRequired"
+                              (ngModelChange)="fieldBuilderError.set('')"
+                            />
+                            Required
+                          </label>
+                        </div>
+
+                        @if (newSpecFieldForm.fieldType === "select") {
+                          <div class="form-field field-grid-full">
+                            <span>
+                              Select Options
+                              <span class="required-mark">*</span>
+                            </span>
+                            <div class="grid gap-2.5" role="list">
+                              @for (
+                                option of newSpecFieldForm.optionValues;
+                                track $index
+                              ) {
+                                <div
+                                  class="grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2.5 max-[479px]:grid-cols-[minmax(0,1fr)_auto]"
+                                  role="listitem"
+                                >
+                                  <span
+                                    class="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#e8f0ff] text-xs font-extrabold text-[var(--brand-700)] max-[479px]:hidden"
+                                  >
+                                    {{ $index + 1 }}
+                                  </span>
+                                  <input
+                                    class="min-h-[42px] w-full rounded-[10px] border border-(--gray-300) bg-(--gray-25) px-3 py-2.5 text-sm font-medium text-(--gray-900) outline-none transition-[border-color,background-color] duration-150 focus:border-(--accent) focus:bg-white"
+                                    [name]="'editSpecFieldOption' + $index"
+                                    [ngModel]="option"
+                                    (ngModelChange)="
+                                      updateNewSpecFieldOption($index, $event)
+                                    "
+                                    [placeholder]="'Option ' + ($index + 1)"
+                                  />
+                                  @if (
+                                    $index <
+                                    newSpecFieldForm.optionValues.length - 1
+                                  ) {
+                                    <button
+                                      class="inline-flex min-h-[42px] min-w-[42px] items-center justify-center rounded-[10px] border border-(--gray-150) bg-white text-(--gray-600) transition-[border-color,background-color,color] duration-150 hover:border-(--status-error-border) hover:bg-[#fff5f5] hover:text-(--status-error-text) focus:border-(--status-error-border) focus:bg-[#fff5f5] focus:text-(--status-error-text) focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                                      type="button"
+                                      [disabled]="isAddingField()"
+                                      [attr.aria-label]="
+                                        'Remove option ' + ($index + 1)
+                                      "
+                                      (click)="removeNewSpecFieldOption($index)"
+                                    >
+                                      <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        aria-hidden="true"
+                                      >
+                                        <path
+                                          d="m6 6 12 12M18 6 6 18"
+                                          stroke="currentColor"
+                                          stroke-width="2"
+                                          stroke-linecap="round"
+                                        />
+                                      </svg>
+                                    </button>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          </div>
+                        }
+
+                        @if (fieldBuilderError()) {
+                          <p class="field-builder-error">
+                            {{ fieldBuilderError() }}
+                          </p>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              }
+
+              @if (isAdmin()) {
+                <div
+                  class="flex justify-end border-t border-(--gray-150) pt-4"
+                  [class.hidden]="
+                    editingFieldId() !== null || showFieldBuilder()
+                  "
+                >
+                  <button
+                    class="secondary-action inline-flex items-center gap-2"
+                    type="button"
+                    [attr.aria-expanded]="showFieldBuilder()"
+                    (click)="toggleFieldBuilder()"
+                  >
+                    <svg
+                      class="h-[17px] w-[17px]"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M12 5v14M5 12h14"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                    Add field
+                  </button>
+                </div>
+
+                @if (showFieldBuilder() && editingFieldId() === null) {
+                  <div class="field-definition-editor">
+                    <div class="field-grid">
+                      <label class="form-field field-grid-full">
+                        <span
+                          >Field Label
+                          <span class="required-mark">*</span></span
+                        >
+                        <input
+                          name="newSpecFieldLabel"
+                          [ngModel]="newSpecFieldForm.fieldLabel"
+                          (ngModelChange)="updateNewFieldLabel($event)"
+                          placeholder="RAM GB"
+                        />
+                      </label>
+                    </div>
+
+                    <div class="field-grid items-end">
+                      <div class="form-field">
+                        <span
+                          >Field Type <span class="required-mark">*</span></span
+                        >
+                        <app-select
+                          name="newSpecFieldType"
+                          ariaLabel="Field type"
+                          [options]="assetFieldTypes"
+                          [(ngModel)]="newSpecFieldForm.fieldType"
+                          (ngModelChange)="handleNewFieldTypeChange()"
+                        />
+                      </div>
+
+                      <label
+                        class="inline-flex min-h-[42px] items-center gap-2.5 text-sm font-bold text-(--gray-700)"
+                      >
+                        <input
+                          class="h-[18px] w-[18px] accent-(--accent)"
+                          name="newSpecFieldRequired"
+                          type="checkbox"
+                          [(ngModel)]="newSpecFieldForm.isRequired"
+                          (ngModelChange)="fieldBuilderError.set('')"
+                        />
+                        Required
+                      </label>
+                    </div>
+
+                    @if (newSpecFieldForm.fieldType === "select") {
+                      <div class="form-field field-grid-full">
+                        <span>
+                          Select Options <span class="required-mark">*</span>
+                        </span>
+                        <div class="grid gap-2.5" role="list">
+                          @for (
+                            option of newSpecFieldForm.optionValues;
+                            track $index
+                          ) {
+                            <div
+                              class="grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2.5 max-[479px]:grid-cols-[minmax(0,1fr)_auto]"
+                              role="listitem"
+                            >
+                              <span
+                                class="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#e8f0ff] text-xs font-extrabold text-[var(--brand-700)] max-[479px]:hidden"
+                              >
+                                {{ $index + 1 }}
+                              </span>
+                              <input
+                                class="min-h-[42px] w-full rounded-[10px] border border-(--gray-300) bg-(--gray-25) px-3 py-2.5 text-sm font-medium text-(--gray-900) outline-none transition-[border-color,background-color] duration-150 focus:border-(--accent) focus:bg-white"
+                                [name]="'newSpecFieldOption' + $index"
+                                [ngModel]="option"
+                                (ngModelChange)="
+                                  updateNewSpecFieldOption($index, $event)
+                                "
+                                [placeholder]="'Option ' + ($index + 1)"
+                              />
+                              @if (
+                                $index <
+                                newSpecFieldForm.optionValues.length - 1
+                              ) {
+                                <button
+                                  class="inline-flex min-h-[42px] min-w-[42px] items-center justify-center rounded-[10px] border border-(--gray-150) bg-white text-(--gray-600) transition-[border-color,background-color,color] duration-150 hover:border-(--status-error-border) hover:bg-[#fff5f5] hover:text-(--status-error-text) focus:border-(--status-error-border) focus:bg-[#fff5f5] focus:text-(--status-error-text) focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                                  type="button"
+                                  [disabled]="isAddingField()"
+                                  [attr.aria-label]="
+                                    'Remove option ' + ($index + 1)
+                                  "
+                                  (click)="removeNewSpecFieldOption($index)"
+                                >
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    aria-hidden="true"
+                                  >
+                                    <path
+                                      d="m6 6 12 12M18 6 6 18"
+                                      stroke="currentColor"
+                                      stroke-width="2"
+                                      stroke-linecap="round"
+                                    />
+                                  </svg>
+                                </button>
+                              }
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    @if (fieldBuilderError()) {
+                      <p class="field-builder-error">
+                        {{ fieldBuilderError() }}
+                      </p>
+                    }
+
+                    <div class="field-builder-actions">
+                      <button
+                        class="secondary-action"
+                        type="button"
+                        [disabled]="isAddingField()"
+                        (click)="toggleFieldBuilder()"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        class="save-action"
+                        type="button"
+                        [disabled]="isAddingField()"
+                        (click)="saveSpecFieldDefinition()"
+                      >
+                        {{
+                          isAddingField()
+                            ? "Saving..."
+                            : editingFieldId() === null
+                              ? "Add field"
+                              : "Save field"
+                        }}
+                      </button>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          </section>
+
+          @if (editError()) {
+            <p class="drawer-error">{{ editError() }}</p>
+          }
+
+          <footer class="drawer-footer">
+            <button
+              class="secondary-action"
+              type="button"
+              [disabled]="isSaving()"
+              (click)="closeEditDrawer()"
+            >
+              Cancel
+            </button>
+            <button
+              class="save-action"
+              type="submit"
+              [disabled]="!canSaveEdit()"
+            >
+              {{ isSaving() ? "Saving..." : "Save" }}
+            </button>
+          </footer>
+        </form>
+      </aside>
+    </div>
+  }
+
+  <app-confirm-delete-modal
+    [open]="deleteAssetTarget() !== null"
+    title="Delete asset"
+    message="This asset and its saved specification values will be removed."
+    [itemName]="deleteAssetTarget()?.assetName || ''"
+    [isBusy]="isDeletingAsset()"
+    [error]="assetDeleteError()"
+    (cancel)="cancelDeleteAsset()"
+    (confirm)="confirmDeleteAsset()"
+  />
+
+  <app-confirm-delete-modal
+    [open]="deleteSpecFieldTarget() !== null"
+    title="Delete field"
+    message="This field will be removed from this asset type."
+    [itemName]="deleteSpecFieldTarget()?.fieldLabel || ''"
+    [isBusy]="deletingFieldId() !== null"
+    [error]="specFieldDeleteError()"
+    (cancel)="cancelDeleteSpecField()"
+    (confirm)="confirmDeleteSpecField()"
+  />
+
+  @if (showDiscardDialog()) {
+    <div class="confirm-backdrop" role="presentation" (click)="keepEditing()">
+      <section
+        class="confirm-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="discard-dialog-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header>
+          <h2 id="discard-dialog-title">Unsaved changes</h2>
+        </header>
+        <p>You have unsaved changes. Are you sure you want to discard them?</p>
+        <footer>
+          <button
+            class="secondary-action"
+            type="button"
+            (click)="keepEditing()"
+          >
+            Keep editing
+          </button>
+          <button
+            class="discard-action"
+            type="button"
+            (click)="discardEditChanges()"
+          >
+            Discard changes
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
+
+  @if (actionMenuAsset(); as menuAsset) {
+    <div
+      class="action-menu"
+      role="menu"
+      [style.top.px]="actionMenuPosition().top"
+      [style.left.px]="actionMenuPosition().left"
+      (click)="$event.stopPropagation()"
+    >
+      <button
+        type="button"
+        role="menuitem"
+        (click)="handleAssetAction('edit', menuAsset)"
+      >
+        Edit
+      </button>
+      <button
+        class="danger-menu-item"
+        type="button"
+        role="menuitem"
+        (click)="handleAssetAction('delete', menuAsset)"
+      >
+        Delete
+      </button>
+    </div>
+  }
+
+  @if (isScannerOpen()) {
+    <app-barcode-scanner-dialog
+      (closeDialog)="closeScanner()"
+      (barcodeScanned)="handleBarcodeScan($event)"
+    />
+  }
+
+  @if (scannedAssetResult(); as scannedAsset) {
+    <app-barcode-scan-result-modal
+      [assetName]="scannedAsset.assetName"
+      [locationName]="scannedAsset.locationName"
+      [restricted]="scannedAsset.restricted"
+      (closeDialog)="closeScannedAssetResult()"
+      (openAsset)="openScannedAssetResult()"
+    />
+  }
+
+  @if (isBulkPrintOpen()) {
+    <app-print-asset-label-dialog
+      [assets]="selectedLabelAssets()"
+      [bulk]="true"
+      (closeDialog)="closeBulkPrint()"
+      (printReady)="completeBulkPrint()"
+    />
+  }
+</div>

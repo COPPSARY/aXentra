@@ -1,0 +1,358 @@
+<div class="min-h-screen bg-(--background) text-(--text-primary)">
+  <app-sidebar />
+  <app-mobile-tabbar />
+
+  <div class="lg:pl-[240px]">
+    <app-topbar
+      [displayName]="displayName()"
+      [role]="role()"
+      [initials]="initials()"
+      [avatarUrl]="avatarUrl()"
+      (signOut)="logout()"
+    />
+
+    <main class="px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8 lg:pb-12">
+      <section class="mx-auto max-w-[1100px]">
+        @if (isLoading()) {
+          <div class="page-state">
+            <app-loading
+              variant="page"
+              message="Loading new loan form..."
+              ariaLabel="Loading new loan form"
+            />
+          </div>
+        } @else if (loadError()) {
+          <div class="page-state page-state-error">{{ loadError() }}</div>
+        } @else {
+          <header class="page-header app-motion-enter">
+            <div>
+              <a class="back-link" routerLink="/assets/loans">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="m15 6-6 6 6 6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                Back
+              </a>
+              <h1>New Loan</h1>
+              <p>{{ currentLocationName() }}</p>
+            </div>
+
+            <div class="header-actions">
+              <a appButton="secondary" routerLink="/assets/loans">Cancel</a>
+              <button
+                appButton
+                type="button"
+                [disabled]="isSubmitting()"
+                (click)="submitLoan()"
+              >
+                {{ isSubmitting() ? 'Creating...' : 'Create Loan' }}
+              </button>
+            </div>
+          </header>
+
+          <div class="page-layout app-motion-enter app-motion-delay-1">
+            <div class="page-main">
+              <section class="page-card">
+                <div class="card-heading">
+                  <h2>Loan Details</h2>
+                </div>
+
+                <div class="form-grid">
+                  <label class="field">
+                    <span class="field-label">
+                      <span>Borrower</span>
+                      @if (validationErrors().borrower) {
+                        <em class="field-label-error">{{ validationErrors().borrower }}</em>
+                      }
+                    </span>
+                    <app-select
+                      ariaLabel="Borrower"
+                      placeholder="Select borrower"
+                      [options]="borrowerOptions()"
+                      [searchable]="true"
+                      searchPlaceholder="Type borrower name"
+                      [invalid]="!!validationErrors().borrower"
+                      [ngModel]="selectedBorrowerProfileId() ?? ''"
+                      (ngModelChange)="setBorrowerProfileId($event)"
+                    />
+                  </label>
+
+                  <label class="field">
+                    <span class="field-label">
+                      <span>Lender</span>
+                      @if (validationErrors().lender) {
+                        <em class="field-label-error">{{ validationErrors().lender }}</em>
+                      }
+                    </span>
+                    <app-select
+                      ariaLabel="Lender"
+                      placeholder="Select lender"
+                      [options]="lenderSelectOptions()"
+                      [searchable]="true"
+                      searchPlaceholder="Type lender name"
+                      [invalid]="!!validationErrors().lender"
+                      [ngModel]="selectedLenderUserId() ?? ''"
+                      (ngModelChange)="setLenderUserId($event)"
+                    />
+                  </label>
+
+                  <label class="field">
+                    <span class="field-label">
+                      <span>Borrow Date</span>
+                      @if (validationErrors().borrowDate) {
+                        <em class="field-label-error">{{ validationErrors().borrowDate }}</em>
+                      }
+                    </span>
+                    <app-date-field
+                      title="Borrow Date"
+                      placeholder="Select borrow date"
+                      [invalid]="!!validationErrors().borrowDate"
+                      [ngModel]="startLoanDate()"
+                      (ngModelChange)="setStartLoanDate($event)"
+                    />
+                  </label>
+
+                  <label class="field">
+                    <span class="field-label">
+                      <span>End Date</span>
+                      @if (validationErrors().endDate) {
+                        <em class="field-label-error">{{ validationErrors().endDate }}</em>
+                      }
+                    </span>
+                    <app-date-field
+                      title="End Date"
+                      placeholder="Select end date"
+                      [minDate]="startLoanDate() || null"
+                      [invalid]="!!validationErrors().endDate"
+                      [ngModel]="endLoanDate()"
+                      (ngModelChange)="setEndLoanDate($event)"
+                    />
+                    @if (validationErrors().endDateHelp) {
+                      <small class="field-help field-help-error">
+                        {{ validationErrors().endDateHelp }}
+                      </small>
+                    }
+                  </label>
+
+                  <div class="field field-overview">
+                    <span>Loan Overview</span>
+                    <div class="field-display">{{ loanOverview() }}</div>
+                  </div>
+
+                  <label class="field field-remark">
+                    <span>Remark</span>
+                    <textarea
+                      rows="4"
+                      [ngModel]="remark()"
+                      (ngModelChange)="setRemark($event)"
+                      placeholder="Add a short note"
+                    ></textarea>
+                  </label>
+                </div>
+
+              </section>
+
+              <section class="page-card">
+                <div class="card-heading card-heading-split">
+                  <h2>Choose Assets</h2>
+                  @if (validationErrors().selectedAssets) {
+                    <span class="section-badge-error">{{ validationErrors().selectedAssets }}</span>
+                  }
+                </div>
+
+                <div class="picker-toolbar">
+                  <label class="field">
+                    <span>Asset Type</span>
+                    <app-select
+                      ariaLabel="Asset type"
+                      placeholder="Select asset type"
+                      [options]="assetTypeOptions()"
+                      [searchable]="true"
+                      searchPlaceholder="Type asset type"
+                      [ngModel]="selectedAssetTypeId() ?? ''"
+                      (ngModelChange)="setAssetTypeId($event)"
+                    />
+                  </label>
+
+                  <label class="field">
+                    <span>Filter Current Page</span>
+                    <input
+                      type="text"
+                      [ngModel]="assetSearch()"
+                      (ngModelChange)="setAssetSearch($event)"
+                      placeholder="Search asset name or barcode"
+                    />
+                  </label>
+
+                  <div class="scan-action">
+                    <span>Quick Scan</span>
+                    <button
+                      appButton="secondary"
+                      class="scan-button"
+                      type="button"
+                      [disabled]="isLookingUpScannedAsset()"
+                      (click)="openScanner()"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M4 7V5.5A1.5 1.5 0 0 1 5.5 4H7M17 4h1.5A1.5 1.5 0 0 1 20 5.5V7M20 17v1.5a1.5 1.5 0 0 1-1.5 1.5H17M7 20H5.5A1.5 1.5 0 0 1 4 18.5V17M8 8h1.5v8H8zm3.5 0h1v8h-1zm3 0H16v8h-1.5z"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                      {{ isLookingUpScannedAsset() ? 'Checking...' : 'Scan asset' }}
+                    </button>
+                  </div>
+                </div>
+
+                @if (!selectedAssetTypeId()) {
+                  <div class="empty-note">Choose an asset type to load available assets.</div>
+                } @else if (isLoadingAssets()) {
+                  <div class="table-state">
+                    <app-loading
+                      variant="inline"
+                      message="Loading available assets..."
+                      ariaLabel="Loading available assets"
+                    />
+                  </div>
+                } @else if (availableAssets().length === 0) {
+                  <div class="empty-note">No available assets found for this selection.</div>
+                } @else {
+                  <div class="table-wrap">
+                    <div class="asset-table">
+                      <div class="asset-head">
+                        <div>Asset</div>
+                        <div>Barcode</div>
+                        <div>Serial Number</div>
+                        <div></div>
+                      </div>
+
+                      <div class="asset-body">
+                        @for (asset of availableAssets(); track asset.assetId) {
+                          <div class="asset-row">
+                            <div class="asset-primary">
+                              <strong>{{ asset.assetName }}</strong>
+                            </div>
+                            <div>{{ asset.barcode || '-' }}</div>
+                            <div>{{ asset.serialNumber || '-' }}</div>
+                            <div class="asset-action">
+                              <button
+                                appButton="secondary"
+                                type="button"
+                                (click)="addAsset(asset)"
+                              >
+                                Add
+                              </button>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="pagination-row">
+                    <app-pagination
+                      [currentPage]="currentAssetPage()"
+                      [totalPages]="totalAssetPages()"
+                      (pageChange)="loadAssetPage($event)"
+                    />
+                  </div>
+                }
+              </section>
+
+              <section class="page-card">
+                <div class="card-heading card-heading-split">
+                  <h2>Selected Assets</h2>
+                  @if (validationErrors().selectedAssets) {
+                    <span class="section-badge-error">{{ validationErrors().selectedAssets }}</span>
+                  }
+                </div>
+
+                @if (selectedAssets().length === 0) {
+                  <div class="empty-note">
+                    Choose at least one asset from the list above to continue.
+                  </div>
+                } @else {
+                  <div class="table-wrap">
+                    <div class="selected-table">
+                      <div class="selected-head">
+                        <div>Asset</div>
+                        <div>Asset Type</div>
+                        <div>Barcode</div>
+                        <div></div>
+                      </div>
+
+                      <div class="selected-body">
+                        @for (asset of selectedAssets(); track asset.assetId) {
+                          <div class="selected-row">
+                            <div class="asset-primary">
+                              <strong>{{ asset.assetName }}</strong>
+                            </div>
+                            <div>{{ asset.assetTypeName }}</div>
+                            <div>{{ asset.barcode }}</div>
+                            <div class="asset-action">
+                              <button
+                                appButton="secondary"
+                                type="button"
+                                (click)="removeAsset(asset.assetId)"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              </section>
+            </div>
+
+            <aside class="page-side">
+              <section class="page-card">
+                <h3 class="side-title">Summary</h3>
+
+                <div class="summary-list">
+                  <div class="summary-row">
+                    <span>Borrower</span>
+                    <strong>{{ borrowerName() }}</strong>
+                  </div>
+                  <div class="summary-row">
+                    <span>Created By</span>
+                    <strong>{{ createdByName() }}</strong>
+                  </div>
+                  <div class="summary-row">
+                    <span>Asset Type</span>
+                    <strong>{{ assetTypeName() }}</strong>
+                  </div>
+                  <div class="summary-row">
+                    <span>Items</span>
+                    <strong>{{ selectedAssets().length }}</strong>
+                  </div>
+                  <div class="summary-row">
+                    <span>Overview</span>
+                    <strong>{{ loanOverview() }}</strong>
+                  </div>
+                </div>
+              </section>
+            </aside>
+          </div>
+        }
+      </section>
+    </main>
+  </div>
+
+  @if (isScannerOpen()) {
+    <app-barcode-scanner-dialog
+      (closeDialog)="closeScanner()"
+      (barcodeScanned)="handleBarcodeScan($event)"
+    />
+  }
+</div>

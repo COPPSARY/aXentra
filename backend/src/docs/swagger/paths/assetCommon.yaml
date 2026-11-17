@@ -1,0 +1,2468 @@
+assetTypeIdParam:
+  in: path
+  name: assetTypeId
+  required: true
+  schema:
+    type: integer
+  description: Asset type id
+
+fieldIdParam:
+  in: path
+  name: fieldId
+  required: true
+  schema:
+    type: integer
+  description: Asset type field id
+
+productIdParam:
+  in: path
+  name: productId
+  required: true
+  schema:
+    type: integer
+  description: Product id
+
+assetIdParam:
+  in: path
+  name: assetId
+  required: true
+  schema:
+    type: integer
+  description: Asset id
+
+assetTagParam:
+  in: path
+  name: assetTag
+  required: true
+  schema:
+    type: string
+    maxLength: 255
+  description: Universal asset tag encoded by a barcode or QR code
+
+assetSpecValueIdParam:
+  in: path
+  name: assetSpecValueId
+  required: true
+  schema:
+    type: integer
+  description: Asset specification value id
+
+userIdParam:
+  in: path
+  name: userId
+  required: true
+  schema:
+    type: integer
+  description: User id
+
+profileIdParam:
+  in: path
+  name: profileId
+  required: true
+  schema:
+    type: integer
+  description: Profile id
+
+locationIdQueryParam:
+  in: query
+  name: locationId
+  required: false
+  schema:
+    type: integer
+    minimum: 1
+    example: 1
+  description: Optional location filter. Must be a location the current actor can access.
+
+versionField:
+  type: integer
+  minimum: 1
+  description: |
+    Current version of the resource (optimistic locking). Must match the version
+    returned by the last successful read/update or the request returns 409.
+  example: 1
+
+replaceImagesField:
+  type: boolean
+  description: When true, replace the existing image bundle with the uploaded album files. When false or omitted, uploaded files are appended.
+  example: false
+
+imageBundleItemSchema:
+  type: object
+  properties:
+    imageId:
+      type: string
+      example: img_1
+    fileName:
+      type: string
+      nullable: true
+      example: front.png
+    filePath:
+      type: string
+      nullable: true
+      example: user_1/1710000000000-front.png
+    fileSize:
+      type: integer
+      nullable: true
+      example: 245678
+    fileType:
+      type: string
+      nullable: true
+      example: image/png
+    order:
+      type: integer
+      minimum: 1
+      example: 1
+    uploadedAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-07-06T10:00:00.000Z
+    publicUrl:
+      type: string
+      nullable: true
+      example: https://example.com/signed/front.png
+
+imageBundleField:
+  type: array
+  items:
+    $ref: '#/imageBundleItemSchema'
+
+conflictResponse:
+  description: |
+    Version mismatch — the resource was modified by another user since you last
+    read it. Refresh the resource, re-apply your changes, and retry.
+  content:
+    application/json:
+      schema:
+        $ref: '#/conflictErrorResponse'
+
+pageQueryParam:
+  in: query
+  name: page
+  required: false
+  schema:
+    type: integer
+    minimum: 1
+    default: 1
+    example: 1
+  description: Pagination page number.
+
+limitQueryParam:
+  in: query
+  name: limit
+  required: false
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 10
+    default: 10
+    example: 10
+  description: Page size limit. Maximum allowed value is 10.
+
+assetTypeFieldCreateBody:
+  type: object
+  description: |
+    Create asset type field payload.
+    Required fields: `fieldLabel`, `fieldType`, `locationId`.
+    Optional fields: `isRequired`, `options`, `sortOrder`.
+  required:
+    - fieldLabel
+    - fieldType
+    - locationId
+  example:
+    fieldLabel: RAM (GB)
+    fieldType: number
+    locationId: 1
+  properties:
+    fieldLabel:
+      type: string
+      maxLength: 255
+      example: RAM (GB)
+      description: The display label for the field. It must be unique within the asset type. Field key will be auto-generated from this.
+    fieldType:
+      $ref: '#/assetFieldType'
+    locationId:
+      type: integer
+      example: 1
+      description: Required. Location scope for this field definition.
+    isRequired:
+      type: boolean
+      default: false
+    options:
+      type: array
+      nullable: true
+      items:
+        type: string
+    sortOrder:
+      type: integer
+      minimum: 0
+      default: 0
+
+assetTypeFieldUpdateBody:
+  type: object
+  minProperties: 2
+  required:
+    - version
+  description: |
+    Update asset type field payload.
+    Allowed fields: `fieldLabel`, `fieldType`, `isRequired`, `options`.
+    `locationId` and `sortOrder` cannot be updated after creation.
+    `version` is required for optimistic locking.
+  properties:
+    version:
+      $ref: '#/versionField'
+    fieldLabel:
+      type: string
+      maxLength: 255
+      example: RAM (GB)
+      description: The display label for the field. It must stay unique within the asset type. Field key cannot be changed after creation.
+    fieldType:
+      $ref: '#/assetFieldType'
+    isRequired:
+      type: boolean
+    options:
+      type: array
+      nullable: true
+      items:
+        type: string
+
+assetTypeCreateBody:
+  type: object
+  description: |
+    Create asset type payload.
+    Required fields: `name`, `locationId`.
+    Optional fields: `icon`.
+  required:
+    - name
+    - locationId
+  example:
+    name: Router
+    locationId: 1
+    icon: lucide:router
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 100
+      example: Router
+    icon:
+      type: string
+      maxLength: 100
+      nullable: true
+      example: lucide:router
+      description: |
+        Optional icon identifier resolved by the client, for example `lucide:router`.
+        The value is trimmed. An absent, null, or empty value stores no icon.
+    locationId:
+      type: integer
+      example: 1
+      description: Required. Location scope for this asset type.
+
+assetTypeUpdateBody:
+  type: object
+  minProperties: 2
+  required:
+    - version
+  description: |
+    Update asset type payload.
+    `name`, the optional `icon`, and the ordered `gridFieldIds` display selection can be changed.
+    `locationId` and `typeKey` cannot be sent in the request.
+    When `name` changes, the backend regenerates `typeKey` from the new name for dashboard grouping.
+    `version` is required for optimistic locking.
+  properties:
+    version:
+      $ref: '#/versionField'
+    name:
+      type: string
+      minLength: 1
+      maxLength: 100
+      example: Network Device
+    icon:
+      type: string
+      maxLength: 100
+      nullable: true
+      example: lucide:router
+      description: |
+        Icon identifier resolved by the client. The value is trimmed.
+        Send null or an empty string to clear the stored icon.
+        Omit the field to leave it unchanged.
+    gridFieldIds:
+      type: array
+      maxItems: 5
+      uniqueItems: true
+      description: Ordered asset-type field identifiers displayed on asset cards. Send an empty array to clear the configuration.
+      items:
+        type: integer
+        minimum: 1
+      example: [7, 4]
+
+productCreateBody:
+  type: object
+  description: |
+    Create product payload.
+    Required fields: `productName`, `locationId`.
+    Optional fields: `manufacturer`, `cost`.
+  required:
+    - productName
+    - locationId
+  example:
+    productName: Dell OptiPlex 7010
+    locationId: 1
+  properties:
+    locationId:
+      type: integer
+      example: 1
+      description: Required. Location scope for this product.
+    productName:
+      type: string
+      minLength: 1
+      maxLength: 255
+      example: Dell OptiPlex 7010
+    manufacturer:
+      type: string
+      nullable: true
+      example: Dell
+    cost:
+      type: number
+      minimum: 0
+      default: 0
+      example: 0
+
+productUpdateBody:
+  type: object
+  minProperties: 2
+  required:
+    - version
+  description: |
+    Update product payload.
+    Allowed fields: `productName`, `manufacturer`, `cost`.
+    `locationId` cannot be updated after product creation.
+    `version` is required for optimistic locking.
+  properties:
+    version:
+      $ref: '#/versionField'
+    productName:
+      type: string
+      minLength: 1
+      maxLength: 255
+      example: Dell OptiPlex 7010
+    manufacturer:
+      type: string
+      nullable: true
+      example: Dell
+    cost:
+      type: number
+      minimum: 0
+      example: 899.99
+
+assetCreateBody:
+  type: object
+  description: |
+    Create asset payload.
+    Required fields: `assetName`, `assetTypeId`, `productId`, `locationId`.
+    All other fields are optional.
+  required:
+    - assetName
+    - assetTypeId
+    - productId
+    - locationId
+  example:
+    assetName: Laptop-INV-0001
+    assetTypeId: 1
+    productId: 3
+    locationId: 1
+  properties:
+    assetName:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Required. Unique asset name.
+      example: Laptop-INV-0001
+    assetTypeId:
+      type: integer
+      description: Required. Asset type identifier.
+      example: 1
+    productId:
+      type: integer
+      description: Required. Product identifier that belongs to `assetTypeId`.
+      example: 3
+    locationId:
+      type: integer
+      description: Required. Location identifier.
+      example: 1
+    description:
+      type: string
+      nullable: true
+      description: Optional.
+    remark:
+      type: string
+      nullable: true
+      description: Optional.
+    macAddress:
+      type: string
+      nullable: true
+      description: Optional.
+      example: 00:1A:2B:3C:4D:5E
+    serialNumber:
+      type: string
+      nullable: true
+      maxLength: 255
+      description: Optional. Must be unique when provided.
+    assetTag:
+      type: string
+      nullable: true
+      maxLength: 255
+      description: Optional canonical asset tag. It is normalized to uppercase and must be globally unique. When omitted, the backend generates an `ITA-XXXX-XXXX` value.
+      example: ITA-7PK2-M9QX
+    status:
+      $ref: '#/assetStatus'
+    loanable:
+      type: boolean
+      description: Optional. Must be false for non-In Storage statuses.
+      example: true
+    warrantyExpiryDate:
+      type: string
+      format: date
+      nullable: true
+      description: Optional.
+    loanToProfileId:
+      type: integer
+      nullable: true
+      description: Optional. Borrower profile id (must be same location as asset).
+    fileId:
+      type: integer
+      nullable: true
+      description: Optional.
+    replaceImages:
+      $ref: '#/replaceImagesField'
+
+assetUpdateBody:
+  type: object
+  description: |
+    Update asset payload (partial update / PATCH).
+    `version` is required for optimistic locking; at least one other field must also be provided.
+
+    **Status rules (applies to the `status` field):**
+    - The admin can move the asset between `In Storage`, `In Repair`, `Damaged`, `Lost`, `Disposed`.
+    - `Loaned` is **not** admin-settable here — it is set only by the loan endpoint (`POST /api/loans`). Sending `status: "Loaned"` returns `400`.
+    - Any change to `status` / `loanable` / `loanToProfileId` while the asset has an active `Loaned` item returns `409` — close the loan via `POST /api/loans/{id}/return` or `POST /api/loans/{id}/cancel` first.
+  minProperties: 2
+  required:
+    - version
+  example:
+    version: 1
+    status: In Repair
+    loanable: false
+  properties:
+    version:
+      $ref: '#/versionField'
+    assetName:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Optional. Must be unique when provided.
+      example: Laptop-INV-0001
+    assetTypeId:
+      type: integer
+      description: Optional.
+      example: 1
+    productId:
+      type: integer
+      nullable: true
+      description: Optional. Must belong to the selected asset type.
+      example: 3
+    description:
+      type: string
+      nullable: true
+      description: Optional.
+    remark:
+      type: string
+      nullable: true
+      description: Optional.
+    macAddress:
+      type: string
+      nullable: true
+      description: Optional.
+      example: 00:1A:2B:3C:4D:5E
+    serialNumber:
+      type: string
+      nullable: true
+      maxLength: 255
+      description: Optional. Must be unique when provided.
+    assetTag:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Optional. Normalized to uppercase and globally unique.
+      example: ITA-7PK2-M9QX
+    status:
+      $ref: '#/assetStatusAdminSettable'
+    loanable:
+      type: boolean
+      description: |
+        Optional. Only meaningful when `status` is `In Storage`. Cannot be
+        changed while the asset has an active `Loaned` item.
+    warrantyExpiryDate:
+      type: string
+      format: date
+      nullable: true
+      description: Optional.
+    loanToProfileId:
+      type: integer
+      nullable: true
+      description: |
+        Optional. Borrower profile id. Cannot be changed while the asset has
+        an active `Loaned` item — use the loan endpoints instead.
+    fileId:
+      type: integer
+      nullable: true
+      description: Optional.
+    replaceImages:
+      $ref: '#/replaceImagesField'
+
+assetSpecCreateBody:
+  type: object
+  description: |
+    Create asset specification value payload.
+    Required field: `fieldId`.
+    You must provide exactly one of: `valueText`, `valueNumber`, `valueDate`, `valueBoolean`.
+  required:
+    - fieldId
+  example:
+    fieldId: 10
+    valueText: 16GB
+  properties:
+    fieldId:
+      type: integer
+      example: 10
+    valueText:
+      type: string
+      maxLength: 1000
+      example: 16GB
+    valueNumber:
+      type: number
+      example: 16
+    valueDate:
+      type: string
+      format: date
+      example: 2026-04-24
+    valueBoolean:
+      type: boolean
+      example: true
+
+assetSpecUpdateBody:
+  type: object
+  required:
+    - version
+  properties:
+    version:
+      $ref: '#/versionField'
+    valueText:
+      type: string
+      maxLength: 1000
+      example: 32GB
+    valueNumber:
+      type: number
+      example: 32
+    valueDate:
+      type: string
+      format: date
+      example: 2026-04-24
+    valueBoolean:
+      type: boolean
+      example: false
+  description: |
+    Provide exactly one of valueText, valueNumber, valueDate, or valueBoolean.
+    `version` is required for optimistic locking.
+
+userCreateBody:
+  type: object
+  description: |
+    Create user payload.
+    Required fields: `username`, `password`.
+    When `role=admin` (default), `locationIds` may be omitted or empty to create an unassigned admin.
+    When `role=super_admin`, `locationIds` must be empty.
+  required:
+    - username
+    - password
+  example:
+    username: new_admin
+    firstName: New
+    lastName: Admin
+    password: Password123
+    role: admin
+    locationIds: []
+  properties:
+    username:
+      type: string
+      minLength: 3
+      maxLength: 50
+      pattern: "^[^A-Z]+$"
+      example: new_admin
+    firstName:
+      type: string
+      nullable: true
+      maxLength: 100
+      example: New
+    lastName:
+      type: string
+      nullable: true
+      maxLength: 100
+      example: Admin
+    password:
+      type: string
+      minLength: 8
+      example: Password123
+    role:
+      $ref: '#/userRole'
+    locationIds:
+      type: array
+      items:
+        type: integer
+      description: Optional for role=admin. Empty means the admin has no location access. Must be empty when role=super_admin.
+      example: [1, 2]
+    email:
+      type: string
+      format: email
+      example: new_admin@example.com
+    avatarPic:
+      type: string
+      nullable: true
+      example: https://example.com/avatar.png
+
+userUpdateBody:
+  type: object
+  minProperties: 2
+  required:
+    - version
+  description: |
+    Update user payload. `version` is required for optimistic locking; at least one other field must also be provided.
+    `locationIds: []` keeps an admin unassigned. `super_admin` must always keep `locationIds` empty.
+  properties:
+    version:
+      $ref: '#/versionField'
+    username:
+      type: string
+      minLength: 3
+      maxLength: 50
+      pattern: "^[^A-Z]+$"
+      example: updated_user
+    firstName:
+      type: string
+      nullable: true
+      maxLength: 100
+      example: Updated
+    lastName:
+      type: string
+      nullable: true
+      maxLength: 100
+      example: User
+    email:
+      type: string
+      format: email
+      example: updated_user@example.com
+    password:
+      type: string
+      minLength: 8
+      example: Password123
+    role:
+      $ref: '#/userRole'
+    locationIds:
+      type: array
+      items:
+        type: integer
+      description: Optional for role=admin. Empty means the admin has no location access. Must be empty when role=super_admin.
+      example: [2]
+    avatarPic:
+      type: string
+      nullable: true
+      example: https://example.com/avatar.png
+
+loginBody:
+  type: object
+  description: |
+    Login payload.
+    Required fields: `username`, `password`.
+    Optional field: `rememberMe`.
+  example:
+    username: admin
+    password: Password123
+  properties:
+    username:
+      type: string
+      minLength: 3
+      maxLength: 50
+      pattern: "^[^A-Z]+$"
+      example: admin
+    password:
+      type: string
+      example: Password123
+    rememberMe:
+      type: boolean
+      default: false
+      example: true
+  required:
+    - username
+    - password
+
+refreshSessionBody:
+  type: object
+  properties:
+    refreshToken:
+      type: string
+      description: Optional when using HttpOnly cookie transport.
+
+forgotPasswordBody:
+  type: object
+  description: |
+    Forgot password payload.
+    Required field: `email`.
+  example:
+    email: admin@example.com
+  properties:
+    email:
+      type: string
+      format: email
+      example: admin@example.com
+  required:
+    - email
+
+resetPasswordBody:
+  type: object
+  description: |
+    Reset password payload.
+    Required fields: `token`, `password`, `confirmPassword`.
+  example:
+    token: raw-reset-token
+    password: NewPassword123
+    confirmPassword: NewPassword123
+  properties:
+    token:
+      type: string
+      example: raw-reset-token
+    password:
+      type: string
+      minLength: 8
+      example: NewPassword123
+    confirmPassword:
+      type: string
+      minLength: 8
+      example: NewPassword123
+  required:
+    - token
+    - password
+    - confirmPassword
+
+userSchema:
+  type: object
+  properties:
+    userId:
+      type: integer
+      example: 1
+    username:
+      type: string
+      example: admin
+    firstName:
+      type: string
+      nullable: true
+      example: Ada
+    lastName:
+      type: string
+      nullable: true
+      example: Admin
+    email:
+      type: string
+      format: email
+      example: admin@example.com
+    avatarPic:
+      type: string
+      nullable: true
+      example: null
+    role:
+      $ref: '#/userRole'
+    allowedLocationIds:
+      type: array
+      items:
+        type: integer
+      example: [1, 2]
+      description: For `admin`, this is the list of assigned locations. An empty array means the admin has no location access. For `super_admin`, this is empty because access is global by role.
+    createdBy:
+      type: integer
+      nullable: true
+      example: null
+    updatedBy:
+      type: integer
+      nullable: true
+      description: >-
+        User who last edited this account. Null for accounts that predate the
+        column, and for accounts never edited since it was introduced.
+      example: null
+    createdAt:
+      type: string
+      format: date-time
+      example: 2026-04-23T12:00:00.000Z
+    updatedAt:
+      type: string
+      format: date-time
+      example: 2026-04-23T12:00:00.000Z
+  required:
+    - userId
+    - username
+    - email
+    - role
+
+paginationMeta:
+  type: object
+  properties:
+    page:
+      type: integer
+      minimum: 1
+      example: 1
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 10
+      example: 10
+    totalItems:
+      type: integer
+      minimum: 0
+      example: 25
+    totalPages:
+      type: integer
+      minimum: 0
+      example: 3
+    pageItems:
+      type: integer
+      minimum: 0
+      example: 10
+  required:
+    - page
+    - limit
+    - totalItems
+    - totalPages
+    - pageItems
+
+paginatedUsersResponse:
+  allOf:
+    - $ref: '#/paginationMeta'
+    - type: object
+      properties:
+        counts:
+          type: object
+          description: Global tab counts for the current location scope before role/assignment filters are applied.
+          properties:
+            all:
+              type: integer
+              minimum: 0
+              example: 122
+            admin:
+              type: integer
+              minimum: 0
+              example: 8
+            superAdmin:
+              type: integer
+              minimum: 0
+              example: 2
+            assigned:
+              type: integer
+              minimum: 0
+              example: 7
+            unassigned:
+              type: integer
+              minimum: 0
+              example: 1
+          required:
+            - all
+            - admin
+            - superAdmin
+            - assigned
+            - unassigned
+        users:
+          type: array
+          items:
+            $ref: '#/userSchema'
+      required:
+        - counts
+        - users
+
+loanToProfileSummary:
+  type: object
+  properties:
+    profileId:
+      type: integer
+      example: 3
+    locationId:
+      type: integer
+      example: 1
+    fullName:
+      type: string
+      example: Chea Dara
+    phone:
+      type: string
+      example: 012345678
+    department:
+      type: string
+      nullable: true
+      example: IT
+    remark:
+      type: string
+      nullable: true
+      example: null
+  required:
+    - profileId
+    - locationId
+    - fullName
+    - phone
+
+profileCreateBody:
+  type: object
+  description: |
+    Create profile payload.
+    Required fields: `locationId`, `fullName`, `phone`.
+    Optional fields: `department`, `remark`.
+  required:
+    - locationId
+    - fullName
+    - phone
+  example:
+    locationId: 1
+    fullName: Chea Dara
+    phone: 012345678
+  properties:
+    locationId:
+      type: integer
+      example: 1
+    fullName:
+      type: string
+      minLength: 1
+      maxLength: 255
+      example: Chea Dara
+    phone:
+      type: string
+      pattern: '^\+?[0-9]{7,15}$'
+      example: 012345678
+    department:
+      type: string
+      nullable: true
+      example: IT
+    remark:
+      type: string
+      nullable: true
+      example: VIP user
+
+profileUpdateBody:
+  type: object
+  minProperties: 2
+  required:
+    - version
+  description: |
+    Update profile payload. `version` is required for optimistic locking; at least one other field must also be provided.
+  properties:
+    version:
+      $ref: '#/versionField'
+    locationId:
+      type: integer
+      example: 1
+    fullName:
+      type: string
+      minLength: 1
+      maxLength: 255
+      example: Chea Dara
+    phone:
+      type: string
+      pattern: '^\+?[0-9]{7,15}$'
+      example: 012345678
+    department:
+      type: string
+      nullable: true
+      example: IT
+    remark:
+      type: string
+      nullable: true
+      example: Updated note
+
+profileSchema:
+  type: object
+  properties:
+    profileId:
+      type: integer
+      example: 1
+    locationId:
+      type: integer
+      example: 1
+    fullName:
+      type: string
+      example: Chea Dara
+    phone:
+      type: string
+      example: 012345678
+    department:
+      type: string
+      nullable: true
+      example: IT
+    remark:
+      type: string
+      nullable: true
+      example: null
+    createdBy:
+      type: integer
+      nullable: true
+      example: 1
+    updatedBy:
+      type: integer
+      nullable: true
+      example: 1
+    createdAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-05-04T10:00:00.000Z
+    updatedAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-05-04T10:00:00.000Z
+  required:
+    - profileId
+    - locationId
+    - fullName
+    - phone
+
+paginatedProfilesResponse:
+  allOf:
+    - $ref: '#/paginationMeta'
+    - type: object
+      properties:
+        profiles:
+          type: array
+          items:
+            $ref: '#/profileSchema'
+      required:
+        - profiles
+
+assetTypeSchema:
+  type: object
+  properties:
+    assetTypeId:
+      type: integer
+      example: 1
+    name:
+      type: string
+      example: Laptop
+    typeKey:
+      type: string
+      example: laptop
+      readOnly: true
+      description: Snake_case key auto-generated from name. Immutable after creation. Used for cross-location semantic matching.
+    icon:
+      type: string
+      nullable: true
+      maxLength: 100
+      example: lucide:laptop
+      description: Optional icon identifier resolved by the client. Null when no icon is stored.
+    locationId:
+      type: integer
+      nullable: true
+      example: 1
+    gridFieldIds:
+      type: array
+      maxItems: 5
+      uniqueItems: true
+      description: Ordered field identifiers used to build `gridSpecs` on the selected asset-type page.
+      items:
+        type: integer
+        minimum: 1
+      example: [7, 4]
+    createdBy:
+      type: integer
+      nullable: true
+      example: 1
+    updatedBy:
+      type: integer
+      nullable: true
+      example: 1
+    createdAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-04-24T10:00:00.000Z
+    updatedAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-04-24T10:00:00.000Z
+  required:
+    - assetTypeId
+    - name
+    - typeKey
+    - gridFieldIds
+
+assetTypeFieldSchema:
+  type: object
+  properties:
+    assetTypeFieldId:
+      type: integer
+      example: 7
+    assetTypeId:
+      type: integer
+      example: 1
+    locationId:
+      type: integer
+      nullable: true
+      example: 1
+    fieldKey:
+      type: string
+      example: ram_gb
+      readOnly: true
+      description: Internal key auto-generated from fieldLabel.
+    fieldLabel:
+      type: string
+      example: RAM (GB)
+    fieldType:
+      $ref: '#/assetFieldType'
+    isRequired:
+      type: boolean
+      example: true
+    options:
+      type: array
+      nullable: true
+      items:
+        type: string
+      example: null
+    sortOrder:
+      type: integer
+      example: 0
+    createdBy:
+      type: integer
+      nullable: true
+      example: 1
+    updatedBy:
+      type: integer
+      nullable: true
+      example: 1
+    createdAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-04-24T10:00:00.000Z
+    updatedAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-04-24T10:00:00.000Z
+  required:
+    - assetTypeFieldId
+    - assetTypeId
+    - fieldKey
+    - fieldLabel
+    - fieldType
+    - isRequired
+    - sortOrder
+
+productSchema:
+  type: object
+  properties:
+    productId:
+      type: integer
+      example: 5
+    assetTypeId:
+      type: integer
+      example: 1
+    locationId:
+      type: integer
+      nullable: true
+      example: 1
+    productName:
+      type: string
+      example: Dell OptiPlex 7010
+    manufacturer:
+      type: string
+      nullable: true
+      example: Dell
+    cost:
+      type: number
+      nullable: true
+      example: 899.99
+    createdBy:
+      type: integer
+      nullable: true
+      example: 1
+    updatedBy:
+      type: integer
+      nullable: true
+      example: 1
+    createdAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-04-24T10:00:00.000Z
+    updatedAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-04-24T10:00:00.000Z
+  required:
+    - productId
+    - assetTypeId
+    - productName
+
+assetSchema:
+  type: object
+  properties:
+    assetId:
+      type: integer
+      example: 3
+    assetName:
+      type: string
+      example: Laptop-INV-0001
+    productId:
+      type: integer
+      nullable: true
+      example: 5
+    assetTypeId:
+      type: integer
+      example: 1
+    locationId:
+      type: integer
+      nullable: true
+      example: 1
+    description:
+      type: string
+      nullable: true
+      example: Office primary laptop
+    remark:
+      type: string
+      nullable: true
+      example: Assigned to finance team
+    macAddress:
+      type: string
+      nullable: true
+      example: 00:1A:2B:3C:4D:5E
+    serialNumber:
+      type: string
+      nullable: true
+      example: SN-ABC-123
+    assetTag:
+      type: string
+      nullable: true
+      example: ITA-7PK2-M9QX
+    status:
+      $ref: '#/assetStatus'
+    loanable:
+      type: boolean
+      example: true
+    warrantyExpiryDate:
+      type: string
+      format: date
+      nullable: true
+      example: 2027-04-24
+    loanToProfileId:
+      type: integer
+      nullable: true
+      example: 12
+    loanToProfile:
+      allOf:
+        - $ref: '#/loanToProfileSummary'
+      nullable: true
+      description: Borrower profile details resolved from `loanToProfileId`.
+    fileId:
+      type: integer
+      nullable: true
+      example: null
+    displayImage:
+      type: string
+      format: uri
+      nullable: true
+      description: Public URL of the optional asset display image.
+      example: https://example.supabase.co/storage/v1/object/public/asset-display-images/1/front.png
+    images:
+      $ref: '#/imageBundleField'
+    createdBy:
+      type: integer
+      nullable: true
+      example: 1
+    updatedBy:
+      type: integer
+      nullable: true
+      example: 1
+    createdAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-04-24T10:00:00.000Z
+    updatedAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-04-24T10:00:00.000Z
+  required:
+    - assetId
+    - assetName
+    - assetTypeId
+    - status
+
+assetGridSpecSchema:
+  type: object
+  properties:
+    fieldId:
+      type: integer
+      example: 7
+    fieldKey:
+      type: string
+      example: cpu
+    label:
+      type: string
+      example: CPU
+    value:
+      nullable: true
+      oneOf:
+        - type: string
+        - type: number
+        - type: boolean
+      example: M3 Pro
+    displayValue:
+      type: string
+      nullable: true
+      example: M3 Pro
+  required:
+    - fieldId
+    - fieldKey
+    - label
+    - value
+    - displayValue
+
+assetGridCardSchema:
+  allOf:
+    - $ref: '#/assetSchema'
+    - type: object
+      properties:
+        productName:
+          type: string
+          nullable: true
+          example: MacBook Pro 14-inch
+        gridSpecs:
+          type: array
+          maxItems: 5
+          items:
+            $ref: '#/assetGridSpecSchema'
+      required:
+        - productName
+        - gridSpecs
+
+paginatedAssetsResponse:
+  allOf:
+    - $ref: '#/paginationMeta'
+    - type: object
+      properties:
+        assets:
+          type: array
+          items:
+            $ref: '#/assetSchema'
+      required:
+        - assets
+
+assetSpecValueSchema:
+  type: object
+  properties:
+    assetSpecValueId:
+      type: integer
+      example: 20
+    assetId:
+      type: integer
+      example: 3
+    fieldId:
+      type: integer
+      example: 7
+    valueText:
+      type: string
+      nullable: true
+      example: 16GB
+    valueNumber:
+      type: number
+      nullable: true
+      example: null
+    valueDate:
+      type: string
+      format: date
+      nullable: true
+      example: null
+    valueBoolean:
+      type: boolean
+      nullable: true
+      example: null
+    createdBy:
+      type: integer
+      nullable: true
+      example: 1
+    updatedBy:
+      type: integer
+      nullable: true
+      example: 1
+    createdAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-04-24T10:00:00.000Z
+    updatedAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-04-24T10:00:00.000Z
+  required:
+    - assetSpecValueId
+    - assetId
+    - fieldId
+
+assetTypeFieldsListResponse:
+  type: object
+  properties:
+    assetType:
+      $ref: '#/assetTypeSchema'
+    fields:
+      type: array
+      items:
+        $ref: '#/assetTypeFieldSchema'
+  required:
+    - assetType
+    - fields
+
+productsByAssetTypeResponse:
+  type: object
+  properties:
+    assetType:
+      $ref: '#/assetTypeSchema'
+    products:
+      type: array
+      items:
+        $ref: '#/productSchema'
+  required:
+    - assetType
+    - products
+
+paginatedAssetTypesResponse:
+  allOf:
+    - $ref: '#/paginationMeta'
+    - type: object
+      properties:
+        assetTypes:
+          type: array
+          items:
+            $ref: '#/assetTypeSchema'
+      required:
+        - assetTypes
+
+assetTypeAssetsOverviewResponse:
+  type: object
+  properties:
+    assetType:
+      $ref: '#/assetTypeSchema'
+    totalItems:
+      type: integer
+      minimum: 0
+      example: 8
+    filteredItems:
+      type: integer
+      minimum: 0
+      example: 8
+    statusFilter:
+      type: string
+      nullable: true
+      example: null
+    productFilter:
+      type: array
+      nullable: true
+      items:
+        type: integer
+      description: >-
+        Product ids the result set was filtered by, echoed back from the
+        `productId` query param. Null when no product filter was applied.
+      example: null
+    page:
+      type: integer
+      minimum: 1
+      example: 1
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 10
+      example: 10
+    totalPages:
+      type: integer
+      minimum: 0
+      example: 2
+    pageItems:
+      type: integer
+      minimum: 0
+      example: 10
+    statusCounts:
+      type: object
+      properties:
+        In Storage:
+          type: integer
+          minimum: 0
+          example: 4
+        Loaned:
+          type: integer
+          minimum: 0
+          example: 1
+        In Repair:
+          type: integer
+          minimum: 0
+          example: 1
+        Damaged:
+          type: integer
+          minimum: 0
+          example: 1
+        Lost:
+          type: integer
+          minimum: 0
+          example: 0
+        Disposed:
+          type: integer
+          minimum: 0
+          example: 1
+      required:
+        - In Storage
+        - Loaned
+        - In Repair
+        - Damaged
+        - Lost
+        - Disposed
+    assets:
+      type: array
+      items:
+        $ref: '#/assetGridCardSchema'
+  required:
+    - assetType
+    - totalItems
+    - filteredItems
+    - statusFilter
+    - page
+    - limit
+    - totalPages
+    - pageItems
+    - statusCounts
+    - assets
+
+assetTypeAssetsOverviewListResponse:
+  type: array
+  items:
+    $ref: '#/assetTypeAssetsOverviewResponse'
+
+assetTypeSummaryOverviewResponse:
+  type: object
+  properties:
+    assetType:
+      $ref: '#/assetTypeSchema'
+    totalItems:
+      type: integer
+      minimum: 0
+      example: 8
+    filteredItems:
+      type: integer
+      minimum: 0
+      example: 8
+    statusFilter:
+      type: string
+      nullable: true
+      example: null
+    statusCounts:
+      type: object
+      properties:
+        In Storage:
+          type: integer
+          minimum: 0
+          example: 4
+        Loaned:
+          type: integer
+          minimum: 0
+          example: 1
+        In Repair:
+          type: integer
+          minimum: 0
+          example: 1
+        Damaged:
+          type: integer
+          minimum: 0
+          example: 1
+        Lost:
+          type: integer
+          minimum: 0
+          example: 0
+        Disposed:
+          type: integer
+          minimum: 0
+          example: 1
+      required:
+        - In Storage
+        - Loaned
+        - In Repair
+        - Damaged
+        - Lost
+        - Disposed
+  required:
+    - assetType
+    - totalItems
+    - filteredItems
+    - statusFilter
+    - statusCounts
+
+assetTypeSummaryOverviewListResponse:
+  type: array
+  items:
+    $ref: '#/assetTypeSummaryOverviewResponse'
+
+paginatedAssetTypeSummaryOverviewResponse:
+  allOf:
+    - $ref: '#/paginationMeta'
+    - type: object
+      properties:
+        assetTypeOverviews:
+          type: array
+          items:
+            $ref: '#/assetTypeSummaryOverviewResponse'
+      required:
+        - assetTypeOverviews
+
+assetSpecValuesListResponse:
+  type: object
+  properties:
+    asset:
+      $ref: '#/assetSchema'
+    specs:
+      type: array
+      items:
+        $ref: '#/assetSpecValueSchema'
+  required:
+    - asset
+    - specs
+
+assetDashboardOverviewResponse:
+  type: object
+  properties:
+    scope:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [admin, super_admin]
+          example: super_admin
+        locationId:
+          type: integer
+          nullable: true
+          example: 3
+        locationIds:
+          type: array
+          nullable: true
+          items:
+            type: integer
+          example: [1, 2, 3]
+        isCrossLocation:
+          type: boolean
+          example: true
+      required:
+        - role
+        - locationId
+        - locationIds
+        - isCrossLocation
+    summary:
+      type: object
+      properties:
+        totalAssets:
+          type: integer
+          minimum: 0
+          example: 4
+        totalAssetTypes:
+          type: integer
+          minimum: 0
+          example: 3
+        inLoaned:
+          type: integer
+          minimum: 0
+          example: 2
+        expiringWarranty:
+          type: integer
+          minimum: 0
+          example: 1
+        inRepair:
+          type: integer
+          minimum: 0
+          example: 0
+        inUsePercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 50
+        unassignedAssets:
+          type: integer
+          minimum: 0
+          example: 2
+        unassignedRate:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 50
+        expiringWindowDays:
+          type: integer
+          minimum: 1
+          maximum: 365
+          example: 30
+        avgAssetAgeYears:
+          type: number
+          format: float
+          minimum: 0
+          example: 2.4
+        dueForRefresh:
+          type: integer
+          minimum: 0
+          example: 3
+      required:
+        - totalAssets
+        - totalAssetTypes
+        - inLoaned
+        - expiringWarranty
+        - inRepair
+        - inUsePercent
+        - unassignedAssets
+        - unassignedRate
+        - expiringWindowDays
+        - avgAssetAgeYears
+        - dueForRefresh
+    kpis:
+      type: object
+      properties:
+        overallUtilisation:
+          type: object
+          properties:
+            value:
+              type: integer
+              minimum: 0
+              maximum: 100
+              example: 76
+            assignedAssets:
+              type: integer
+              minimum: 0
+              example: 184
+            totalAssets:
+              type: integer
+              minimum: 0
+              example: 2418
+          required:
+            - value
+            - assignedAssets
+            - totalAssets
+        avgAssetAge:
+          type: object
+          properties:
+            years:
+              type: number
+              format: float
+              minimum: 0
+              example: 2.4
+            totalAssetsWithAge:
+              type: integer
+              minimum: 0
+              example: 2418
+          required:
+            - years
+            - totalAssetsWithAge
+        dueForRefresh:
+          type: object
+          properties:
+            value:
+              type: integer
+              minimum: 0
+              example: 290
+            windowDays:
+              type: integer
+              minimum: 1
+              maximum: 730
+              example: 180
+            expiringWarrantyAssets:
+              type: integer
+              minimum: 0
+              example: 184
+            estimatedBaseline:
+              type: integer
+              minimum: 0
+              example: 290
+          required:
+            - value
+            - windowDays
+            - expiringWarrantyAssets
+            - estimatedBaseline
+        unassignedRate:
+          type: object
+          properties:
+            value:
+              type: integer
+              minimum: 0
+              maximum: 100
+              example: 18
+            unassignedAssets:
+              type: integer
+              minimum: 0
+              example: 427
+            totalAssets:
+              type: integer
+              minimum: 0
+              example: 2418
+          required:
+            - value
+            - unassignedAssets
+            - totalAssets
+      required:
+        - overallUtilisation
+        - avgAssetAge
+        - dueForRefresh
+        - unassignedRate
+    utilisationByLocation:
+      type: object
+      properties:
+        totalLocations:
+          type: integer
+          minimum: 0
+          example: 4
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              locationId:
+                type: integer
+                nullable: true
+                example: 1
+              locationName:
+                type: string
+                example: HQ
+              totalAssets:
+                type: integer
+                minimum: 0
+                example: 11
+              assignedAssets:
+                type: integer
+                minimum: 0
+                example: 3
+              utilisationPercent:
+                type: integer
+                minimum: 0
+                maximum: 100
+                example: 27
+            required:
+              - locationId
+              - locationName
+              - totalAssets
+              - assignedAssets
+              - utilisationPercent
+      required:
+        - totalLocations
+        - items
+    assetAgeDistribution:
+      type: object
+      properties:
+        averageAgeYears:
+          type: number
+          format: float
+          minimum: 0
+          example: 2.4
+        totalAssetsWithAge:
+          type: integer
+          minimum: 0
+          example: 2418
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+                example: 1-3 yrs
+              count:
+                type: integer
+                minimum: 0
+                example: 895
+              percent:
+                type: integer
+                minimum: 0
+                maximum: 100
+                example: 37
+            required:
+              - label
+              - count
+              - percent
+      required:
+        - averageAgeYears
+        - totalAssetsWithAge
+        - items
+    assignmentTrend:
+      type: object
+      properties:
+        windowMonths:
+          type: integer
+          minimum: 1
+          maximum: 24
+          example: 6
+        totalAssigned:
+          type: integer
+          minimum: 0
+          example: 28
+        totalReturned:
+          type: integer
+          minimum: 0
+          example: 21
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+                example: 2026-05
+              label:
+                type: string
+                example: May
+              assigned:
+                type: integer
+                minimum: 0
+                example: 4
+              returned:
+                type: integer
+                minimum: 0
+                example: 3
+            required:
+              - month
+              - label
+              - assigned
+              - returned
+      required:
+        - windowMonths
+        - totalAssigned
+        - totalReturned
+        - items
+    assetCategoryBreakdown:
+      type: object
+      properties:
+        totalAssets:
+          type: integer
+          minimum: 0
+          example: 4
+        items:
+          type: array
+          description: |
+            Category rows sorted by count descending.
+            When the request is cross-location, items are grouped by `typeKey`.
+            When filtered to one location, items are grouped by `assetTypeId`.
+          items:
+            type: object
+            properties:
+              assetTypeId:
+                type: integer
+                nullable: true
+                example: 1
+              typeKey:
+                type: string
+                nullable: true
+                example: laptop
+              assetTypeName:
+                type: string
+                example: Laptop
+              count:
+                type: integer
+                minimum: 0
+                example: 2
+              percent:
+                type: integer
+                minimum: 0
+                maximum: 100
+                example: 50
+            required:
+              - assetTypeName
+              - count
+              - percent
+      required:
+        - totalAssets
+        - items
+    assetTypeUtilisation:
+      type: object
+      properties:
+        totalAssetTypes:
+          type: integer
+          minimum: 0
+          example: 5
+        items:
+          type: array
+          description: |
+            Asset type rows sorted by utilisation descending.
+            When the request is cross-location, items are grouped by `typeKey`.
+            When filtered to one location, items are grouped by `assetTypeId`.
+          items:
+            type: object
+            properties:
+              assetTypeId:
+                type: integer
+                nullable: true
+                example: 1
+              typeKey:
+                type: string
+                nullable: true
+                example: laptop
+              assetTypeName:
+                type: string
+                example: Laptop
+              totalAssets:
+                type: integer
+                minimum: 0
+                example: 58
+              assignedAssets:
+                type: integer
+                minimum: 0
+                example: 55
+              utilisationPercent:
+                type: integer
+                minimum: 0
+                maximum: 100
+                example: 95
+            required:
+              - assetTypeName
+              - totalAssets
+              - assignedAssets
+              - utilisationPercent
+      required:
+        - totalAssetTypes
+        - items
+    assetDistribution:
+      type: object
+      properties:
+        totalAssets:
+          type: integer
+          minimum: 0
+          example: 4
+        items:
+          type: array
+          description: |
+            Distribution items sorted by count descending.
+            When `super_admin` requests without `locationId` (global view), items are grouped by `typeKey`
+            so the same category across multiple locations is merged into one row — `assetTypeId` is omitted
+            and `typeKey` is present.
+            When filtered to a single location, each item maps to one `assetTypeId` and `typeKey` is omitted.
+          items:
+            type: object
+            properties:
+              assetTypeId:
+                type: integer
+                nullable: true
+                example: 1
+                description: Present only in single-location view. Omitted in cross-location (super_admin global) view.
+              typeKey:
+                type: string
+                nullable: true
+                example: laptop
+                description: Present only in cross-location (super_admin global) view. Omitted in single-location view.
+              assetTypeName:
+                type: string
+                example: Laptop
+              count:
+                type: integer
+                minimum: 0
+                example: 2
+              percent:
+                type: integer
+                minimum: 0
+                maximum: 100
+                example: 50
+            required:
+              - assetTypeName
+              - count
+              - percent
+      required:
+        - totalAssets
+        - items
+    expiringSoon:
+      type: object
+      properties:
+        totalItems:
+          type: integer
+          minimum: 0
+          example: 1
+        windowDays:
+          type: integer
+          minimum: 1
+          maximum: 365
+          example: 30
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              assetId:
+                type: integer
+                example: 4
+              assetName:
+                type: string
+                example: Laptop-INV-0002
+              assetTypeId:
+                type: integer
+                example: 1
+              assetTypeName:
+                type: string
+                example: Laptop
+              warrantyExpiryDate:
+                type: string
+                format: date
+                example: 2026-05-10
+              daysRemaining:
+                type: integer
+                minimum: 0
+                example: 12
+              status:
+                $ref: '#/assetStatus'
+            required:
+              - assetId
+              - assetName
+              - assetTypeId
+              - assetTypeName
+              - warrantyExpiryDate
+              - daysRemaining
+              - status
+      required:
+        - totalItems
+        - windowDays
+        - items
+    recentActivities:
+      type: object
+      properties:
+        totalItems:
+          type: integer
+          minimum: 0
+          example: 3
+        items:
+          type: array
+          items:
+            type: object
+            description: Mixed recent activity feed derived from recent row changes within the actor's scope.
+            properties:
+              type:
+                type: string
+                example: asset
+              id:
+                type: integer
+                example: 2
+              label:
+                type: string
+                example: Laptop-INV-0001
+              action:
+                type: string
+                example: updated
+              status:
+                type: string
+                example: Loaned
+              location:
+                type: object
+                nullable: true
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  name:
+                    type: string
+                    example: Battambang Branch
+              actor:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    nullable: true
+                    example: 9
+                  name:
+                    type: string
+                    example: Ada Admin
+              at:
+                type: string
+                format: date-time
+                example: 2026-04-28T05:12:00.000Z
+              relativeTime:
+                type: string
+                example: 1h ago
+            required:
+              - type
+              - id
+              - label
+              - action
+              - status
+              - actor
+              - at
+              - relativeTime
+      required:
+        - totalItems
+        - items
+    upcoming:
+      type: object
+      properties:
+        totalItems:
+          type: integer
+          minimum: 0
+          example: 2
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+                example: 2026-04-27
+              title:
+                type: string
+                example: "Loan follow-up: Laptop-INV-0001"
+              type:
+                type: string
+                example: Loan
+              assetId:
+                type: integer
+                example: 2
+              assetName:
+                type: string
+                example: Laptop-INV-0001
+            required:
+              - date
+              - title
+              - type
+              - assetId
+              - assetName
+      required:
+        - totalItems
+        - items
+  required:
+    - scope
+    - summary
+    - kpis
+    - utilisationByLocation
+    - assetAgeDistribution
+    - assignmentTrend
+    - assetCategoryBreakdown
+    - assetTypeUtilisation
+    - assetDistribution
+    - expiringSoon
+    - recentActivities
+    - upcoming
+
+loginResponse:
+  type: object
+  properties:
+    user:
+      $ref: '#/userSchema'
+    token:
+      type: string
+      example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  required:
+    - user
+    - token
+
+messageResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: Password reset successfully
+  required:
+    - message
+
+validationErrorField:
+  type: object
+  properties:
+    field:
+      type: string
+      example: email
+    message:
+      type: string
+      example: Email must be a valid address
+  required:
+    - field
+    - message
+
+errorResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: false
+    status:
+      type: string
+      example: fail
+    message:
+      type: string
+      example: Request failed
+    errors:
+      type: array
+      nullable: true
+      items:
+        $ref: '#/validationErrorField'
+  required:
+    - success
+    - status
+    - message
+
+validationErrorResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: false
+    status:
+      type: string
+      example: fail
+    message:
+      type: string
+      example: Validation failed
+    errors:
+      type: array
+      nullable: true
+      items:
+        $ref: '#/validationErrorField'
+      example:
+        - field: email
+          message: Email must be a valid address
+  required:
+    - success
+    - status
+    - message
+
+unauthorizedErrorResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: false
+    status:
+      type: string
+      example: fail
+    message:
+      type: string
+      example: Authentication required or invalid token
+  required:
+    - success
+    - status
+    - message
+
+forbiddenErrorResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: false
+    status:
+      type: string
+      example: fail
+    message:
+      type: string
+      example: You do not have permission to perform this action
+  required:
+    - success
+    - status
+    - message
+
+notFoundErrorResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: false
+    status:
+      type: string
+      example: fail
+    message:
+      type: string
+      example: Resource not found
+  required:
+    - success
+    - status
+    - message
+
+conflictErrorResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: false
+    status:
+      type: string
+      example: fail
+    message:
+      type: string
+      example: Version mismatch — resource was modified by another user since you last read it
+  required:
+    - success
+    - status
+    - message
+
+serverErrorResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: false
+    status:
+      type: string
+      example: error
+    message:
+      type: string
+      example: Internal server error
+  required:
+    - success
+    - status
+    - message
+
+rateLimitErrorResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: false
+    message:
+      type: string
+      example: Too many requests, please try again later
+  required:
+    - success
+    - message
+
+userRole:
+  type: string
+  enum:
+    - admin
+    - super_admin
+
+assetFieldType:
+  type: string
+  enum:
+    - text
+    - number
+    - date
+    - boolean
+    - select
+
+assetStatus:
+  type: string
+  description: |
+    Full enum of asset lifecycle states (used in responses and filters).
+    For request bodies the admin can set, see `assetStatusAdminSettable` —
+    `Loaned` is excluded there because it is owned by the loan endpoint.
+  enum:
+    - In Storage
+    - Loaned
+    - In Repair
+    - Damaged
+    - Lost
+    - Disposed
+
+assetStatusAdminSettable:
+  type: string
+  description: |
+    Subset of `assetStatus` that an admin may send on `PATCH /api/assets/:id`.
+    `Loaned` is intentionally excluded — it is set only by `POST /api/loans`.
+    Sending `Loaned` here returns 400.
+  enum:
+    - In Storage
+    - In Repair
+    - Damaged
+    - Lost
+    - Disposed

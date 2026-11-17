@@ -1,0 +1,584 @@
+softwareLicenseIdParam:
+  in: path
+  name: softwareLicenseId
+  required: true
+  schema:
+    type: integer
+    minimum: 1
+  description: Software license identifier.
+
+licenseLinkAssetIdParam:
+  in: path
+  name: licenseLinkAssetId
+  required: true
+  schema:
+    type: integer
+    minimum: 1
+  description: Software license assignment identifier.
+
+activeOnlyQueryParam:
+  in: query
+  name: activeOnly
+  required: false
+  schema:
+    type: boolean
+    default: false
+  description: When true, only active assignments are returned.
+
+softwareLicenseStatusQueryParam:
+  in: query
+  name: status
+  required: false
+  schema:
+    type: string
+    enum: [Active, Expired, Unused]
+  description: Optional status filter based on the computed software license status.
+
+softwareLicenseSchema:
+  type: object
+  properties:
+    softwareLicenseId:
+      type: integer
+      example: 12
+    softwareName:
+      type: string
+      example: Microsoft Office
+    softwareVersion:
+      type: string
+      nullable: true
+      example: 2024
+    licenseKey:
+      type: string
+      nullable: true
+      example: XXXXX-XXXXX-XXXXX-XXXXX
+    purchaseDate:
+      type: string
+      format: date
+      nullable: true
+      example: 2026-05-01
+    expiryDate:
+      type: string
+      format: date
+      nullable: true
+      example: 2027-05-01
+    expiresIn:
+      type: string
+      example: 25 days
+    locationId:
+      type: integer
+      example: 2
+    status:
+      type: string
+      enum: [Active, Expired, Unused]
+      example: Active
+    description:
+      type: string
+      nullable: true
+      example: Annual productivity suite license
+    fileId:
+      type: integer
+      nullable: true
+      example: 8
+    images:
+      $ref: ./assetCommon.yaml#/imageBundleField
+    allocationType:
+      type: string
+      enum: [single, multi]
+      example: multi
+    allocationLimit:
+      type: integer
+      nullable: true
+      maximum: 255
+      example: 25
+    available:
+      type: integer
+      example: 22
+      description: Remaining number of assignments available for this license.
+    createdBy:
+      type: integer
+      nullable: true
+      example: 1
+    updatedBy:
+      type: integer
+      nullable: true
+      example: 1
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+softwareLicenseCreateBody:
+  type: object
+  required:
+    - softwareName
+    - locationId
+  properties:
+    softwareName:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Required. Software license display name.
+    softwareVersion:
+      type: string
+      nullable: true
+      description: Optional. Software version label.
+    licenseKey:
+      type: string
+      nullable: true
+      description: Optional. Product or license key.
+    purchaseDate:
+      type: string
+      format: date
+      nullable: true
+      description: Optional. Purchase date in YYYY-MM-DD format.
+    expiryDate:
+      type: string
+      format: date
+      nullable: true
+      description: Optional. Expiry date in YYYY-MM-DD format. Use null for lifetime.
+    locationId:
+      type: integer
+      description: Required. Location that owns this license.
+    description:
+      type: string
+      nullable: true
+      description: Optional. Free-text note about the license.
+    fileId:
+      type: integer
+      nullable: true
+      description: Optional. Linked file id from the same location.
+    replaceImages:
+      $ref: ./assetCommon.yaml#/replaceImagesField
+    allocationType:
+      type: string
+      enum: [single, multi]
+      description: Optional. Defaults to single.
+    allocationLimit:
+      type: integer
+      nullable: true
+      maximum: 255
+      description: Optional. For single, if provided, it must be 1. For multi this must be between 1 and 255.
+  example:
+    softwareName: Microsoft Office
+    locationId: 2
+
+softwareLicenseUpdateBody:
+  type: object
+  minProperties: 2
+  required:
+    - version
+  description: |
+    Update software license payload. `version` is required for optimistic locking; at least one other field must also be provided.
+  properties:
+    version:
+      $ref: ./assetCommon.yaml#/versionField
+    softwareName:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Editable. Software license display name.
+    softwareVersion:
+      type: string
+      nullable: true
+      description: Editable. Software version label.
+    licenseKey:
+      type: string
+      nullable: true
+      description: Editable. Product or license key.
+    purchaseDate:
+      type: string
+      format: date
+      nullable: true
+      description: Editable. Purchase date in YYYY-MM-DD format.
+    expiryDate:
+      type: string
+      format: date
+      nullable: true
+      description: Editable. Expiry date in YYYY-MM-DD format. Use null for lifetime.
+    description:
+      type: string
+      nullable: true
+      description: Editable. Free-text note about the license.
+    fileId:
+      type: integer
+      nullable: true
+      description: Editable. Linked file id from the same location.
+    replaceImages:
+      $ref: ./assetCommon.yaml#/replaceImagesField
+    allocationType:
+      type: string
+      enum: [single, multi]
+      description: Editable. Defaults to the existing value if omitted.
+    allocationLimit:
+      type: integer
+      nullable: true
+      maximum: 255
+      description: Editable. For single, if provided, it must be 1. For multi this must be between 1 and 255.
+  example:
+    softwareName: Microsoft Office
+    softwareVersion: "2024"
+    licenseKey: XXXXX-XXXXX-XXXXX-XXXXX
+    purchaseDate: 2024-01-15
+    expiryDate: 2026-12-31
+    description: Company-wide license
+    fileId: 123
+    allocationType: multi
+    allocationLimit: 50
+
+softwareLicenseAssignmentBody:
+  type: object
+  required:
+    - assetId
+  properties:
+    assetId:
+      type: integer
+      minimum: 1
+  example:
+    assetId: 101
+
+licenseAssignmentSchema:
+  type: object
+  properties:
+    licenseLinkAssetId:
+      type: integer
+      example: 15
+    assetId:
+      type: integer
+      example: 101
+    softwareLicenseId:
+      type: integer
+      example: 12
+    assignedAt:
+      type: string
+      format: date-time
+    unassignedAt:
+      type: string
+      format: date-time
+      nullable: true
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+      nullable: true
+    createdBy:
+      type: integer
+      nullable: true
+    updatedBy:
+      type: integer
+      nullable: true
+    asset:
+      allOf:
+        - $ref: ./assetCommon.yaml#/assetSchema
+      nullable: true
+
+paginatedSoftwareLicensesResponse:
+  allOf:
+    - $ref: ./assetCommon.yaml#/paginationMeta
+    - type: object
+      properties:
+        statusCounts:
+          type: object
+          description: >-
+            Row counts per software license status, for status tab badges.
+            Reflects the caller's location scope but deliberately ignores the
+            `status` filter itself, so the totals stay whole while one tab is
+            selected and `all` can exceed `totalItems`.
+
+            Counted on the **effective** status — the same computed value returned
+            in each row's `status` field, derived from `expiryDate` and the active
+            assignment count rather than the stored column. This is what `?status=`
+            filters on, so a tab always returns the number shown here.
+          properties:
+            all: { type: integer, example: 3 }
+            Active: { type: integer, example: 1 }
+            Expired: { type: integer, example: 1 }
+            Unused: { type: integer, example: 1 }
+        softwareLicenses:
+          type: array
+          items:
+            $ref: '#/softwareLicenseSchema'
+      required:
+        - softwareLicenses
+
+paginatedSoftwareLicenseAssignmentsResponse:
+  allOf:
+    - $ref: ./assetCommon.yaml#/paginationMeta
+    - type: object
+      properties:
+        softwareLicense:
+          $ref: '#/softwareLicenseSchema'
+        assignments:
+          type: array
+          items:
+            $ref: '#/licenseAssignmentSchema'
+      required:
+        - softwareLicense
+        - assignments
+
+softwareLicensesPath:
+  get:
+    tags: [Software Licenses]
+    summary: List software licenses
+    description: Requires authentication. Optional query `locationId` filters to one accessible location. Optional query `status` filters by computed software license status.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/locationIdQueryParam
+      - $ref: '#/softwareLicenseStatusQueryParam'
+      - $ref: ./assetCommon.yaml#/pageQueryParam
+      - $ref: ./assetCommon.yaml#/limitQueryParam
+    responses:
+      '200':
+        description: Software licenses fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/paginatedSoftwareLicensesResponse'
+      '400':
+        description: Invalid query params
+      '401':
+        description: Authentication required or invalid token
+  post:
+    tags: [Software Licenses]
+    summary: Create software license
+    description: |
+      Requires authentication.
+      Required body fields: `softwareName`, `locationId`.
+      Other body fields are optional.
+      `status` is computed from assignment and expiry data and cannot be set manually.
+      For `allocationType=single`, if `allocationLimit` is provided it must be `1`.
+      For `allocationType=multi`, provide `allocationLimit` between `1` and `255`.
+      Upload `albumImages` to store a private album bundle directly on the software license.
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/softwareLicenseCreateBody'
+          examples:
+            minimumRequired:
+              summary: Minimum required body
+              value:
+                softwareName: Microsoft Office
+                locationId: 2
+            fullExample:
+              summary: Full example with optional fields
+              value:
+                softwareName: Microsoft Office
+                locationId: 2
+                softwareVersion: 2024
+                licenseKey: XXXXX-XXXXX-XXXXX-XXXXX
+                purchaseDate: 2026-05-01
+                expiryDate: 2027-05-01
+                description: Annual productivity suite license
+                fileId: 8
+                allocationType: multi
+                allocationLimit: 25
+        multipart/form-data:
+          schema:
+            allOf:
+              - $ref: '#/softwareLicenseCreateBody'
+              - type: object
+                properties:
+                  albumImages:
+                    type: array
+                    items:
+                      type: string
+                      format: binary
+    responses:
+      '201':
+        description: Software license created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/softwareLicenseSchema'
+      '400':
+        description: Validation failed
+
+softwareLicenseByIdPath:
+  get:
+    tags: [Software Licenses]
+    summary: Get software license by id
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/softwareLicenseIdParam'
+    responses:
+      '200':
+        description: Software license fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/softwareLicenseSchema'
+      '404':
+        description: Software license not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+  patch:
+    tags: [Software Licenses]
+    summary: Update software license
+    description: |
+      Requires authentication.
+      Editable body fields: `softwareName`, `softwareVersion`, `licenseKey`, `purchaseDate`, `expiryDate`, `description`, `fileId`, `allocationType`, `allocationLimit`.
+      `status` is computed from assignment and expiry data and cannot be updated manually. Upload `albumImages` to append private album files, or set `replaceImages=true` to replace the bundle.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/softwareLicenseIdParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/softwareLicenseUpdateBody'
+          examples:
+            editableFieldsExample:
+              summary: Full editable update example
+              value:
+                softwareName: Microsoft Office
+                softwareVersion: "2024"
+                licenseKey: XXXXX-XXXXX-XXXXX-XXXXX
+                purchaseDate: 2024-01-15
+                expiryDate: 2026-12-31
+                description: Company-wide license
+                fileId: 123
+                allocationType: multi
+                allocationLimit: 50
+        multipart/form-data:
+          schema:
+            allOf:
+              - $ref: '#/softwareLicenseUpdateBody'
+              - type: object
+                properties:
+                  albumImages:
+                    type: array
+                    items:
+                      type: string
+                      format: binary
+    responses:
+      '200':
+        description: Software license updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/softwareLicenseSchema'
+      '400':
+        description: Validation failed
+      '409':
+        $ref: ./assetCommon.yaml#/conflictResponse
+  delete:
+    tags: [Software Licenses]
+    summary: Delete software license
+    description: |
+      Requires authentication.
+      Active software licenses cannot be deleted.
+      Unassign all active assignments first, then delete when the effective status is `Unused` or `Expired`.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/softwareLicenseIdParam'
+    responses:
+      '200':
+        description: Software license deleted successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/softwareLicenseSchema'
+      '400':
+        description: Active software license must be unassigned before deletion
+      '404':
+        description: Software license not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+
+softwareLicenseAssignmentsPath:
+  get:
+    tags: [Software Licenses]
+    summary: List software license assignments
+    description: Requires authentication. Returns assignment history for one software license. Use `activeOnly=true` to return only active assignments.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/softwareLicenseIdParam'
+      - $ref: '#/activeOnlyQueryParam'
+      - $ref: ./assetCommon.yaml#/pageQueryParam
+      - $ref: ./assetCommon.yaml#/limitQueryParam
+    responses:
+      '200':
+        description: Software license assignments fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/paginatedSoftwareLicenseAssignmentsResponse'
+      '400':
+        description: Invalid softwareLicenseId or query params
+      '401':
+        description: Authentication required or invalid token
+      '404':
+        description: Software license not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+  post:
+    tags: [Software Licenses]
+    summary: Assign software license to asset
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/softwareLicenseIdParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/softwareLicenseAssignmentBody'
+    responses:
+      '201':
+        description: Software license assigned successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/licenseAssignmentSchema'
+      '400':
+        description: Assignment rejected
+      '409':
+        description: Duplicate active assignment
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/conflictErrorResponse
+
+softwareLicenseUnassignPath:
+  patch:
+    tags: [Software Licenses]
+    summary: Unassign software license from asset
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/licenseLinkAssetIdParam'
+    responses:
+      '200':
+        description: Software license unassigned successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/licenseAssignmentSchema'
+      '400':
+        description: Assignment is already inactive
+      '404':
+        description: Software license assignment not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse

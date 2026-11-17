@@ -1,0 +1,88 @@
+productByIdPath:
+  get:
+    tags: [Products]
+    summary: Get product by id
+    description: Requires authentication.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/productIdParam
+    responses:
+      '200':
+        description: Product fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/productSchema
+      '400':
+        description: Invalid productId
+      '401':
+        description: Authentication required or invalid token
+      '404':
+        description: Product not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+  patch:
+    tags: [Products]
+    summary: Update product
+    description: Requires authentication. Admin or super_admin role required. Product location cannot be changed after creation.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/productIdParam
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./assetCommon.yaml#/productUpdateBody
+    responses:
+      '200':
+        description: Product updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/productSchema
+      '400':
+        description: Validation failed
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: Product not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+      '409':
+        $ref: ./assetCommon.yaml#/conflictResponse
+  delete:
+    tags: [Products]
+    summary: Delete product
+    description: Requires authentication. Admin or super_admin role required.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/productIdParam
+    responses:
+      '200':
+        description: Product deleted successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/productSchema
+      '400':
+        description: Invalid productId
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: Product not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse

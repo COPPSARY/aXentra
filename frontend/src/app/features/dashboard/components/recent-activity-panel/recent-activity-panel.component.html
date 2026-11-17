@@ -1,0 +1,67 @@
+<article class="panel" aria-labelledby="recent-activity-title">
+  <header class="panel-header">
+    <div>
+      <h2 id="recent-activity-title">{{ title }}</h2>
+      @if (subtitle) {
+        <p>{{ subtitle }}</p>
+      }
+    </div>
+    @if (items.length > 0) {
+      <span class="activity-count">{{ items.length }} latest</span>
+    }
+  </header>
+
+  @if (items.length === 0) {
+    <div class="activity-empty">
+      <span class="empty-icon" aria-hidden="true">
+        <svg lucideHistory></svg>
+      </span>
+      <div>
+        <strong>No recent activity</strong>
+        <p>New changes in this scope will appear here.</p>
+      </div>
+    </div>
+  } @else {
+    <ol class="activity-list" aria-label="Recent dashboard activity">
+      @for (item of items; track item.type + ':' + item.id + ':' + item.at) {
+        <li class="activity-item">
+          <span class="activity-marker" aria-hidden="true"></span>
+
+          <div class="activity-content">
+            <div class="activity-topline">
+              <strong>{{ item.label }}</strong>
+              <time
+                [attr.datetime]="item.at"
+                [attr.title]="absoluteTime(item)"
+              >
+                {{ timeLabel(item) }}
+              </time>
+            </div>
+
+            <p class="activity-description">
+              <span>{{ actorName(item) }}</span>
+              {{ actionLabel(item) }} {{ typeLabel(item) }}
+            </p>
+
+            <div class="activity-meta">
+              @if (locationName(item)) {
+                <span class="activity-location">
+                  <svg lucideMapPin aria-hidden="true"></svg>
+                  {{ locationName(item) }}
+                </span>
+              }
+              @if (item.status) {
+                <span
+                  class="activity-status"
+                  [attr.data-tone]="statusTone(item.status)"
+                >
+                  {{ item.status }}
+                </span>
+              }
+            </div>
+          </div>
+        </li>
+      }
+    </ol>
+  }
+</article>

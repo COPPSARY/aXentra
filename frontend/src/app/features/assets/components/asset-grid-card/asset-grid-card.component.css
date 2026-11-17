@@ -1,0 +1,391 @@
+:host {
+  display: block;
+  height: 100%;
+  min-width: 0;
+}
+
+.asset-card {
+  position: relative;
+  display: grid;
+  height: 100%;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  border: 1px solid var(--gray-150);
+  border-radius: var(--radius-control);
+  background: #fff;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color var(--app-motion-fast) var(--app-motion-ease);
+}
+
+.asset-card:hover,
+.asset-card:focus-within,
+.asset-card-menu-open {
+  border-color: #9fb3d1;
+}
+
+.asset-card-primary-link {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.asset-card-primary-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.asset-card-media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-bottom: 1px solid var(--gray-150);
+  background: var(--gray-100);
+}
+
+.asset-card-image-link {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.asset-card-image-link img {
+  display: block;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.asset-card-image-fallback {
+  display: grid;
+  height: 100%;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-semibold);
+}
+
+.asset-card-image-fallback svg {
+  height: 36px;
+  width: 36px;
+}
+
+.asset-card-status {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  min-height: 28px;
+  max-width: calc(100% - 72px);
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--gray-150);
+  border-radius: var(--radius-pill);
+  background: var(--gray-50);
+  padding: 0 9px;
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-caption-line);
+  white-space: nowrap;
+}
+
+.asset-card-status > span {
+  height: 7px;
+  width: 7px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+}
+
+.asset-card-action {
+  position: absolute;
+  z-index: 3;
+  top: 4px;
+  right: 4px;
+  display: inline-flex;
+  height: 44px;
+  width: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.asset-card-action::before {
+  position: absolute;
+  inset: 6px;
+  border: 1px solid var(--gray-150);
+  border-radius: var(--radius-control);
+  background: rgb(255 255 255 / 92%);
+  content: "";
+  transition:
+    border-color var(--app-motion-fast) var(--app-motion-ease),
+    background-color var(--app-motion-fast) var(--app-motion-ease);
+}
+
+.asset-card-action:hover,
+.asset-card-action:focus-visible {
+  outline: none;
+}
+
+.asset-card-action:hover::before {
+  border-color: #b8c8df;
+  background: var(--gray-50);
+}
+
+.asset-card-menu-open .asset-card-action::before {
+  border-color: #9fb3d1;
+  background: var(--gray-100);
+}
+
+.asset-card-action:focus-visible::before {
+  border-color: var(--accent);
+  outline-offset: 1px;
+}
+
+.asset-card-action svg {
+  position: relative;
+  z-index: 1;
+  height: 16px;
+  width: 16px;
+}
+
+.asset-card-body {
+  padding: 16px;
+}
+
+.asset-card-name {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: 46px;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: var(--weight-semibold);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.asset-card-product {
+  display: grid;
+  gap: 3px;
+  margin-top: 12px;
+}
+
+.asset-card-product > span {
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-caption-line);
+}
+
+.asset-card-product > strong {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: 42px;
+  color: var(--text-secondary);
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-body-line);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.asset-card-specs {
+  display: grid;
+  gap: 9px;
+  margin: 16px 0 0;
+  border-top: 1px solid var(--gray-150);
+  padding-top: 14px;
+}
+
+.asset-card-spec-row {
+  display: grid;
+  min-height: 36px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: start;
+  gap: 12px;
+}
+
+.asset-card-spec-row dt,
+.asset-card-spec-row dd {
+  min-width: 0;
+  margin: 0;
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line);
+  overflow-wrap: anywhere;
+}
+
+.asset-card-spec-row dt {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-weight: var(--weight-medium);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.asset-card-spec-row dd {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-weight: var(--weight-semibold);
+  text-align: right;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.status-storage {
+  border-color: var(--gray-150);
+  background: var(--gray-50);
+  color: var(--text-muted);
+}
+
+.status-loaned {
+  border-color: var(--brand-200);
+  background: var(--surface-selected);
+  color: var(--brand-600);
+}
+
+.status-repair,
+.status-danger {
+  border-color: var(--status-error-border);
+  background: var(--status-error-bg);
+  color: var(--status-error);
+}
+
+.status-muted {
+  border-color: var(--gray-300);
+  background: var(--gray-100);
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asset-card,
+  .asset-card-action::before {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Status, app-wide convention. The chip sits on top of photos, so it keeps
+   a solid surface for legibility; the dot carries the status colour.
+   --------------------------------------------------------------------- */
+.asset-card {
+  border-color: var(--border);
+  border-radius: var(--radius-container);
+}
+
+.asset-card-media {
+  border-bottom-color: var(--border);
+  background: var(--surface-sunken);
+}
+
+.asset-card-status {
+  --badge-dot: var(--gray-400);
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.asset-card-status > span {
+  width: 8px;
+  height: 8px;
+  background: var(--badge-dot);
+}
+
+.asset-card-status.status-storage { --badge-dot: var(--viz-available); border-color: var(--border); background: color-mix(in srgb, var(--surface) 94%, transparent); color: var(--text-secondary); }
+.asset-card-status.status-loaned { --badge-dot: var(--viz-loaned); border-color: var(--border); background: color-mix(in srgb, var(--surface) 94%, transparent); color: var(--text-secondary); }
+.asset-card-status.status-repair { --badge-dot: var(--viz-repair); border-color: var(--border); background: color-mix(in srgb, var(--surface) 94%, transparent); color: var(--text-secondary); }
+.asset-card-status.status-danger { --badge-dot: var(--viz-damaged); border-color: var(--border); background: color-mix(in srgb, var(--surface) 94%, transparent); color: var(--status-error-text); }
+.asset-card-status.status-muted { --badge-dot: var(--viz-disposed); border-color: var(--border); background: color-mix(in srgb, var(--surface) 94%, transparent); color: var(--text-muted); }
+
+/* ---------------------------------------------------------------------
+   Information order: what it is (name), which physical item (tag), what
+   model (product), who has it (when on loan), then the chosen specs.
+   No photo -> the media area collapses to a slim strip instead of a big
+   empty "No image" box.
+   --------------------------------------------------------------------- */
+.asset-card-media-empty {
+  height: 48px;
+  aspect-ratio: auto;
+  background: var(--surface-subtle);
+}
+
+.asset-card-media-empty .asset-card-image-fallback {
+  display: none;
+}
+
+.asset-card-body {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 12px 16px 16px;
+}
+
+.asset-card-name {
+  min-height: 40px;
+  font-size: var(--type-subtitle-size);
+  line-height: 20px;
+}
+
+.asset-card-tag {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.01em;
+}
+
+.asset-card-product-line {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+}
+
+.asset-card-product-none {
+  color: var(--text-disabled);
+}
+
+.asset-card-holder {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+}
+
+.asset-card-holder strong {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.asset-card-specs {
+  gap: 6px;
+  margin-top: 12px;
+  border-top-color: var(--border);
+  padding-top: 12px;
+}
+
+.asset-card-spec-row {
+  min-height: 0;
+  align-items: baseline;
+}
+
+.asset-card-spec-row dt {
+  color: var(--text-muted);
+}
+
+.asset-card-spec-row dd {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+  text-align: right;
+}

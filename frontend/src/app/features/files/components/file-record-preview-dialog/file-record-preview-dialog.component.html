@@ -1,0 +1,135 @@
+@if (open) {
+  <div class="file-preview-backdrop" (click)="close()">
+    <section
+      class="file-preview-dialog app-motion-enter"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="file-preview-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="file-preview-header">
+        <div>
+          <h2 id="file-preview-title">{{ recordLabel() }}</h2>
+          @if (!isLoading() && !loadError()) {
+            <p>
+              {{ items().length }} attachment{{
+                items().length === 1 ? "" : "s"
+              }}
+            </p>
+          }
+        </div>
+        <button type="button" aria-label="Close file preview" (click)="close()">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="m6 6 12 12M18 6 6 18"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+      </header>
+
+      @if (isLoading()) {
+        <div class="file-preview-state" role="status">
+          Loading attachments...
+        </div>
+      } @else if (loadError()) {
+        <div class="file-preview-state file-preview-error" role="alert">
+          {{ loadError() }}
+        </div>
+      } @else if (items().length === 0) {
+        <div class="file-preview-state">
+          This record has no previewable attachments.
+        </div>
+      } @else {
+        <div
+          class="file-preview-body"
+          [class.file-preview-body-single]="items().length === 1"
+        >
+          @if (items().length > 1) {
+            <aside class="file-preview-list" aria-label="Attachments">
+              @for (item of items(); track item.id) {
+                <button
+                  type="button"
+                  [class.file-preview-item-active]="selectedItem() === item"
+                  [attr.aria-pressed]="selectedItem() === item"
+                  (click)="selectItem($index)"
+                >
+                  <span class="file-preview-item-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M7 3h7l4 4v14H7V3Z"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M14 3v5h5M10 13h5M10 17h5"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  </span>
+                  <span>
+                    <strong>{{ item.fileName }}</strong>
+                    <small>{{ formatFileSize(item.fileSize) }}</small>
+                  </span>
+                </button>
+              }
+            </aside>
+          }
+
+          @if (selectedItem(); as item) {
+            <main class="file-preview-main">
+              <div class="file-preview-surface">
+                @if (isImage(item) && previewUrl(item); as imageUrl) {
+                  <img [src]="imageUrl" [alt]="item.fileName" />
+                } @else if (isPdf(item) && previewUrl(item)) {
+                  <iframe
+                    [src]="safePdfUrl(item)"
+                    [title]="item.fileName"
+                    loading="lazy"
+                  ></iframe>
+                } @else {
+                  <div class="file-preview-unavailable">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M7 3h7l4 4v14H7V3Z"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M14 3v5h5M10 13h5M10 17h5"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                    <p>Inline preview is unavailable for this attachment.</p>
+                  </div>
+                }
+              </div>
+
+              <footer class="file-preview-footer">
+                <div>
+                  <strong>{{ item.fileName }}</strong>
+                  <span>{{ formatFileSize(item.fileSize) }}</span>
+                </div>
+                <button
+                  type="button"
+                  [disabled]="!previewUrl(item)"
+                  (click)="openOriginal(item)"
+                >
+                  Open original
+                </button>
+              </footer>
+            </main>
+          }
+        </div>
+      }
+    </section>
+  </div>
+}

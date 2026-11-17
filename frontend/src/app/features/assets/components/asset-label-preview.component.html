@@ -1,0 +1,17 @@
+<div #previewViewport class="label-preview-viewport">
+  <div
+    class="label-preview-frame"
+    [style.width.mm]="labelWidthMm * previewScale()"
+    [style.height.mm]="labelHeightMm * previewScale()"
+  >
+    <div
+      #labelContainer
+      class="label-preview-host"
+      [style.transform]="'scale(' + previewScale() + ')'"
+    ></div>
+  </div>
+</div>
+
+@if (renderError) {
+  <p class="label-render-error" role="alert">{{ renderError }}</p>
+}

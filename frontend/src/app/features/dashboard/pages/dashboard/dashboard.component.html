@@ -1,0 +1,504 @@
+<div class="min-h-screen bg-(--background) text-(--text-primary)">
+  <app-sidebar />
+  <app-mobile-tabbar />
+
+  <div class="lg:pl-60">
+    <app-topbar
+      [displayName]="displayName()"
+      [role]="role()"
+      [initials]="initials()"
+      [avatarUrl]="avatarUrl()"
+      (signOut)="logout()"
+    />
+
+    <main class="dash">
+      <!-- Header: title, scope and data freshness -------------------------->
+      <header class="dash-header">
+        <div class="min-w-0">
+          <h1 class="app-page-heading__title">Dashboard</h1>
+          <p class="dash-context">
+            <span>{{ isOverall() ? 'All locations' : activeLocationName() }}</span>
+            @if (lastUpdated(); as updated) {
+              <span class="dash-context-sep" aria-hidden="true">·</span>
+              <span class="tabular">Updated {{ updated | date: 'HH:mm' }}</span>
+            }
+            <button
+              type="button"
+              class="dash-refresh"
+              [class.dash-refresh-spinning]="isRefreshing()"
+              [disabled]="isRefreshing() || isLoading()"
+              aria-label="Refresh dashboard"
+              title="Refresh"
+              (click)="refresh()"
+            >
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </p>
+        </div>
+
+        @if (isSuperAdmin()) {
+          <div
+            class="segmented"
+            [class.segmented-second]="!isOverall()"
+            role="group"
+            aria-label="Dashboard scope"
+          >
+            <span class="segmented-indicator" aria-hidden="true"></span>
+            <button
+              type="button"
+              class="segmented-option"
+              [class.segmented-option-active]="isOverall()"
+              [attr.aria-pressed]="isOverall()"
+              (click)="setScope('overall')"
+            >
+              All locations
+            </button>
+            <button
+              type="button"
+              class="segmented-option"
+              [class.segmented-option-active]="!isOverall()"
+              [attr.aria-pressed]="!isOverall()"
+              [disabled]="!hasLocation()"
+              [title]="activeLocationName()"
+              (click)="setScope('location')"
+            >
+              {{ hasLocation() ? activeLocationName() : 'No location selected' }}
+            </button>
+          </div>
+        }
+      </header>
+
+      @if (!isOverall() && !hasLocation()) {
+        <section class="dash-blocked app-surface">
+          <p class="dash-blocked-title">Choose a location</p>
+          <p>The dashboard shows loans and inventory for one location at a time.</p>
+          <a class="app-button app-button--primary mt-4" routerLink="/location">
+            Choose location
+          </a>
+        </section>
+      } @else if (loadFailed()) {
+        <section class="dash-blocked app-surface" role="alert">
+          <p class="dash-blocked-title">The dashboard could not load</p>
+          <p>Check your connection, then try again.</p>
+          <button type="button" class="app-button app-button--secondary mt-4" (click)="refresh()">
+            Try again
+          </button>
+        </section>
+      } @else {
+        <!-- 1. Action numbers: each answers "does something need me?" ------->
+        <section class="metrics app-surface" aria-label="Needs action">
+          @for (metric of metrics(); track metric.key) {
+            @if (metric.link) {
+              <a
+                class="metric metric-link"
+                [routerLink]="metric.link"
+                [queryParams]="metric.queryParams ?? null"
+              >
+                <ng-container *ngTemplateOutlet="metricBody; context: { $implicit: metric }" />
+              </a>
+            } @else {
+              <div class="metric">
+                <ng-container *ngTemplateOutlet="metricBody; context: { $implicit: metric }" />
+              </div>
+            }
+          }
+        </section>
+
+        <ng-template #metricBody let-metric>
+          <span class="metric-label">
+            <svg [lucideIcon]="metric.icon" [size]="15" aria-hidden="true"></svg>
+            {{ metric.label }}
+          </span>
+          @if (isLoading()) {
+            <span class="app-skeleton metric-skel-value"></span>
+            <span class="app-skeleton metric-skel-meta"></span>
+          } @else {
+            <span class="metric-value" [class.metric-value-alert]="metric.tone === 'danger' && metric.value > 0">
+              <app-count-up [value]="metric.value" />
+            </span>
+
+            @switch (metric.mini.kind) {
+              @case ('segments') {
+                @if (miniTotal(metric.mini) > 0) {
+                  <span class="mini-bar" aria-hidden="true">
+                    @for (seg of metric.mini.segments; track seg.key) {
+                      @if (seg.count > 0) {
+                        <span class="mini-seg" [style.flex-grow]="seg.count" [style.background]="seg.color"></span>
+                      }
+                    }
+                  </span>
+                  <span class="mini-legend">
+                    @for (seg of metric.mini.segments; track seg.key) {
+                      <span class="mini-key" [class.mini-key-zero]="seg.count === 0">
+                        <span class="mini-swatch" [style.background]="seg.color" aria-hidden="true"></span>
+                        <span class="tabular mini-key-count">{{ seg.count }}</span>
+                        {{ seg.label }}
+                      </span>
+                    }
+                  </span>
+                } @else {
+                  <span class="mini-bar mini-bar-empty" aria-hidden="true"></span>
+                  <span class="mini-legend">{{ metric.emptyText }}</span>
+                }
+              }
+              @case ('week') {
+                <span class="mini-week">
+                  @for (day of metric.mini.days; track day.key) {
+                    <span class="mini-day" [class.mini-day-today]="day.isToday" [title]="day.title">
+                      <span class="mini-day-track" aria-hidden="true">
+                        <span class="mini-day-fill" [class.mini-day-zero]="day.count === 0" [style.height.%]="day.count === 0 ? 0 : day.height"></span>
+                      </span>
+                      <span class="mini-day-label">{{ day.label }}</span>
+                      <span class="sr-only">{{ day.title }}</span>
+                    </span>
+                  }
+                </span>
+              }
+            }
+          }
+        </ng-template>
+
+        <div class="dash-grid">
+          <!-- 2. Loans to follow up ---------------------------------------->
+          <section class="panel app-surface dash-span-8" aria-labelledby="followups-title">
+            <header class="panel-head">
+              <h2 id="followups-title">Loans to follow up</h2>
+              <a class="panel-link" routerLink="/assets/loans" [queryParams]="{ status: 'Overdue' }">
+                All overdue loans
+              </a>
+            </header>
+
+            @if (isLoading()) {
+              <div class="rows-skeleton" aria-hidden="true">
+                @for (row of [1, 2, 3, 4]; track row) {
+                  <span class="app-skeleton"></span>
+                }
+              </div>
+            } @else if (loansUnavailable()) {
+              <p class="panel-empty">
+                Loans could not be loaded{{ isOverall() ? ' across all locations. Choose a location to see them.' : '.' }}
+              </p>
+            } @else if (followUps().length === 0) {
+              <p class="panel-empty panel-empty-ok">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                Nothing is overdue or due back in the next 7 days.
+              </p>
+            } @else {
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Loan</th>
+                      <th scope="col">Borrower</th>
+                      <th scope="col" class="num">Assets out</th>
+                      <th scope="col">Due</th>
+                      <th scope="col" class="num">Late by</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (loan of followUps(); track loan.loanId) {
+                      <tr class="sev-row sev-{{ dueTone(loan.daysUntilDue) }}">
+                        <td>
+                          <a class="row-link tabular" [routerLink]="['/assets/loans', loan.loanId]">
+                            {{ loan.loanNo }}
+                          </a>
+                        </td>
+                        <td class="cell-strong">
+                          <span class="app-ellipsis" [title]="loan.borrower">{{ loan.borrower }}</span>
+                        </td>
+                        <td class="num tabular">{{ loan.assetsOut }}</td>
+                        <td class="cell-muted tabular">{{ loan.dueDate | date: 'd MMM y' }}</td>
+                        <td class="num tabular sev-text sev-text-{{ dueTone(loan.daysUntilDue) }}">
+                          {{ lateLabel(loan.daysUntilDue) }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              @if (overdueCount() > followUps().length) {
+                <p class="panel-foot tabular">
+                  Showing the {{ followUps().length }} most urgent of {{ overdueCount() }} overdue loans
+                </p>
+              }
+            }
+          </section>
+
+          <!-- 3. Inventory status ------------------------------------------>
+          <section class="panel app-surface dash-span-4" aria-labelledby="status-title">
+            <header class="panel-head">
+              <h2 id="status-title">Inventory status</h2>
+              <a class="panel-link" routerLink="/assets">All assets</a>
+            </header>
+
+            <div class="status-body">
+              @if (isLoading()) {
+                <span class="app-skeleton status-skel-total"></span>
+                <span class="app-skeleton status-skel-bar"></span>
+              } @else {
+                <p class="status-total">
+                  <span class="status-total-value"><app-count-up [value]="totalAssets()" /></span>
+                  <span class="status-total-label">assets</span>
+                </p>
+
+                <div
+                  class="status-bar"
+                  role="img"
+                  [attr.aria-label]="statusAriaLabel()"
+                >
+                  @for (segment of statusSegments(); track segment.status) {
+                    @if (segment.count > 0) {
+                      <span
+                        class="status-seg status-seg-{{ segment.tone }}"
+                        [style.flex-grow]="segment.count"
+                      ></span>
+                    }
+                  }
+                </div>
+
+                <ul class="status-legend">
+                  @for (segment of statusSegments(); track segment.status) {
+                    <li>
+                      <span class="status-key status-seg-{{ segment.tone }}" aria-hidden="true"></span>
+                      <span class="status-name">{{ segment.label }}</span>
+                      <span class="status-count tabular">{{ segment.count | number }}</span>
+                      <span class="status-pct tabular">{{ segment.percent | number: '1.0-0' }}%</span>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          </section>
+
+          <!-- 4a. Loan activity trend (line, two series, one axis) ----------->
+          <section class="panel app-surface dash-span-12" aria-labelledby="trend-title">
+            <header class="panel-head">
+              <h2 id="trend-title">Loan activity</h2>
+              <div class="legend">
+                <span class="legend-item"><span class="legend-line legend-assigned" aria-hidden="true"></span>Lent out</span>
+                <span class="legend-item"><span class="legend-line legend-returned" aria-hidden="true"></span>Returned</span>
+                <span class="panel-meta">Last 6 months</span>
+              </div>
+            </header>
+
+            @if (isLoading()) {
+              <div class="chart-skeleton app-skeleton" aria-hidden="true"></div>
+            } @else if (!trend().hasData) {
+              <p class="panel-empty">No loans were made or returned in the last 6 months.</p>
+            } @else {
+              <div class="trend-summary">
+                <span><strong class="tabular">{{ trend().totalAssigned | number }}</strong> lent out</span>
+                <span><strong class="tabular">{{ trend().totalReturned | number }}</strong> returned</span>
+              </div>
+              <div class="chart">
+                <div class="chart-y" aria-hidden="true">
+                  @for (tick of trend().ticks; track $index) {
+                    <span class="tabular">{{ tick | number }}</span>
+                  }
+                </div>
+                <div class="chart-plot" (mouseleave)="hoverTrend.set(null)">
+                  <div class="chart-grid" aria-hidden="true"><span></span><span></span><span></span></div>
+
+                  <svg class="trend-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <path class="trend-line trend-line-returned" [attr.d]="trend().returnedPath" vector-effect="non-scaling-stroke" />
+                    <path class="trend-line trend-line-assigned" [attr.d]="trend().assignedPath" vector-effect="non-scaling-stroke" />
+                  </svg>
+
+                  @if (hoveredTrendPoint(); as point) {
+                    <span class="crosshair" [style.left.%]="point.x" aria-hidden="true"></span>
+                    <span class="trend-dot trend-dot-returned" [style.left.%]="point.x" [style.top.%]="point.yReturned" aria-hidden="true"></span>
+                    <span class="trend-dot trend-dot-assigned" [style.left.%]="point.x" [style.top.%]="point.yAssigned" aria-hidden="true"></span>
+                    <div class="tooltip" [style.left.%]="point.x" [class.tooltip-left]="point.x > 60" aria-hidden="true">
+                      <span class="tooltip-title">{{ point.label }}</span>
+                      <span class="tooltip-row"><span class="legend-line legend-assigned"></span><strong class="tabular">{{ point.assigned }}</strong> lent out</span>
+                      <span class="tooltip-row"><span class="legend-line legend-returned"></span><strong class="tabular">{{ point.returned }}</strong> returned</span>
+                    </div>
+                  }
+
+                  <span class="end-label" [style.top.%]="trend().endAssigned" aria-hidden="true">Lent out</span>
+                  <span class="end-label" [style.top.%]="trend().endReturned" aria-hidden="true">Returned</span>
+
+                  <div class="hit-row">
+                    @for (point of trend().points; track point.label; let i = $index) {
+                      <span
+                        class="hit"
+                        tabindex="0"
+                        [attr.aria-label]="point.label + ': ' + point.assigned + ' lent out, ' + point.returned + ' returned'"
+                        (mouseenter)="hoverTrend.set(i)"
+                        (focus)="hoverTrend.set(i)"
+                        (blur)="hoverTrend.set(null)"
+                      ></span>
+                    }
+                  </div>
+                </div>
+                <div class="chart-x" aria-hidden="true">
+                  @for (point of trend().points; track point.label) {
+                    <span [style.left.%]="point.x">{{ point.label }}</span>
+                  }
+                </div>
+              </div>
+
+              <table class="sr-only">
+                <caption>Loans lent out and returned per month</caption>
+                <thead><tr><th scope="col">Month</th><th scope="col">Lent out</th><th scope="col">Returned</th></tr></thead>
+                <tbody>
+                  @for (point of trend().points; track point.label) {
+                    <tr><th scope="row">{{ point.label }}</th><td>{{ point.assigned }}</td><td>{{ point.returned }}</td></tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </section>
+
+          <!-- 4. Breakdown by type (or by location) ------------------------->
+          <section class="panel app-surface dash-span-8" aria-labelledby="breakdown-title">
+            <header class="panel-head">
+              <h2 id="breakdown-title">{{ isOverall() ? 'By location' : 'By asset type' }}</h2>
+              @if (!isOverall()) {
+                <a class="panel-link" routerLink="/assets">All types</a>
+              }
+            </header>
+
+            @if (isLoading()) {
+              <div class="rows-skeleton" aria-hidden="true">
+                @for (row of [1, 2, 3, 4, 5]; track row) {
+                  <span class="app-skeleton"></span>
+                }
+              </div>
+            } @else if (breakdownRows().length === 0) {
+              <p class="panel-empty">
+                @if (isOverall()) {
+                  No location figures are available yet.
+                } @else {
+                  No asset types at this location yet.
+                  <a class="panel-inline-link" routerLink="/custom">Create an asset type</a>
+                }
+              </p>
+            } @else {
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">{{ isOverall() ? 'Location' : 'Type' }}</th>
+                      <th scope="col" class="num">Total</th>
+                      <th scope="col" class="num">Available</th>
+                      <th scope="col" class="num">On loan</th>
+                      @if (!isOverall()) {
+                        <th scope="col" class="num">Out of service</th>
+                      }
+                      <th scope="col" class="col-share">Share on loan</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of visibleBreakdownRows(); track row.id) {
+                      <tr class="row-clickable" tabindex="0" (click)="openBreakdownRow(row)" (keydown.enter)="openBreakdownRow(row)">
+                        <td class="cell-strong">
+                          <span class="name-cell">
+                            <svg class="type-icon" [lucideIcon]="row.icon" [size]="16" aria-hidden="true"></svg>
+                            <span class="app-ellipsis" [title]="row.name">{{ row.name }}</span>
+                          </span>
+                        </td>
+                        <td class="num tabular">{{ row.total | number }}</td>
+                        <td class="num tabular">{{ row.available | number }}</td>
+                        <td class="num tabular">{{ row.onLoan | number }}</td>
+                        @if (!isOverall()) {
+                          <td class="num tabular" [class.cell-warning]="row.problems > 0">
+                            {{ row.problems > 0 ? (row.problems | number) : '—' }}
+                          </td>
+                        }
+                        <td class="col-share">
+                          <span class="share">
+                            <span class="share-track" aria-hidden="true">
+                              <span class="share-fill" [style.width.%]="row.onLoanPercent"></span>
+                            </span>
+                            <span class="share-value tabular">{{ row.onLoanPercent | number: '1.0-0' }}%</span>
+                          </span>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                  @if (breakdownRows().length > 1) {
+                    <tfoot>
+                      <tr>
+                        <th scope="row">Total</th>
+                        <td class="num tabular">{{ breakdownTotals().total | number }}</td>
+                        <td class="num tabular">{{ breakdownTotals().available | number }}</td>
+                        <td class="num tabular">{{ breakdownTotals().onLoan | number }}</td>
+                        @if (!isOverall()) {
+                          <td class="num tabular">{{ breakdownTotals().problems | number }}</td>
+                        }
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  }
+                </table>
+              </div>
+              @if (breakdownRows().length > visibleBreakdownRows().length) {
+                <p class="panel-foot tabular">
+                  {{ breakdownRows().length - visibleBreakdownRows().length }} smaller
+                  {{ isOverall() ? 'locations' : 'types' }} not shown; the total includes them.
+                </p>
+              }
+            }
+          </section>
+
+          <!-- 5. Warranties ending ------------------------------------------->
+          <section class="panel app-surface dash-span-4" aria-labelledby="warranty-title">
+            <header class="panel-head">
+              <h2 id="warranty-title">Warranties ending</h2>
+              <span class="panel-meta tabular">Next 90 days</span>
+            </header>
+
+            @if (isLoading()) {
+              <div class="rows-skeleton" aria-hidden="true">
+                @for (row of [1, 2, 3]; track row) {
+                  <span class="app-skeleton"></span>
+                }
+              </div>
+            } @else if (warranties().length === 0) {
+              <p class="panel-empty panel-empty-ok">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                No warranties end in the next 90 days.
+              </p>
+            } @else {
+              <ul class="list">
+                @for (item of warranties(); track item.key) {
+                  <li>
+                    <a class="list-row" [routerLink]="item.link">
+                      <span class="list-copy">
+                        <span class="list-title app-ellipsis" [title]="item.assetName">{{ item.assetName }}</span>
+                        <span class="list-meta app-ellipsis tabular">
+                          {{ item.assetTypeName }} · {{ item.date | date: 'd MMM y' }}
+                        </span>
+                      </span>
+                      <span class="list-days tabular sev-text sev-text-{{ warrantyTone(item.daysRemaining) }}">
+                        {{ warrantyLabel(item.daysRemaining) }}
+                      </span>
+                    </a>
+                  </li>
+                }
+              </ul>
+              @if (warrantyCount() > warranties().length) {
+                <p class="panel-foot tabular">
+                  {{ warrantyCount() - warranties().length }} more end within 90 days
+                </p>
+              }
+            }
+          </section>
+        </div>
+      }
+    </main>
+  </div>
+</div>

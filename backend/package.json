@@ -1,0 +1,45 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "IT Asset Inventory Backend - Node + Express + Supabase",
+  "main": "src/app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "t": "npm run test",
+    "tu": "npm run test:unit",
+    "ti": "npm run test:integration",
+    "tauth": "npm run test:auth",
+    "twatch": "vitest",
+    "test": "vitest run",
+    "test:unit": "vitest run test/unit",
+    "test:integration": "vitest run test/integration",
+    "test:routes": "vitest run test/integration/routes",
+    "test:auth": "vitest run test/integration/routes/auth.routes.test.js"
+  },
+  "dependencies": {
+    "@apidevtools/swagger-parser": "^12.1.0",
+    "@supabase/supabase-js": "^2.104.0",
+    "argon2": "^0.44.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^2.1.1",
+    "node-cron": "^4.5.0",
+    "nodemailer": "^6.9.15",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^10.1.0",
+    "nodemon": "^3.1.7",
+    "supertest": "^7.1.4",
+    "vitest": "^4.0.16"
+  }
+}

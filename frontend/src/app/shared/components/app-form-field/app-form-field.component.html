@@ -1,0 +1,26 @@
+<div class="app-form-field">
+  @if (label) {
+    <label class="app-form-field__label" [attr.for]="fieldId || null">
+      {{ label }}
+      @if (required) {
+        <b class="app-form-field__required" aria-hidden="true">*</b>
+      }
+    </label>
+  }
+
+  <!--
+    Control wrapper carries the shared appHelpText directive so the help text is
+    rendered adjacent to the field with the single standardized style (Req 5.3,
+    8.5). The projected control keeps ownership of its value, so entered values
+    are retained across validation (Req 5.4).
+  -->
+  <div class="app-form-field__control" [appHelpText]="helpText">
+    <ng-content></ng-content>
+  </div>
+
+  @if (hasError) {
+    <p class="app-form-field__error" [id]="errorId" aria-live="polite">
+      {{ error }}
+    </p>
+  }
+</div>

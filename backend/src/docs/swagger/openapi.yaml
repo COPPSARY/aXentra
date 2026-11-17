@@ -1,0 +1,144 @@
+openapi: 3.0.3
+info:
+  title: IT Asset Inventory Backend API
+  version: 1.0.0
+  description: Backend API documentation for auth, user, and asset features.
+servers:
+  - url: http://localhost:5000
+    description: Local development
+tags:
+  - name: System
+    description: System and health endpoints.
+  - name: Dashboard
+    description: Dashboard overview endpoints exposed by src/routes/dashboard.js.
+  - name: Authentication
+    description: Authentication endpoints exposed by src/routes/auth.js under /api/auth.
+  - name: Users
+    description: User management endpoints exposed by src/routes/users.js under /api/users.
+  - name: Locations
+    description: Location management endpoints exposed by src/routes/locations.js under /api/locations.
+  - name: Profiles
+    description: Profile management endpoints exposed by src/routes/profiles.js under /api/profiles.
+  - name: Assets
+    description: Asset record endpoints exposed by src/routes/assets.js under /api/assets.
+  - name: Asset Types
+    description: Asset type endpoints exposed by src/routes/assetTypes.js under /api/assets/types.
+  - name: Asset Type Fields
+    description: Asset type field endpoints exposed by src/routes/assetTypeFields.js.
+  - name: Asset Type Products
+    description: Products nested under asset types, exposed by src/routes/assetTypeProducts.js.
+  - name: Products
+    description: Product detail endpoints exposed by src/routes/products.js under /api/assets/products.
+  - name: Asset Spec Values
+    description: Asset specification value endpoints exposed by src/routes/assetSpecValues.js.
+  - name: Files
+    description: File upload and file-to-asset/software assignment endpoints exposed by src/routes/files.js.
+  - name: Software Licenses
+    description: Software license inventory and assignment endpoints exposed by src/routes/softwareLicenses.js.
+  - name: Asset Loans
+    description: Asset loan transactions exposed by src/routes/assetLoans.js under /api/loans.
+  - name: Search
+    description: Location-scoped fuzzy search exposed by src/routes/search.js under /api/search.
+  - name: Activity Log
+    description: Append-only audit trail exposed by src/routes/activityLog.js under /api/activity.
+paths:
+  /health:
+    $ref: ./paths/health.yaml#/healthPath
+  /api/realtime/stream:
+    $ref: ./paths/realtime.yaml#/realtimeStreamPath
+  /api/auth/login:
+    $ref: ./paths/auth.yaml#/loginPath
+  /api/auth/forgot-password:
+    $ref: ./paths/auth.yaml#/forgotPasswordPath
+  /api/auth/reset-password:
+    $ref: ./paths/auth.yaml#/resetPasswordPath
+  /api/auth/refresh:
+    $ref: ./paths/auth.yaml#/refreshSessionPath
+  /api/auth/logout:
+    $ref: ./paths/auth.yaml#/logoutPath
+  /api/users/me:
+    $ref: ./paths/users.yaml#/userMePath
+  /api/users:
+    $ref: ./paths/users.yaml#/usersPath
+  /api/users/{userId}:
+    $ref: ./paths/users.yaml#/userByIdPath
+  /api/users/me/avatar:
+    $ref: ./paths/users.yaml#/userAvatarPath
+  /api/locations:
+    $ref: ./paths/locations.yaml#/locationsPath
+  /api/locations/{locationId}:
+    $ref: ./paths/locations.yaml#/locationByIdPath
+  /api/profiles:
+    $ref: ./paths/profiles.yaml#/profilesPath
+  /api/profiles/{profileId}:
+    $ref: ./paths/profiles.yaml#/profileByIdPath
+  /api/dashboard:
+    $ref: ./paths/assetRecords.yaml#/assetsDashboardPath
+  /api/files:
+    $ref: ./paths/files.yaml#/fileListPath
+  /api/files/{fileId}:
+    $ref: ./paths/files.yaml#/fileIdPath
+  /api/files/{fileId}/assignments:
+    $ref: ./paths/files.yaml#/fileAssignmentsPath
+  /api/files/upload:
+    $ref: ./paths/files.yaml#/fileUploadPath
+  /api/assets/{assetId}/licenses:
+    $ref: ./paths/assetRecords.yaml#/assetLicensesPath
+  /api/licenses:
+    $ref: ./paths/softwareLicenses.yaml#/softwareLicensesPath
+  /api/licenses/{softwareLicenseId}:
+    $ref: ./paths/softwareLicenses.yaml#/softwareLicenseByIdPath
+  /api/licenses/{softwareLicenseId}/assignments:
+    $ref: ./paths/softwareLicenses.yaml#/softwareLicenseAssignmentsPath
+  /api/licenses/assignments/{licenseLinkAssetId}/unassign:
+    $ref: ./paths/softwareLicenses.yaml#/softwareLicenseUnassignPath
+  /api/loans:
+    $ref: ./paths/assetLoans.yaml#/assetLoansPath
+  /api/loans/public/{token}:
+    $ref: ./paths/assetLoans.yaml#/assetLoanPublicByTokenPath
+  /api/loans/{assetLoanId}:
+    $ref: ./paths/assetLoans.yaml#/assetLoanByIdPath
+  /api/loans/{assetLoanId}/share:
+    $ref: ./paths/assetLoans.yaml#/assetLoanSharePath
+  /api/loans/{assetLoanId}/return:
+    $ref: ./paths/assetLoans.yaml#/assetLoanReturnPath
+  /api/loans/{assetLoanId}/cancel:
+    $ref: ./paths/assetLoans.yaml#/assetLoanCancelPath
+  /api/loans/{assetLoanId}/items/{loanItemId}:
+    $ref: ./paths/assetLoans.yaml#/assetLoanItemStatusPath
+  /api/assets:
+    $ref: ./paths/assetRecords.yaml#/assetsPath
+  /api/assets/asset-tag/{assetTag}:
+    $ref: ./paths/assetRecords.yaml#/assetByAssetTagPath
+  /api/assets/{assetId}:
+    $ref: ./paths/assetRecords.yaml#/assetByIdPath
+  /api/assets/types:
+    $ref: ./paths/assetTypes.yaml#/assetTypesPath
+  /api/assets/types/overview:
+    $ref: ./paths/assetTypes.yaml#/assetTypesOverviewPath
+  /api/assets/types/{assetTypeId}:
+    $ref: ./paths/assetTypes.yaml#/assetTypeByIdPath
+  /api/assets/types/{assetTypeId}/assets:
+    $ref: ./paths/assetTypes.yaml#/assetTypeAssetsPath
+  /api/assets/types/{assetTypeId}/fields:
+    $ref: ./paths/assetTypeFields.yaml#/assetTypeFieldsPath
+  /api/assets/types/{assetTypeId}/fields/{fieldId}:
+    $ref: ./paths/assetTypeFields.yaml#/assetTypeFieldByIdPath
+  /api/assets/types/{assetTypeId}/products:
+    $ref: ./paths/assetTypeProducts.yaml#/assetTypeProductsPath
+  /api/assets/products/{productId}:
+    $ref: ./paths/products.yaml#/productByIdPath
+  /api/assets/{assetId}/specs:
+    $ref: ./paths/assetSpecValues.yaml#/assetSpecsPath
+  /api/assets/spec-values/{assetSpecValueId}:
+    $ref: ./paths/assetSpecValues.yaml#/assetSpecValueByIdPath
+  /api/search:
+    $ref: ./paths/search.yaml#/searchPath
+  /api/activity:
+    $ref: ./paths/activityLog.yaml#/activityPath
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,84 @@
+<div class="more-page min-h-screen text-(--gray-900)">
+  <app-sidebar />
+  <app-mobile-tabbar />
+
+  <div class="lg:pl-60">
+    <app-topbar
+      [displayName]="displayName()"
+      [role]="role()"
+      [initials]="initials()"
+      [avatarUrl]="avatarUrl()"
+      (signOut)="logout()"
+    />
+
+    <main class="more-page-main">
+      <div class="more-sections app-motion-enter">
+        @for (section of sections(); track section.title) {
+          <section class="more-section" [attr.aria-labelledby]="'more-' + section.title.toLowerCase()">
+            <h2 [id]="'more-' + section.title.toLowerCase()">{{ section.title }}</h2>
+
+            <div class="more-list">
+              @for (item of section.items; track item.route) {
+                <a class="more-item" [routerLink]="item.route">
+                  <span class="more-item-icon" aria-hidden="true">
+                    @switch (item.icon) {
+                      @case ('custom') {
+                        <svg viewBox="0 0 24 24" fill="none">
+                          <path d="M5 6.5h14M5 12h14M5 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                      }
+                      @case ('loans') {
+                        <svg viewBox="0 0 24 24" fill="none">
+                          <path d="M7 7h10M7 17h10M9 4 5 7l4 3M15 14l4 3-4 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                      }
+                      @case ('licenses') {
+                        <svg viewBox="0 0 24 24" fill="none">
+                          <path d="M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                          <path d="M9 9h6M9 12h4M14 15.5h4M16 13.5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                      }
+                      @case ('location') {
+                        <svg viewBox="0 0 24 24" fill="none">
+                          <path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                          <circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="2" />
+                        </svg>
+                      }
+                      @case ('users') {
+                        <svg viewBox="0 0 24 24" fill="none">
+                          <path d="M16 20v-1.6a3.4 3.4 0 0 0-3.4-3.4H7.4A3.4 3.4 0 0 0 4 18.4V20M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM20 20v-1.5a3 3 0 0 0-2.2-2.9M16 4.2a3.5 3.5 0 0 1 0 6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                      }
+                      @case ('profiles') {
+                        <svg viewBox="0 0 24 24" fill="none">
+                          <path d="M8 8a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm8 2a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM2.5 21v-1.4A4.6 4.6 0 0 1 7.1 15h1.8a4.6 4.6 0 0 1 4.6 4.6V21M14 21v-1a3 3 0 0 1 3-3h1a3 3 0 0 1 3 3v1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                      }
+                      @case ('settings') {
+                        <svg viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2" />
+                          <path d="M4.5 21a7.5 7.5 0 0 1 15 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                      }
+                    }
+                  </span>
+
+                  <span class="more-item-copy">
+                    <strong>{{ item.label }}</strong>
+                    <span>{{ item.description }}</span>
+                  </span>
+
+                  <span class="more-item-arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </span>
+                </a>
+              }
+            </div>
+          </section>
+        }
+      </div>
+    </main>
+  </div>
+</div>

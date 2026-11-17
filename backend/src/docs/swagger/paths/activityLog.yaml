@@ -1,0 +1,242 @@
+activityPath:
+  get:
+    tags: [Activity Log]
+    summary: List recent activity from the append-only audit log
+    description: >-
+      Requires authentication. Reads `public.activity_log`, the append-only audit
+      table written by every mutating service method. Entries are never updated or
+      derived from `created_at` / `updated_by`, so deletions, repeated edits and
+      distinct business actions (returned, cancelled, assigned, shared, …) each
+      appear as their own row. Ordered newest first by `occurredAt`, with
+      `activityLogId` as tiebreaker.
+
+      `entityLabel`, `locationName` and `actorName` are snapshots taken at write
+      time, so an entry still renders after the referenced row or user is deleted.
+
+      Location scoping applies: super_admin sees every entry, an admin sees only
+      entries whose `locationId` is one of their assigned locations. Entries with a
+      null `locationId` — `user` and `auth` events, which are not location-bound —
+      are therefore visible to super_admin only.
+
+      Auth events (`entityType: auth`) are included here but excluded from the
+      dashboard's `recentActivities` block.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: query
+        name: page
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 20
+        description: >-
+          Page size. This endpoint sets its own ceiling of 50 rather than using the
+          shared MAX_LIMIT of 10, because activity feeds are read in longer runs.
+      - in: query
+        name: locationId
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+        description: >-
+          Optional. Scopes to one location (403 if the actor cannot access it).
+          When omitted, covers every location the actor can access.
+      - in: query
+        name: entityType
+        required: false
+        schema:
+          type: string
+          enum:
+            - asset
+            - asset_loan
+            - asset_type
+            - asset_type_field
+            - asset_spec_value
+            - product
+            - profile
+            - location
+            - user
+            - file
+            - software_license
+            - auth
+      - in: query
+        name: entityId
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+        description: Filter to one entity. Combine with entityType for a per-record history.
+      - in: query
+        name: action
+        required: false
+        schema:
+          type: string
+          enum:
+            - created
+            - updated
+            - deleted
+            - assigned
+            - unassigned
+            - returned
+            - cancelled
+            - shared
+            - uploaded
+            - marked_overdue
+            - login
+            - logout
+            - password_reset_requested
+            - password_reset
+            - session_refreshed
+      - in: query
+        name: actorUserId
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+        description: Filter to changes made by one user.
+      - in: query
+        name: since
+        required: false
+        schema:
+          type: string
+          format: date-time
+        description: Only entries at or after this ISO-8601 timestamp.
+    responses:
+      "200":
+        description: Paginated activity entries, newest first.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page:
+                  type: integer
+                  example: 1
+                limit:
+                  type: integer
+                  example: 20
+                totalItems:
+                  type: integer
+                  example: 137
+                totalPages:
+                  type: integer
+                  example: 7
+                pageItems:
+                  type: integer
+                  example: 20
+                activities:
+                  type: array
+                  items:
+                    $ref: "#/activityLogEntry"
+              example:
+                page: 1
+                limit: 20
+                totalItems: 2
+                totalPages: 1
+                pageItems: 2
+                activities:
+                  - activityLogId: 4821
+                    occurredAt: "2026-07-30T05:12:44.918Z"
+                    entityType: asset_loan
+                    entityId: 91
+                    entityLabel: "Loan #91"
+                    action: returned
+                    status: Returned
+                    locationId: 3
+                    locationName: Head Office
+                    actorUserId: 7
+                    actorName: Somchai Prasert
+                    metadata:
+                      returnDate: "2026-07-30"
+                      returnedItemCount: 2
+                  - activityLogId: 4820
+                    occurredAt: "2026-07-30T04:58:02.104Z"
+                    entityType: asset
+                    entityId: 512
+                    entityLabel: Dell Latitude 5440
+                    action: deleted
+                    status: In Storage
+                    locationId: 3
+                    locationName: Head Office
+                    actorUserId: 7
+                    actorName: Somchai Prasert
+                    metadata:
+                      assetTag: ITAIMS-73-20260521-LAGGV2
+      "400":
+        description: Validation failed (bad page / limit / entityType / action / since).
+      "401":
+        description: Authentication required.
+      "403":
+        description: Actor lacks read permission on activityLog, or cannot access the requested location.
+
+activityLogEntry:
+  type: object
+  description: >-
+    One immutable audit entry. There is no updatedAt, updatedBy or version field:
+    rows are inserted once and never modified.
+  properties:
+    activityLogId:
+      type: integer
+      example: 4821
+    occurredAt:
+      type: string
+      format: date-time
+      example: "2026-07-30T05:12:44.918Z"
+    entityType:
+      type: string
+      example: asset_loan
+    entityId:
+      type: integer
+      nullable: true
+      description: Null when the originating entity had no single id, e.g. the overdue-loan sweep.
+      example: 91
+    entityLabel:
+      type: string
+      description: Snapshot of the entity's display name at the time of the change.
+      example: "Loan #91"
+    action:
+      type: string
+      example: returned
+    status:
+      type: string
+      nullable: true
+      description: Resulting status of the entity after the change, where one applies.
+      example: Returned
+    locationId:
+      type: integer
+      nullable: true
+      description: Null for entities that are not location-bound (user, auth).
+      example: 3
+    locationName:
+      type: string
+      nullable: true
+      description: Snapshot of the location name; survives location deletion.
+      example: Head Office
+    actorUserId:
+      type: integer
+      nullable: true
+      description: Null for background jobs and after the user row is deleted.
+      example: 7
+    actorName:
+      type: string
+      description: Snapshot of the actor's display name. "System" for background jobs.
+      example: Somchai Prasert
+    metadata:
+      type: object
+      additionalProperties: true
+      description: >-
+        Action-specific detail. Secrets are never stored here: password and
+        license-key values are excluded, share tokens are excluded, and
+        `changedFields` carries column names only.
+      example:
+        returnDate: "2026-07-30"
+        returnedItemCount: 2

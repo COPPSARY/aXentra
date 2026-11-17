@@ -1,0 +1,240 @@
+userMePath:
+  get:
+    tags: [Users]
+    summary: Get my profile
+    description: Requires authentication.
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Profile fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/userSchema
+      '401':
+        description: Authentication required or invalid token
+      '404':
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+
+userAvatarPath:
+  post:
+    tags: [Users]
+    summary: Upload my avatar
+    description: |
+      Requires authentication.
+      Required body field: `avatar` (multipart file).
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              avatar:
+                type: string
+                format: binary
+                description: Avatar image file. Allowed jpeg/png/webp.
+            required:
+              - avatar
+    responses:
+      '200':
+        description: Avatar uploaded and profile updated
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/userSchema
+      '400':
+        description: Invalid upload payload or file too large
+      '401':
+        description: Authentication required or invalid token
+      '404':
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+      '500':
+        description: Upload/storage error
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/serverErrorResponse
+
+usersPath:
+  get:
+    tags: [Users]
+    summary: List users
+    description: |
+      Requires authentication. Super admin only.
+      Optional query `locationId` filters users assigned to that location.
+      Optional query `role=admin|super_admin` filters by role.
+      Optional query `assignment=assigned|unassigned` filters admin users by whether they have any assigned locations.
+      The response `counts` object always reports the global tab totals for the current location scope before role/assignment filters are applied.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/locationIdQueryParam
+      - $ref: ./assetCommon.yaml#/pageQueryParam
+      - $ref: ./assetCommon.yaml#/limitQueryParam
+      - in: query
+        name: role
+        required: false
+        schema:
+          type: string
+          enum: [admin, super_admin]
+        description: Optional role filter.
+      - in: query
+        name: assignment
+        required: false
+        schema:
+          type: string
+          enum: [assigned, unassigned]
+        description: Optional admin assignment filter. Applies only to admin users.
+    responses:
+      '200':
+        description: Users fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/paginatedUsersResponse
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+  post:
+    tags: [Users]
+    summary: Create user
+    description: |
+      Requires authentication. Super_admin role required.
+      Required body fields: `username`, `password`.
+      For `role=admin` (default), `locationIds` may be omitted or empty to create an unassigned admin.
+      For `role=super_admin`, `locationIds` must be empty.
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./assetCommon.yaml#/userCreateBody
+    responses:
+      '201':
+        description: User created successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/userSchema
+      '400':
+        description: Validation failed
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '409':
+        description: Username/email already exists
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/conflictErrorResponse
+
+userByIdPath:
+  get:
+    tags: [Users]
+    summary: Get user by id
+    description: Requires authentication. Super admin or owner.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/userIdParam
+    responses:
+      '200':
+        description: User fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/userSchema
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+  patch:
+    tags: [Users]
+    summary: Update user
+    description: |
+      Requires authentication. Super admin or owner.
+      For `admin` owners, only `email`, `avatarPic`, `firstName`, and `lastName` can be updated.
+      `admin` owners cannot change `username`, `password`, `role`, or `locationIds`.
+      Super admins may set `locationIds: []` to keep an admin unassigned.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/userIdParam
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./assetCommon.yaml#/userUpdateBody
+    responses:
+      '200':
+        description: User updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/userSchema
+      '400':
+        description: Validation failed
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+      '409':
+        description: Username/email already exists, or version mismatch (resource was modified by another user)
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/conflictErrorResponse
+  delete:
+    tags: [Users]
+    summary: Delete user
+    description: Requires authentication. Super admin only.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/userIdParam
+    responses:
+      '200':
+        description: User deleted successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/userSchema
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse

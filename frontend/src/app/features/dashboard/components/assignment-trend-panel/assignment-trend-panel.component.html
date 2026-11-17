@@ -1,0 +1,110 @@
+<article class="panel">
+  <header class="panel-header">
+    <h2>{{ title }}</h2>
+    @if (subtitle) {
+      <p>{{ subtitle }}</p>
+    }
+  </header>
+
+  <div class="line-chart-wrap interactive-chart" (mouseleave)="setHoveredTrendIndex(null)">
+    <svg viewBox="0 0 640 260" aria-hidden="true" class="line-chart-svg">
+      @for (tick of series.yTicks; track tick) {
+        <line
+          x1="34"
+          x2="628"
+          [attr.y1]="lineY(tick, series.maxY)"
+          [attr.y2]="lineY(tick, series.maxY)"
+          class="grid-line"
+        />
+      }
+
+      <path [attr.d]="series.assignedPath" class="line-assigned" />
+      <path [attr.d]="series.returnedPath" class="line-returned" />
+
+      @for (point of series.assignedPoints; track point.x; let index = $index) {
+        <rect
+          class="chart-hover-segment"
+          [attr.x]="trendSegmentStart(index)"
+          y="0"
+          [attr.width]="trendSegmentWidth(index)"
+          height="260"
+          (mouseenter)="setHoveredTrendIndex(index)"
+        />
+      }
+
+      @if (hoveredTrendIndex() !== null) {
+        <line
+          [attr.x1]="trendHoverX()"
+          [attr.x2]="trendHoverX()"
+          y1="14"
+          y2="230"
+          class="hover-guide"
+        />
+      }
+
+      @for (point of series.assignedPoints; track point.x; let index = $index) {
+        <g class="chart-point-group">
+          <circle
+            [attr.cx]="point.x"
+            [attr.cy]="point.y"
+            r="10"
+            class="chart-point-hit"
+          />
+          <circle
+            [attr.cx]="point.x"
+            [attr.cy]="point.y"
+            r="4"
+            class="dot-assigned"
+            [class.is-active]="hoveredTrendIndex() === index"
+          />
+          <title>{{ linePointTooltip("assigned", index) }}</title>
+        </g>
+      }
+
+      @for (point of series.returnedPoints; track point.x; let index = $index) {
+        <g class="chart-point-group">
+          <circle
+            [attr.cx]="point.x"
+            [attr.cy]="point.y"
+            r="10"
+            class="chart-point-hit"
+          />
+          <circle
+            [attr.cx]="point.x"
+            [attr.cy]="point.y"
+            r="3.3"
+            class="dot-returned"
+            [class.is-active]="hoveredTrendIndex() === index"
+          />
+          <title>{{ linePointTooltip("returned", index) }}</title>
+        </g>
+      }
+    </svg>
+
+    @if (hoveredTrendIndex() !== null) {
+      <div class="chart-hover-tooltip" [style.left.%]="trendHoverLeftPercent()">
+        <p class="chart-hover-month">{{ trendHoverLabel() }}</p>
+        <p>
+          <span>Assigned</span><strong>{{ trendHoverAssigned() }}</strong>
+        </p>
+        <p>
+          <span>Returned</span><strong>{{ trendHoverReturned() }}</strong>
+        </p>
+        <p>
+          <span>Net</span><strong>{{ trendHoverNet() }}</strong>
+        </p>
+      </div>
+    }
+
+    <div class="line-legend">
+      <span><i class="legend-dot assigned"></i>Assigned</span>
+      <span><i class="legend-dot returned"></i>Returned</span>
+    </div>
+
+    <div class="line-labels">
+      @for (label of series.labels; track label) {
+        <span>{{ label }}</span>
+      }
+    </div>
+  </div>
+</article>

@@ -1,0 +1,281 @@
+assetTypesPath:
+  get:
+    tags: [Asset Types]
+    summary: List asset types
+    description: Requires authentication. Optional query `locationId` filters to one accessible location.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/locationIdQueryParam
+      - $ref: ./assetCommon.yaml#/pageQueryParam
+      - $ref: ./assetCommon.yaml#/limitQueryParam
+    responses:
+      '200':
+        description: Asset types fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/paginatedAssetTypesResponse
+      '401':
+        description: Authentication required or invalid token
+  post:
+    tags: [Asset Types]
+    summary: Create asset type
+    description: |
+      Requires authentication. Admin or super_admin role required.
+      Required body fields: `name`, `locationId`.
+      Other body fields are optional.
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./assetCommon.yaml#/assetTypeCreateBody
+    responses:
+      '201':
+        description: Asset type created successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/assetTypeSchema
+      '400':
+        description: Validation failed
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '409':
+        description: Asset type name already exists
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/conflictErrorResponse
+
+assetTypesOverviewPath:
+  get:
+    tags: [Asset Types]
+    summary: List asset summaries for all asset types
+    description: Requires authentication. Returns card summary data for every asset type in one request. Optional query `locationId` filters to one accessible location.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/locationIdQueryParam
+      - $ref: ./assetCommon.yaml#/pageQueryParam
+      - $ref: ./assetCommon.yaml#/limitQueryParam
+      - in: query
+        name: status
+        required: false
+        schema:
+          $ref: ./assetCommon.yaml#/assetStatus
+        description: Optional status used only for `filteredItems` in each asset type summary.
+    responses:
+      '200':
+        description: Asset summaries for all asset types fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/paginatedAssetTypeSummaryOverviewResponse
+      '400':
+        description: Invalid status
+      '401':
+        description: Authentication required or invalid token
+
+assetTypeAssetsPath:
+  get:
+    tags: [Asset Types]
+    summary: List enriched assets for one asset type with status summary
+    description: |
+      Returns one page of enriched asset rows for the selected asset type, with
+      status counts for the filtered set.
+
+      Each row adds `productName`, a resolved `displayImage` URL, and up to five
+      `gridSpecs` ordered by `assetType.gridFieldIds`.
+
+      Filter with `locationId`, `status`, `productId`, `field.<fieldKey>`, and
+      `hasField`. Field keys come from `GET /api/assets/types/{assetTypeId}/fields`.
+      Separate `field.` params combine with AND, comma-separated terms with OR.
+
+      Requires authentication.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/assetTypeIdParam
+      - $ref: ./assetCommon.yaml#/locationIdQueryParam
+      - in: query
+        name: status
+        required: false
+        schema:
+          $ref: ./assetCommon.yaml#/assetStatus
+        description: |
+          Optional status filter. Narrows the returned `assets` and `filteredItems`.
+
+          `statusCounts` always covers every status, so the status tabs stay stable.
+      - in: query
+        name: productId
+        required: false
+        schema:
+          oneOf:
+            - type: integer
+              minimum: 1
+              example: 14
+            - type: string
+              example: 14,15
+            - type: array
+              items:
+                type: integer
+              example: [14, 15]
+        style: form
+        explode: true
+        description: |
+          Optional product filter. Valid ids come from
+          `GET /api/assets/types/{assetTypeId}/products`.
+
+          Accepts one id, a comma-separated list, or repeated `productId` params.
+          Multiple ids combine with OR.
+
+          Unlike `status`, this narrows every count as well as the rows, and is
+          echoed back as `productFilter`. An id from another asset type returns 400.
+      - in: query
+        name: field.<fieldKey>
+        required: false
+        schema:
+          type: string
+          example: intel,amd
+        description: |
+          Dynamic field-scoped search term. Replace `<fieldKey>` with a key from
+          `GET /api/assets/types/{assetTypeId}/fields`, for example `field.cpu=intel`.
+
+          Case-insensitive contains matching. Comma-separated terms combine with OR.
+      - in: query
+        name: hasField
+        required: false
+        schema:
+          oneOf:
+            - type: string
+              example: cpu,ram
+            - type: array
+              items:
+                type: string
+              example: [cpu, ram]
+        style: form
+        explode: true
+        description: |
+          Optional field-existence filter. Each listed field key must have a stored
+          value on the asset.
+
+          Accepts a comma-separated string or repeated params, such as
+          `hasField=cpu&hasField=ram`.
+      - $ref: ./assetCommon.yaml#/pageQueryParam
+      - $ref: ./assetCommon.yaml#/limitQueryParam
+    responses:
+      '200':
+        description: Assets by asset type fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/assetTypeAssetsOverviewResponse
+      '400':
+        description: Invalid assetTypeId, status, productId, page, or dynamic field filter
+      '401':
+        description: Authentication required or invalid token
+      '404':
+        description: Asset type not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+
+assetTypeByIdPath:
+  get:
+    tags: [Asset Types]
+    summary: Get asset type by id
+    description: Requires authentication.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/assetTypeIdParam
+    responses:
+      '200':
+        description: Asset type fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/assetTypeSchema
+      '400':
+        description: Invalid assetTypeId
+      '401':
+        description: Authentication required or invalid token
+      '404':
+        description: Asset type not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+  patch:
+    tags: [Asset Types]
+    summary: Update asset type
+    description: Requires authentication. Admin or super_admin role required. Asset type location cannot be changed after creation. When `name` changes, the backend regenerates `typeKey` from that new name. `gridFieldIds` selects and orders up to five fields shown on asset cards. `icon` accepts a client-resolved icon identifier, and null or an empty string clears it.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/assetTypeIdParam
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./assetCommon.yaml#/assetTypeUpdateBody
+    responses:
+      '200':
+        description: Asset type updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/assetTypeSchema
+      '400':
+        description: Validation failed
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: Asset type not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+      '409':
+        description: Asset type name already exists, the regenerated `typeKey` conflicts with another asset type in the same location, or version mismatch (resource was modified by another user)
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/conflictErrorResponse
+  delete:
+    tags: [Asset Types]
+    summary: Delete asset type
+    description: Requires authentication. Admin or super_admin role required.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/assetTypeIdParam
+    responses:
+      '200':
+        description: Asset type deleted successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/assetTypeSchema
+      '400':
+        description: Invalid assetTypeId
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: Asset type not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse

@@ -1,0 +1,39 @@
+<article class="panel">
+  <header class="panel-header">
+    <h2>{{ title }}</h2>
+    @if (subtitle) {
+      <p>{{ subtitle }}</p>
+    }
+  </header>
+
+  @if (isLoading) {
+    <app-loading
+      variant="inline"
+      message="Loading location analytics..."
+      ariaLabel="Loading location analytics"
+    />
+  } @else {
+    <div class="location-bars">
+      @for (row of rows; track row.label) {
+        <div
+          class="location-row"
+          [class.location-row-clickable]="isRowInteractive(row)"
+          [attr.role]="isRowInteractive(row) ? 'button' : null"
+          [attr.tabindex]="isRowInteractive(row) ? 0 : null"
+          [attr.title]="row.label + ': ' + row.value + '% utilisation'"
+          (click)="onRowSelect(row)"
+          (keydown.enter)="onRowSelect(row)"
+          (keydown.space)="onRowSelect(row)"
+        >
+          <div class="location-row-head">
+            <span>{{ row.label }}</span>
+            <strong>{{ row.value }}%</strong>
+          </div>
+          <div class="bar-track">
+            <span class="bar-fill" [style.width.%]="row.width" data-tone="hit"></span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</article>

@@ -1,0 +1,24 @@
+<section class="kpi-grid app-surface" aria-label="Key figures">
+  @for (kpi of items; track kpi.label) {
+    @if (kpi.link) {
+      <a class="kpi-card kpi-card-link" [routerLink]="kpi.link" [attr.data-tone]="kpi.tone">
+        <ng-container *ngTemplateOutlet="body; context: { $implicit: kpi }" />
+      </a>
+    } @else {
+      <div class="kpi-card" [attr.data-tone]="kpi.tone">
+        <ng-container *ngTemplateOutlet="body; context: { $implicit: kpi }" />
+      </div>
+    }
+  }
+</section>
+
+<ng-template #body let-kpi>
+  <p class="kpi-label">{{ kpi.label }}</p>
+  <p class="kpi-value tabular">
+    @if (kpi.tone === 'amber') {
+      <span class="kpi-flag" aria-hidden="true"></span>
+    }
+    {{ kpi.value }}
+  </p>
+  <p class="kpi-meta">{{ kpi.meta }}</p>
+</ng-template>

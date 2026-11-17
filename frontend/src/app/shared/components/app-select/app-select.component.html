@@ -1,0 +1,102 @@
+<div class="app-select" [class.app-select-disabled]="isDisabled">
+  @if (!searchable) {
+    <button
+      class="app-select-trigger"
+      type="button"
+      aria-haspopup="listbox"
+      [attr.aria-label]="ariaLabel"
+      [attr.aria-expanded]="isOpen"
+      [attr.aria-invalid]="invalid"
+      [class.app-select-invalid]="invalid"
+      [disabled]="isDisabled"
+      (click)="toggle($event)"
+      (keydown)="handleTriggerKeydown($event)"
+    >
+      <span [class.app-select-placeholder]="!selectedOption()">
+        {{ selectedOption()?.label || placeholder }}
+      </span>
+      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path
+          d="m5 7.5 5 5 5-5"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+  } @else {
+    <label
+      class="app-select-trigger app-select-trigger-searchable"
+      [attr.aria-label]="ariaLabel"
+      [attr.aria-expanded]="isOpen"
+      [class.app-select-invalid]="invalid"
+      (click)="openSearch()"
+    >
+      <input
+        type="text"
+        [value]="searchInputValue()"
+        [attr.placeholder]="searchInputPlaceholder()"
+        [disabled]="isDisabled"
+        [attr.aria-label]="ariaLabel"
+        [attr.aria-invalid]="invalid"
+        (focus)="openSearch()"
+        (input)="handleSearchInput($event)"
+        (keydown)="handleSearchKeydown($event)"
+      />
+      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path
+          d="m5 7.5 5 5 5-5"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </label>
+  }
+
+  @if (isOpen) {
+    <div
+      class="app-select-menu"
+      [class.app-select-menu-up]="menuDirection === 'up'"
+      [class.app-select-menu-down]="menuDirection === 'down'"
+      [class.app-select-menu-overlay]="menuUsesOverlay"
+      [style.max-height.px]="menuMaxHeight"
+      [style.top.px]="menuTop"
+      [style.bottom.px]="menuBottom"
+      [style.left.px]="menuLeft"
+      [style.width.px]="menuWidth"
+      role="listbox"
+      [attr.aria-label]="ariaLabel"
+    >
+      @for (option of filteredOptions(); track option.label + '-' + option.value) {
+        <button
+          class="app-select-option"
+          [class.app-select-option-active]="isSelected(option)"
+          type="button"
+          role="option"
+          [disabled]="option.disabled"
+          [attr.aria-selected]="isSelected(option)"
+          (click)="select(option)"
+        >
+          <span>{{ option.label }}</span>
+          @if (isSelected(option)) {
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path
+                d="m5 10.5 3 3 7-7"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          }
+        </button>
+      }
+      @if (filteredOptions().length === 0) {
+        <div class="app-select-empty">No matches</div>
+      }
+    </div>
+  }
+</div>

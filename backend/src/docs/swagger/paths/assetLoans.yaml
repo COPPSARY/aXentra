@@ -1,0 +1,606 @@
+assetLoanIdParam:
+  in: path
+  name: assetLoanId
+  required: true
+  schema:
+    type: integer
+    minimum: 1
+  description: Asset loan identifier.
+
+loanItemIdParam:
+  in: path
+  name: loanItemId
+  required: true
+  schema:
+    type: integer
+    minimum: 1
+  description: Loan item identifier.
+
+assetLoanShareTokenParam:
+  in: path
+  name: token
+  required: true
+  schema:
+    type: string
+    minLength: 1
+  description: Public loan share token.
+
+assetLoanItemSchema:
+  type: object
+  properties:
+    loanItemId:
+      type: integer
+    assetLoanId:
+      type: integer
+    assetId:
+      type: integer
+    itemStatus:
+      type: string
+      enum: [Loaned, Returned, Lost, Damaged, Cancelled]
+      description: |
+        `Loaned` is the initial state. `Returned` / `Lost` / `Damaged` are user
+        transitions via PATCH `/api/loans/{id}/items/{itemId}`. `Cancelled` is
+        set only by POST `/api/loans/{id}/cancel` and is not a valid PATCH
+        target.
+    returnDate:
+      type: string
+      format: date
+      nullable: true
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+    version:
+      type: integer
+
+assetLoanExtensionHistorySchema:
+  type: object
+  properties:
+    assetLoanExtensionHistoryId:
+      type: integer
+    assetLoanId:
+      type: integer
+    previousEndLoanDate:
+      type: string
+      format: date
+    newEndLoanDate:
+      type: string
+      format: date
+    createdAt:
+      type: string
+      format: date-time
+    createdBy:
+      type: integer
+      nullable: true
+    updatedAt:
+      type: string
+      format: date-time
+      description: >-
+        Present for schema uniformity. This log is append-only, so in practice it
+        always equals createdAt.
+    updatedBy:
+      type: integer
+      nullable: true
+      description: >-
+        Present for schema uniformity. Set to the creating actor on insert and
+        never changed, since rows are not edited.
+
+assetLoanSchema:
+  type: object
+  properties:
+    assetLoanId:
+      type: integer
+    locationId:
+      type: integer
+      description: Derived from the borrower profile's location at create time. Used for tenant scope.
+    borrowerProfileId:
+      type: integer
+    lenderUserId:
+      type: integer
+    startLoanDate:
+      type: string
+      format: date
+    endLoanDate:
+      type: string
+      format: date
+    returnDate:
+      type: string
+      format: date
+      nullable: true
+    remark:
+      type: string
+      nullable: true
+    status:
+      type: string
+      enum: [Active, Returned, Overdue, Cancelled]
+      description: Stored loan status. `Overdue` is persisted by the backend sync job and by create/update writes that detect a past-due end date.
+    shareToken:
+      type: string
+      nullable: true
+      description: Admin-visible current public share token. Present only after a share link has been generated.
+    shareEnabled:
+      type: boolean
+      description: Whether the public share link currently works.
+    shareUrl:
+      type: string
+      format: uri
+      nullable: true
+      description: Admin-visible frontend URL that can be sent to outside users.
+    effectiveStatus:
+      type: string
+      enum: [Active, Returned, Overdue, Cancelled]
+      description: Response-ready status. Usually mirrors stored `status`; also protects reads during any short sync gap.
+    isOverdue:
+      type: boolean
+    version:
+      type: integer
+    items:
+      type: array
+      items:
+        $ref: '#/assetLoanItemSchema'
+    extensionHistory:
+      type: array
+      description: Present on loan detail and loan update responses. Omitted from paginated loan lists.
+      items:
+        $ref: '#/assetLoanExtensionHistorySchema'
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+assetLoanPublicDetailSchema:
+  type: object
+  required:
+    - reference
+    - status
+    - borrowerName
+    - startDate
+    - endDate
+    - items
+  properties:
+    reference:
+      type: string
+      example: LN-22517
+    status:
+      type: string
+      enum: [Active, Returned, Overdue, Cancelled]
+    borrowerName:
+      type: string
+    startDate:
+      type: string
+      format: date
+    endDate:
+      type: string
+      format: date
+    returnDate:
+      type: string
+      format: date
+      nullable: true
+    remark:
+      type: string
+      nullable: true
+    updatedAt:
+      type: string
+      format: date-time
+      nullable: true
+    items:
+      type: array
+      items:
+        type: object
+        required: [name]
+        properties:
+          name:
+            type: string
+          identifier:
+            type: string
+            nullable: true
+          description:
+            type: string
+            nullable: true
+          status:
+            type: string
+            nullable: true
+    extensionHistory:
+      type: array
+      items:
+        type: object
+        required: [previousEndDate, newEndDate]
+        properties:
+          previousEndDate:
+            type: string
+            format: date
+          newEndDate:
+            type: string
+            format: date
+          updatedAt:
+            type: string
+            format: date-time
+            nullable: true
+
+assetLoanShareSchema:
+  type: object
+  properties:
+    assetLoanId:
+      type: integer
+    shareToken:
+      type: string
+      nullable: true
+    shareEnabled:
+      type: boolean
+    shareUrl:
+      type: string
+      format: uri
+      nullable: true
+    version:
+      type: integer
+
+assetLoanShareDisabledSchema:
+  type: object
+  properties:
+    assetLoanId:
+      type: integer
+    shareEnabled:
+      type: boolean
+    version:
+      type: integer
+
+assetLoanCreateBody:
+  type: object
+  required:
+    - locationId
+    - borrowerProfileId
+    - startLoanDate
+    - endLoanDate
+    - items
+  properties:
+    locationId:
+      type: integer
+      minimum: 1
+      description: |
+        Required. The location this loan is filed under. Must be a location
+        the actor can access, and must match the borrower profile's location
+        and every asset's location.
+    borrowerProfileId:
+      type: integer
+      minimum: 1
+    startLoanDate:
+      type: string
+      format: date
+    endLoanDate:
+      type: string
+      format: date
+    remark:
+      type: string
+      nullable: true
+      maxLength: 2000
+    lenderUserId:
+      type: integer
+      minimum: 1
+      description: Optional. Defaults to the authenticated user's id when omitted.
+    items:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        required: [assetId]
+        properties:
+          assetId:
+            type: integer
+            minimum: 1
+
+assetLoanUpdateBody:
+  type: object
+  required:
+    - version
+  properties:
+    version:
+      type: integer
+      minimum: 1
+    remark:
+      type: string
+      nullable: true
+      maxLength: 2000
+    endLoanDate:
+      type: string
+      format: date
+
+assetLoanItemStatusUpdateBody:
+  type: object
+  required:
+    - version
+    - itemStatus
+  properties:
+    version:
+      type: integer
+      minimum: 1
+    itemStatus:
+      type: string
+      enum: [Returned, Lost, Damaged, Cancelled]
+      description: |
+        Per-item terminal transition. `Cancelled` here means "this single item's
+        checkout was aborted" (e.g. handed back at the counter); other items
+        on the same loan continue normally. When every item on the loan ends up
+        Cancelled the parent loan rolls up to Cancelled, otherwise it rolls up
+        to Returned. To cancel the whole loan in one call instead, use
+        POST `/api/loans/{id}/cancel`.
+
+assetLoanVersionBody:
+  type: object
+  required:
+    - version
+  properties:
+    version:
+      type: integer
+      minimum: 1
+
+assetLoansPath:
+  get:
+    tags: [Asset Loans]
+    summary: List asset loans
+    description: |
+      Requires authentication. Optional query `locationId` filters to one
+      accessible location. Optional query `status` filters by stored loan
+      status; pair with the response `isOverdue` flag for overdue-specific UI.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: query
+        name: page
+        schema: { type: integer, minimum: 1 }
+      - in: query
+        name: limit
+        schema: { type: integer, minimum: 1 }
+      - in: query
+        name: locationId
+        schema: { type: integer, minimum: 1 }
+        description: Optional location filter. Must be a location the current actor can access.
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum: [Active, Returned, Overdue, Cancelled]
+      - in: query
+        name: borrowerProfileId
+        schema: { type: integer, minimum: 1 }
+      - in: query
+        name: lenderUserId
+        schema: { type: integer, minimum: 1 }
+      - in: query
+        name: assetId
+        schema: { type: integer, minimum: 1 }
+        description: Filter loans by asset (returns the loan history for that asset).
+    responses:
+      '200':
+        description: Paginated asset loans
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer }
+                limit: { type: integer }
+                totalItems: { type: integer }
+                totalPages: { type: integer }
+                pageItems: { type: integer }
+                statusCounts:
+                  type: object
+                  description: >-
+                    Row counts per stored loan status, for status tab badges.
+                    Reflects the caller's location scope and every other filter
+                    (borrowerProfileId, lenderUserId, assetId), but deliberately
+                    ignores `status` itself — so the totals stay whole while one
+                    tab is selected and `all` can exceed `totalItems`.
+
+                    Counted on the stored `status` column, which is what `?status=`
+                    filters on, so a tab always returns the number shown here.
+                    Note this can lag the `effectiveStatus` field on each row by up
+                    to one overdue-cron run: a loan whose due date just passed is
+                    still stored `Active` while displaying `effectiveStatus: Overdue`.
+                  properties:
+                    all: { type: integer, example: 12 }
+                    Active: { type: integer, example: 5 }
+                    Returned: { type: integer, example: 4 }
+                    Overdue: { type: integer, example: 2 }
+                    Cancelled: { type: integer, example: 1 }
+                assetLoans:
+                  type: array
+                  items:
+                    $ref: '#/assetLoanSchema'
+  post:
+    tags: [Asset Loans]
+    summary: Create an asset loan
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/assetLoanCreateBody'
+    responses:
+      '201':
+        description: Created asset loan
+        content:
+          application/json:
+            schema:
+              $ref: '#/assetLoanSchema'
+
+assetLoanByIdPath:
+  get:
+    tags: [Asset Loans]
+    summary: Get an asset loan by id
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/assetLoanIdParam'
+    responses:
+      '200':
+        description: Asset loan detail
+        content:
+          application/json:
+            schema:
+              $ref: '#/assetLoanSchema'
+  patch:
+    tags: [Asset Loans]
+    summary: Update an asset loan (remark or endLoanDate)
+    description: |
+      Changing `endLoanDate` appends one extension-history record with the
+      previous and new due dates.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/assetLoanIdParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/assetLoanUpdateBody'
+    responses:
+      '200':
+        description: Updated asset loan
+        content:
+          application/json:
+            schema:
+              $ref: '#/assetLoanSchema'
+  delete:
+    tags: [Asset Loans]
+    summary: Delete an asset loan (cancelled loans only for admins)
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/assetLoanIdParam'
+    responses:
+      '200':
+        description: Deleted asset loan
+        content:
+          application/json:
+            schema:
+              $ref: '#/assetLoanSchema'
+ 
+assetLoanSharePath:
+  post:
+    tags: [Asset Loans]
+    summary: Generate or regenerate a public share link for a loan
+    description: |
+      Requires authentication. Generates a new token, stores it on the loan,
+      enables sharing, and returns the full frontend share URL. Regenerating
+      replaces any previous link for that loan.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/assetLoanIdParam'
+    responses:
+      '200':
+        description: Share link generated
+        content:
+          application/json:
+            schema:
+              $ref: '#/assetLoanShareSchema'
+  patch:
+    tags: [Asset Loans]
+    summary: Disable a loan's public share link
+    description: |
+      Requires authentication. Disables public access for the current share
+      link without deleting the loan record.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/assetLoanIdParam'
+    responses:
+      '200':
+        description: Share link disabled
+        content:
+          application/json:
+            schema:
+              $ref: '#/assetLoanShareDisabledSchema'
+
+assetLoanPublicByTokenPath:
+  get:
+    tags: [Asset Loans]
+    summary: Get public loan details by share token
+    description: |
+      Public endpoint. Returns the loan's public details only when the token
+      matches a loan with sharing enabled.
+    parameters:
+      - $ref: '#/assetLoanShareTokenParam'
+    responses:
+      '200':
+        description: Public asset loan detail
+        content:
+          application/json:
+            schema:
+              $ref: '#/assetLoanPublicDetailSchema'
+      '404':
+        description: Shared asset loan not found or disabled
+
+assetLoanItemStatusPath:
+  patch:
+    tags: [Asset Loans]
+    summary: Update a loan item's status (early return / lost / damaged)
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/assetLoanIdParam'
+      - $ref: '#/loanItemIdParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/assetLoanItemStatusUpdateBody'
+    responses:
+      '200':
+        description: Updated asset loan with refreshed items
+        content:
+          application/json:
+            schema:
+              $ref: '#/assetLoanSchema'
+
+assetLoanReturnPath:
+  post:
+    tags: [Asset Loans]
+    summary: Return all remaining loaned items in this loan
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/assetLoanIdParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/assetLoanVersionBody'
+    responses:
+      '200':
+        description: Closed asset loan
+        content:
+          application/json:
+            schema:
+              $ref: '#/assetLoanSchema'
+
+assetLoanCancelPath:
+  post:
+    tags: [Asset Loans]
+    summary: Cancel a loan (allowed only when every item is still Loaned)
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/assetLoanIdParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/assetLoanVersionBody'
+    responses:
+      '200':
+        description: Cancelled asset loan
+        content:
+          application/json:
+            schema:
+              $ref: '#/assetLoanSchema'

@@ -1,0 +1,11 @@
+@if (hasText) {
+  <button
+    class="app-help-tooltip"
+    type="button"
+    [appTooltip]="text"
+    [attr.aria-label]="ariaLabel"
+    (click)="stopHostLabelActivation($event)"
+  >
+    <svg lucideCircleHelp aria-hidden="true"></svg>
+  </button>
+}

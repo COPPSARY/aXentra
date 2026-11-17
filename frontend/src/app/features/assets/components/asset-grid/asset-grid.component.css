@@ -1,0 +1,126 @@
+:host {
+  display: block;
+}
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 16px;
+  padding: 20px 24px 32px;
+}
+
+.asset-card-skeleton {
+  overflow: hidden;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-control);
+  background: #fff;
+  padding: 0 16px 18px;
+}
+
+.asset-card-skeleton-media {
+  display: block;
+  aspect-ratio: 16 / 10;
+  margin: 0 -16px 16px;
+  background: var(--gray-150);
+}
+
+.asset-card-skeleton-line {
+  display: block;
+  height: 12px;
+  margin-top: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--gray-150);
+  animation: asset-skeleton-pulse 1.3s ease-in-out infinite alternate;
+}
+
+.asset-card-skeleton-name {
+  height: 15px;
+  width: 76%;
+}
+
+.asset-card-skeleton-short {
+  width: 54%;
+}
+
+.asset-grid-state {
+  padding: 48px 24px;
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  text-align: center;
+}
+
+.asset-grid-error {
+  color: var(--status-error-text);
+}
+
+.asset-grid-state p {
+  margin: 0;
+}
+
+.asset-grid-state button,
+.asset-grid-state a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+  border: 1px solid var(--button-border);
+  border-radius: var(--radius-control);
+  background: var(--button-surface);
+  padding: 0 16px;
+  color: var(--brand-700);
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+.asset-grid-state button:hover,
+.asset-grid-state button:focus-visible,
+.asset-grid-state a:hover,
+.asset-grid-state a:focus-visible {
+  border-color: var(--brand-300);
+  background: var(--surface-selected);
+  outline: none;
+}
+
+@keyframes asset-skeleton-pulse {
+  from {
+    opacity: 0.55;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@container (min-width: 560px) {
+  .asset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 840px) {
+  .asset-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+}
+
+@container (min-width: 1120px) {
+  .asset-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .asset-grid {
+    padding: 16px 12px 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asset-card-skeleton-line {
+    animation: none;
+  }
+}

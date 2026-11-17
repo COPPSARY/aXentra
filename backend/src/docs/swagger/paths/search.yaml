@@ -1,0 +1,150 @@
+searchPath:
+  get:
+    tags: [Search]
+    summary: Location-scoped fuzzy search
+    description: >-
+      Requires authentication. Fuzzy-searches (Postgres pg_trgm, word_similarity)
+      every resource — assets, profiles, products, software licenses, asset types,
+      and files — and returns the closest matches ranked by similarity. Matching is
+      type-ahead style: a short query matches the closest word/substring inside
+      longer text, so e.g. "warranty" finds a file labelled
+      "smoke_route_..._warranty". Files match on their user-given label (falling
+      back to the original filename when no label is set) and description; the
+      result label shows the label-or-filename. `limit` caps the total number of
+      results across all resource types (default 10); results are still grouped by
+      resource in the response. `locationId` is optional: provide it to scope to one
+      location (must be accessible to the actor), or omit it to search every
+      location the actor can access — all locations for super_admin, all assigned
+      locations for an admin. When omitted, the response `locationId` is null.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: query
+        name: q
+        required: true
+        schema:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: lapt
+        description: Search text (case-insensitive, fuzzy matched).
+      - in: query
+        name: locationId
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+        description: >-
+          Optional. When provided, scopes the search to this one location (the
+          actor must be allowed to access it, else 403). When omitted, searches
+          every location the actor can access — all locations for super_admin,
+          all assigned locations for an admin.
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+        description: Maximum number of results in total across all resource groups.
+    responses:
+      "200":
+        description: Grouped, similarity-ranked search results.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  example: lapt
+                locationId:
+                  type: integer
+                  example: 1
+                results:
+                  type: object
+                  properties:
+                    assets:
+                      type: array
+                      items:
+                        $ref: "#/searchResultItem"
+                    profiles:
+                      type: array
+                      items:
+                        $ref: "#/searchResultItem"
+                    products:
+                      type: array
+                      items:
+                        $ref: "#/searchResultItem"
+                    licenses:
+                      type: array
+                      items:
+                        $ref: "#/searchResultItem"
+                    assetTypes:
+                      type: array
+                      items:
+                        $ref: "#/searchResultItem"
+                    files:
+                      type: array
+                      items:
+                        $ref: "#/searchResultItem"
+              example:
+                query: NewAsset
+                locationId: 33
+                results:
+                  assets:
+                    - resource: assets
+                      id: 132
+                      label: NewAsset21
+                      subtitle: "Asset tag: ITAIMS-73-20260521-LAGGV2"
+                      detailPath: /api/assets/132
+                      score: 0.666667
+                  profiles: []
+                  products: []
+                  licenses: []
+                  assetTypes:
+                    - resource: assetTypes
+                      id: 73
+                      label: NewAsset2152026
+                      subtitle: newasset2152026
+                      detailPath: /api/assets/types/73
+                      score: 0.470588
+                  files: []
+      "400":
+        description: Validation failed (missing or invalid q / locationId).
+      "401":
+        description: Authentication required.
+      "403":
+        description: Actor cannot access the requested location.
+
+searchResultItem:
+  type: object
+  properties:
+    resource:
+      type: string
+      enum: [assets, profiles, products, licenses, assetTypes, files]
+      description: Which resource this hit belongs to. Mirrors the group key.
+      example: assets
+    id:
+      type: integer
+      example: 12
+    label:
+      type: string
+      example: Laptop-INV-0012
+    subtitle:
+      type: string
+      nullable: true
+      example: "SN: ABC123"
+    detailPath:
+      type: string
+      description: API detail endpoint for this item; the frontend navigates here on click.
+      example: /api/assets/12
+    score:
+      type: number
+      format: float
+      minimum: 0
+      maximum: 1
+      description: Word-similarity of the query to the closest substring of the item's text (0–1); higher is closer.
+      example: 0.666667

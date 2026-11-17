@@ -1,0 +1,1194 @@
+@if (!embedded) {
+  <div class="min-h-screen bg-(--background) text-(--text-primary)">
+    <app-sidebar />
+    <app-mobile-tabbar />
+
+    <div class="lg:pl-[240px]">
+      <app-topbar
+        [displayName]="displayName()"
+        [role]="role()"
+        [initials]="initials()"
+        [avatarUrl]="avatarUrl()"
+        (signOut)="logout()"
+      />
+
+      <main class="px-4 pb-28 pt-6 sm:px-6 lg:px-8 lg:pt-8 lg:pb-12">
+        <section class="mx-auto max-w-[1100px]">
+          <ng-container [ngTemplateOutlet]="createAssetContent" />
+        </section>
+      </main>
+    </div>
+  </div>
+} @else {
+  <section class="embedded-create-shell">
+    <ng-container [ngTemplateOutlet]="createAssetContent" />
+  </section>
+}
+
+<ng-template #createAssetContent>
+  <div class="app-motion-enter">
+    <div class="page-heading">
+      @if (!embedded) {
+        <nav class="app-page-heading__breadcrumb" aria-label="Breadcrumb">
+          <a routerLink="/assets">Assets</a>
+          <span aria-hidden="true">/</span>
+          <a class="inline-block max-w-[220px] truncate align-bottom" [routerLink]="['/assets/types', assetTypeId()]">{{
+            assetTypeName()
+          }}</a>
+          <span aria-hidden="true">/</span>
+          <span>{{ isEditMode() ? "Edit asset" : "New asset" }}</span>
+        </nav>
+      }
+
+      <div class="heading-row">
+        <div class="min-w-0">
+          <p class="heading-eyebrow">{{ pageEyebrow() }}</p>
+          <h1 class="app-ellipsis">{{
+            isEditMode() ? createForm.assetName || assetTypeName() : assetTypeName()
+          }}</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <section
+      class="page-state app-motion-enter"
+      aria-label="Loading create asset form"
+    >
+      <app-loading
+        variant="page"
+        message="Loading asset fields..."
+        ariaLabel="Loading asset fields"
+      />
+    </section>
+  } @else if (loadError()) {
+    <section class="page-state page-state-error app-motion-enter">
+      <p>{{ loadError() }}</p>
+    </section>
+  } @else {
+    <form
+      class="create-shell"
+      [class.create-shell-single]="embedded && assetTypeId() <= 0"
+      (ngSubmit)="submitCreate()"
+    >
+      <div class="form-panel">
+        <section class="form-section">
+          <div class="section-label">
+            <h2>General</h2>
+          </div>
+
+          <div class="section-fields">
+            @if (embedded) {
+              <div class="form-field">
+                <span class="field-label-row">
+                  <span>Asset type <span class="required-mark">*</span></span>
+                  <app-help-tooltip
+                    text="Choose the category this item belongs to. It controls the specification fields shown below."
+                    ariaLabel="Help for Asset Type"
+                  />
+                </span>
+                <div class="product-field-row">
+                  <div class="product-select-wrap">
+                    <app-select
+                      name="assetTypeId"
+                      ariaLabel="Asset type"
+                      placeholder="Select asset type"
+                      [options]="resolvedAssetTypeOptions()"
+                      [ngModel]="assetTypeIdInput"
+                      (ngModelChange)="handleAssetTypeChange($event)"
+                    />
+                  </div>
+                  <button
+                    class="product-add-button"
+                    type="button"
+                    [attr.aria-expanded]="isAssetTypeFormOpen()"
+                    [disabled]="isCreatingAssetType()"
+                    (click)="toggleAssetTypeForm()"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M12 5v14M5 12h14"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                    Add
+                  </button>
+                </div>
+                @if (isAssetTypeFormOpen()) {
+                  <div class="product-inline-form app-motion-enter">
+                    <label class="form-field">
+                      <span>
+                        Asset Type Name <span class="required-mark">*</span>
+                      </span>
+                      <input
+                        name="newAssetTypeName"
+                        [(ngModel)]="assetTypeForm.name"
+                        [disabled]="isCreatingAssetType()"
+                        maxlength="255"
+                        placeholder="Laptop"
+                      />
+                    </label>
+ 
+                    @if (assetTypeFormError()) {
+                      <small class="field-error">{{ assetTypeFormError() }}</small>
+                    }
+
+                    <div class="product-inline-actions">
+                      <button
+                        class="secondary-action"
+                        type="button"
+                        [disabled]="isCreatingAssetType()"
+                        (click)="closeAssetTypeForm()"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        class="save-action"
+                        type="button"
+                        [disabled]="isCreatingAssetType()"
+                        (click)="createAssetType()"
+                      >
+                        {{ isCreatingAssetType() ? "Adding..." : "Add Asset Type" }}
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+            @if (embedded && assetTypeId() <= 0) {
+              <p class="section-note">Select an asset type to continue.</p>
+            } @else {
+              <div class="form-field asset-image-field">
+                <span class="field-label-row">
+                  <span>Asset image</span>
+                  <app-help-tooltip
+                    text="Optional image used to identify the asset in grids and detail views."
+                    ariaLabel="Help for Asset Image"
+                  />
+                </span>
+                <div
+                  class="asset-image-card"
+                  [class.asset-image-card-filled]="displayedAssetImageUrl()"
+                >
+                  @if (displayedAssetImageUrl(); as previewUrl) {
+                      <img
+                        [src]="previewUrl"
+                        width="640"
+                        height="360"
+                        [alt]="
+                          isEditMode()
+                            ? 'Current image for ' + createForm.assetName
+                            : 'Selected asset image preview'
+                        "
+                      />
+                      <div class="asset-image-card-actions">
+                        <label class="asset-image-action">
+                          <input
+                            class="sr-only"
+                            name="assetImageReplacement"
+                            type="file"
+                            accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+                            (change)="handleAssetImageSelection($event)"
+                          />
+                          Replace image
+                        </label>
+                        @if (assetImageFile()) {
+                          <button
+                            class="asset-image-action asset-image-remove"
+                            type="button"
+                            (click)="removeAssetImage()"
+                          >
+                            {{
+                              isEditMode() && existingAssetImageUrl()
+                                ? "Undo change"
+                                : "Remove"
+                            }}
+                          </button>
+                        }
+                      </div>
+                    } @else {
+                      <label class="asset-image-empty">
+                        <input
+                          class="sr-only"
+                          name="assetImage"
+                          type="file"
+                          accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+                          (change)="handleAssetImageSelection($event)"
+                        />
+                        <span class="asset-image-empty-icon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" fill="none">
+                            <rect
+                              x="3.5"
+                              y="4.5"
+                              width="17"
+                              height="15"
+                              rx="2.5"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                            />
+                            <circle
+                              cx="9"
+                              cy="10"
+                              r="1.6"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                            />
+                            <path
+                              d="m6 17 4-4 2.5 2.5 2-2L18 17"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        </span>
+                        <span class="asset-image-empty-copy">
+                          <strong>Upload an asset image</strong>
+                          <small>Click to browse · PNG, JPG, GIF, WebP, or SVG</small>
+                        </span>
+                      </label>
+                    }
+                </div>
+
+                @if (assetImageFile(); as imageFile) {
+                  <small class="asset-image-file-name app-ellipsis">
+                    {{ imageFile.name }}
+                  </small>
+                } @else if (isEditMode() && existingAssetImageUrl()) {
+                  <small class="text-xs font-semibold text-(--gray-600)">
+                    Current asset image. Choose Replace image to upload a new one.
+                  </small>
+                  } @else {
+                  <small class="text-xs font-semibold text-(--gray-600)">
+                    Optional. This image will identify the asset in grid view.
+                  </small>
+                  }
+              </div>
+
+              <label class="form-field">
+                <span>Asset name <span class="required-mark">*</span></span>
+                <input
+                  name="assetName"
+                  [(ngModel)]="createForm.assetName"
+                  [class.invalid-field]="fieldError('assetName')"
+                  (ngModelChange)="clearFieldError('assetName')"
+                  required
+                />
+                @if (fieldError("assetName")) {
+                  <small class="field-error">{{
+                    fieldError("assetName")
+                  }}</small>
+                }
+              </label>
+
+              <div class="field-grid field-grid-align-start">
+                <div class="form-field">
+                  <span class="field-label-row">
+                    <span>
+                      Product
+                      @if (!isEditMode()) {
+                        <span class="required-mark">*</span>
+                      }
+                    </span>
+                    <app-help-tooltip
+                      text="Product is the shared model, such as HP ProBook 440. The asset is the individual item."
+                      ariaLabel="Help for Product"
+                    />
+                  </span>
+                  <div class="product-field-row">
+                    <div class="product-select-wrap">
+                      <app-select
+                        name="productId"
+                        ariaLabel="Product"
+                        placeholder="No product"
+                        [options]="productOptions()"
+                        [invalid]="fieldError('productId') !== ''"
+                        [(ngModel)]="createForm.productId"
+                        (ngModelChange)="handleProductChange()"
+                      />
+                    </div>
+                    <button
+                      class="product-add-button"
+                      type="button"
+                      [attr.aria-expanded]="isProductFormOpen()"
+                      [disabled]="assetTypeId() <= 0 || isCreatingProduct()"
+                      (click)="toggleProductForm()"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M12 5v14M5 12h14"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                      Add
+                    </button>
+                  </div>
+                  @if (isProductFormOpen()) {
+                    <div class="product-inline-form app-motion-enter">
+                      <label class="form-field">
+                        <span>
+                          Product Name <span class="required-mark">*</span>
+                        </span>
+                        <input
+                          name="newProductName"
+                          [(ngModel)]="productForm.productName"
+                          [disabled]="isCreatingProduct()"
+                          maxlength="255"
+                          placeholder="HP ProBook 440 G9"
+                        />
+                      </label>
+
+                      <div class="field-grid">
+                        <label class="form-field">
+                          <span>Manufacturer</span>
+                          <input
+                            name="newProductManufacturer"
+                            [(ngModel)]="productForm.manufacturer"
+                            [disabled]="isCreatingProduct()"
+                            maxlength="255"
+                            placeholder="HP"
+                          />
+                        </label>
+
+                        <label class="form-field">
+                          <span>Cost</span>
+                          <input
+                            name="newProductCost"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            inputmode="decimal"
+                            [(ngModel)]="productForm.cost"
+                            [disabled]="isCreatingProduct()"
+                            placeholder="0.00"
+                          />
+                        </label>
+                      </div>
+
+                      @if (productFormError()) {
+                        <small class="field-error">{{ productFormError() }}</small>
+                      }
+
+                      <div class="product-inline-actions">
+                        <button
+                          class="secondary-action"
+                          type="button"
+                          [disabled]="isCreatingProduct()"
+                          (click)="closeProductForm()"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          class="save-action"
+                          type="button"
+                          [disabled]="isCreatingProduct()"
+                          (click)="createProduct()"
+                        >
+                          {{ isCreatingProduct() ? "Adding..." : "Add Product" }}
+                        </button>
+                      </div>
+                    </div>
+                  }
+                  @if (fieldError("productId")) {
+                    <small class="field-error">{{
+                      fieldError("productId")
+                    }}</small>
+                  }
+                </div>
+
+                <label class="form-field">
+                  <span class="field-label-row">
+                    <span>Status <span class="required-mark">*</span></span>
+                    <app-help-tooltip
+                      text="Use In Storage for available assets. Loaned is normally managed by loan records."
+                      ariaLabel="Help for Status"
+                    />
+                  </span>
+                  <app-select
+                    name="status"
+                    ariaLabel="Status"
+                    [options]="statusOptionsForForm()"
+                    [invalid]="fieldError('status') !== ''"
+                    [(ngModel)]="createForm.status"
+                    (ngModelChange)="handleStatusChange()"
+                  />
+                  @if (isLoanStatusManagedByAssetLoan()) {
+                    <small class="field-hint">
+                      Loaned status is managed from the asset loan record.
+                    </small>
+                  }
+                  @if (fieldError("status")) {
+                    <small class="field-error">{{
+                      fieldError("status")
+                    }}</small>
+                  }
+                </label>
+
+                <label class="form-field">
+                  <span class="field-label-row">
+                    <span>Loanable</span>
+                    <app-help-tooltip
+                      text="Turn this on only when the asset can be borrowed. It is disabled unless status is In Storage."
+                      ariaLabel="Help for Loanable"
+                    />
+                  </span>
+                  <span class="checkbox-field">
+                    <input
+                      name="loanable"
+                      type="checkbox"
+                      [(ngModel)]="createForm.loanable"
+                      [disabled]="createForm.status !== 'In Storage'"
+                      (ngModelChange)="handleLoanableChange()"
+                    />
+                    Available to loan
+                  </span>
+                  @if (createForm.status !== "In Storage") {
+                    <small class="field-hint">
+                      Loanable is available only when status is In Storage.
+                    </small>
+                  }
+                  @if (fieldError("loanable")) {
+                    <small class="field-error">{{
+                      fieldError("loanable")
+                    }}</small>
+                  }
+                </label>
+              </div>
+
+              @if (isLoanStatusManagedByAssetLoan()) {
+                <div class="product-inline-form app-motion-enter">
+                  <p class="field-hint">
+                    Borrower details on this asset come from the loan contract and cannot be edited here.
+                  </p>
+                </div>
+              }
+
+              <div class="field-grid field-grid-align-start">
+                <label class="form-field">
+                  <span class="field-label-row">
+                    <span>Serial Number</span>
+                    <app-help-tooltip
+                      text="Use the manufacturer's serial number printed on the device, when available."
+                      ariaLabel="Help for Serial Number"
+                    />
+                  </span>
+                  <input
+                    name="serialNumber"
+                    [(ngModel)]="createForm.serialNumber"
+                    [class.invalid-field]="fieldError('serialNumber')"
+                    (ngModelChange)="clearFieldError('serialNumber')"
+                  />
+                  @if (fieldError("serialNumber")) {
+                    <small class="field-error">{{
+                      fieldError("serialNumber")
+                    }}</small>
+                  }
+                </label>
+
+                <label class="form-field">
+                  <span class="field-label-row">
+                    <span>Barcode</span>
+                    <app-help-tooltip
+                      text="Internal barcode value for your asset label. Use letters, numbers, and hyphens only."
+                      ariaLabel="Help for barcode"
+                    />
+                  </span>
+                  <div class="barcode-input-row">
+                    <input
+                      class="barcode-input-field"
+                      name="barcode"
+                      [ngModel]="createForm.barcode"
+                      [class.invalid-field]="fieldError('barcode')"
+                      (ngModelChange)="handleBarcodeChange($event)"
+                    />
+                    <div class="barcode-input-actions">
+                      <button
+                        class="barcode-scan barcode-icon-button"
+                        type="button"
+                        aria-label="Scan asset"
+                        title="Scan asset"
+                        (click)="openScanner()"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M4 7V5h4M16 5h4v4M20 15v4h-4M8 19H4v-4M7 12h10M8 9v6M11 9v6M15 9v6"
+                            stroke="currentColor"
+                            stroke-width="1.9"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  @if (fieldError("barcode")) {
+                    <small class="field-error">{{
+                      fieldError("barcode")
+                    }}</small>
+                  }
+                </label>
+              </div>
+
+              <div class="barcode-preview-block">
+                <div class="barcode-preview-header">
+                  <div>
+                    <p>Asset label preview</p>
+                    <span>CODE128</span>
+                  </div>
+                  <button
+                    class="secondary-action barcode-preview-action"
+                    type="button"
+                    (click)="generateBarcode()"
+                  >
+                    {{ createForm.barcode ? "Regenerate" : "Generate" }}
+                  </button>
+                </div>
+
+                @if (createForm.barcode) {
+                  <div class="barcode-preview-surface">
+                    <svg
+                      #barcodePreview
+                      role="img"
+                      [attr.aria-label]="'Barcode for ' + createForm.barcode"
+                    ></svg>
+                  </div>
+                } @else {
+                  <div class="barcode-preview-empty">
+                    Generate or enter a barcode value.
+                  </div>
+                }
+
+                @if (barcodePreviewError()) {
+                  <small class="field-error">{{ barcodePreviewError() }}</small>
+                }
+              </div>
+
+              <div class="field-grid">
+                <label class="form-field">
+                  <span class="field-label-row">
+                    <span>MAC Address</span>
+                    <app-help-tooltip
+                      text="Hardware network address, usually formatted like AA:BB:CC:DD:EE:FF."
+                      ariaLabel="Help for MAC Address"
+                    />
+                  </span>
+                  <input
+                    class="mac-address-input"
+                    name="ipAddress"
+                    type="text"
+                    inputmode="text"
+                    autocomplete="off"
+                    autocapitalize="characters"
+                    spellcheck="false"
+                    maxlength="17"
+                    placeholder="AA:BB:CC:DD:EE:FF"
+                    aria-describedby="mac-address-format"
+                    [ngModel]="createForm.ipAddress"
+                    [class.invalid-field]="fieldError('ipAddress')"
+                    (ngModelChange)="handleMacAddressChange($event)"
+                  />
+                  @if (fieldError("ipAddress")) {
+                    <small class="field-error">{{
+                      fieldError("ipAddress")
+                    }}</small>
+                    }
+                </label>
+
+                <label class="form-field">
+                  <span class="field-label-row">
+                    <span>Warranty Expiry</span>
+                    <app-help-tooltip
+                      text="Date the manufacturer or vendor warranty ends. Leave blank if unknown."
+                      ariaLabel="Help for Warranty Expiry"
+                    />
+                  </span>
+                  <app-date-field
+                    name="warrantyExpiryDate"
+                    title="Warranty Expiry"
+                    placeholder="Select warranty expiry"
+                    [invalid]="!!fieldError('warrantyExpiryDate')"
+                    [ngModel]="createForm.warrantyExpiryDate"
+                    (ngModelChange)="
+                      createForm.warrantyExpiryDate = $event || '';
+                      clearFieldError('warrantyExpiryDate')
+                    "
+                  />
+                  @if (fieldError("warrantyExpiryDate")) {
+                    <small class="field-error">{{
+                      fieldError("warrantyExpiryDate")
+                    }}</small>
+                  }
+                </label>
+              </div>
+
+              <label class="form-field">
+                <span class="field-label-row">
+                  <span>Description (max 250 characters)</span>
+                  <app-help-tooltip
+                    text="Visible context about the asset, such as condition, package contents, or special handling."
+                    ariaLabel="Help for Description"
+                  />
+                </span>
+                <textarea
+                  name="description"
+                  rows="3"
+                  maxlength="250"
+                  [(ngModel)]="createForm.description"
+                  [class.invalid-field]="fieldError('description')"
+                  (ngModelChange)="handleDescriptionChange()"
+                ></textarea>
+                @if (fieldError("description")) {
+                  <small class="field-error">{{
+                    fieldError("description")
+                  }}</small>
+                }
+              </label>
+
+              <label class="form-field">
+                <span class="field-label-row">
+                  <span>Remark (max 100 characters)</span>
+                  <app-help-tooltip
+                    text="Short internal note for admins. Keep sensitive details out of this field."
+                    ariaLabel="Help for Remark"
+                  />
+                </span>
+                <textarea
+                  name="remark"
+                  rows="3"
+                  maxlength="100"
+                  [(ngModel)]="createForm.remark"
+                  [class.invalid-field]="fieldError('remark')"
+                  (ngModelChange)="handleRemarkChange()"
+                ></textarea>
+                @if (fieldError("remark")) {
+                  <small class="field-error">{{ fieldError("remark") }}</small>
+                }
+              </label>
+
+              <div class="form-field">
+                <span class="field-label-row">
+                  <span>Upload File</span>
+                  <app-help-tooltip
+                    text="Attach a PDF, JPG, or PNG such as a receipt, warranty document, or asset evidence."
+                    ariaLabel="Help for Upload File"
+                  />
+                </span>
+
+                @if (isEditMode() && editingAsset()?.fileId; as linkedFileId) {
+                  <div class="linked-file-current">
+                    <span class="linked-file-current-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M8 3h6l4 4v14H8V3Z"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linejoin="round"
+                        />
+                        <path
+                          d="M14 3v5h5M11 13h4M11 17h4"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    </span>
+                    <span class="linked-file-current-copy">
+                      <strong>
+                        {{
+                          fileRecordLabel(currentLinkedFile()) ||
+                            "File #" + linkedFileId
+                        }}
+                      </strong>
+                    </span>
+                    <button
+                      class="linked-file-view"
+                      type="button"
+                      (click)="previewLinkedFile(linkedFileId)"
+                    >
+                      Preview
+                    </button>
+                  </div>
+                }
+
+                <label
+                  class="linked-file-dropzone"
+                  [class.linked-file-dropzone-active]="isLinkedFileDragging()"
+                >
+                  <input
+                    class="sr-only"
+                    name="linkedFiles"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                    multiple
+                    (change)="handleLinkedFileSelection($event)"
+                  />
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  <span class="linked-file-dropzone-title">
+                    <strong>Click to upload</strong> or drag &amp; drop
+                  </span>
+                  <span class="linked-file-dropzone-hint">
+                    JPG, PNG, or PDF
+                  </span>
+                </label>
+                <small class="field-hint">
+                  Creates a new File Management record and links it to this
+                  asset.
+                </small>
+
+                @if (pendingLinkedFiles().length > 0) {
+                  <div class="linked-file-list" role="list">
+                    @for (
+                      file of pendingLinkedFiles();
+                      track file.name + "-" + file.size + "-" + $index
+                    ) {
+                      <div class="linked-file-item" role="listitem">
+                        <span
+                          class="linked-file-thumb"
+                          [class.linked-file-thumb-pdf]="
+                            file.type === 'application/pdf'
+                          "
+                          aria-hidden="true"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                              d="M7 3h7l4 4v14H7V3Z"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M14 3v5h5M10 13h5M10 17h5"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linecap="round"
+                            />
+                          </svg>
+                        </span>
+                        <span class="app-ellipsis linked-file-name">
+                          {{ file.name }}
+                        </span>
+                        <button
+                          class="option-remove-button"
+                          type="button"
+                          [attr.aria-label]="'Remove ' + file.name"
+                          (click)="removePendingLinkedFile($index)"
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="m6 6 12 12M18 6 6 18"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </section>
+
+        @if (!embedded || assetTypeId() > 0) {
+          <section class="form-section">
+            <div class="section-label">
+              <div class="section-heading-row">
+                <h2>Specifications</h2>
+                <app-help-tooltip
+                  text="These custom fields change by asset type. Admins can add fields for details your team tracks."
+                  ariaLabel="Help for Specifications"
+                />
+              </div>
+              <p>Custom fields for this asset type.</p>
+            </div>
+
+            <div class="section-fields">
+              @if (specFields().length === 0) {
+                <p class="section-note">No custom fields yet.</p>
+              } @else {
+                @for (field of specFields(); track field.assetTypeFieldId) {
+                  <label class="form-field">
+                    <span>
+                      {{ field.fieldLabel }}
+                      @if (field.isRequired) {
+                        <span class="required-mark">*</span>
+                      }
+                    </span>
+
+                    @switch (field.fieldType) {
+                      @case ("number") {
+                        <input
+                          [name]="'spec-' + field.assetTypeFieldId"
+                          type="number"
+                          min="0"
+                          [(ngModel)]="specForm[field.assetTypeFieldId]"
+                          [class.invalid-field]="
+                            specError(field.assetTypeFieldId)
+                          "
+                          (ngModelChange)="
+                            clearSpecError(field.assetTypeFieldId)
+                          "
+                        />
+                      }
+                      @case ("date") {
+                        <app-date-field
+                          [name]="'spec-' + field.assetTypeFieldId"
+                          title="Select date"
+                          placeholder="Select date"
+                          [invalid]="!!specError(field.assetTypeFieldId)"
+                          [ngModel]="specForm[field.assetTypeFieldId]"
+                          (ngModelChange)="
+                            specForm[field.assetTypeFieldId] = $event || '';
+                            clearSpecError(field.assetTypeFieldId)
+                          "
+                        />
+                      }
+                      @case ("boolean") {
+                        <span class="checkbox-field">
+                          <input
+                            [name]="'spec-' + field.assetTypeFieldId"
+                            type="checkbox"
+                            [(ngModel)]="specForm[field.assetTypeFieldId]"
+                            (ngModelChange)="
+                              clearSpecError(field.assetTypeFieldId)
+                            "
+                          />
+                          Enabled
+                        </span>
+                      }
+                      @case ("select") {
+                        <app-select
+                          [name]="'spec-' + field.assetTypeFieldId"
+                          ariaLabel="Specification value"
+                          placeholder="Select value"
+                          [options]="specSelectOptions(field)"
+                          [invalid]="specError(field.assetTypeFieldId) !== ''"
+                          [(ngModel)]="specForm[field.assetTypeFieldId]"
+                          (ngModelChange)="
+                            clearSpecError(field.assetTypeFieldId)
+                          "
+                        />
+                      }
+                      @default {
+                        <input
+                          [name]="'spec-' + field.assetTypeFieldId"
+                          [(ngModel)]="specForm[field.assetTypeFieldId]"
+                          [class.invalid-field]="
+                            specError(field.assetTypeFieldId)
+                          "
+                          (ngModelChange)="
+                            clearSpecError(field.assetTypeFieldId)
+                          "
+                        />
+                      }
+                    }
+
+                    @if (specError(field.assetTypeFieldId)) {
+                      <small class="field-error">{{
+                        specError(field.assetTypeFieldId)
+                      }}</small>
+                    }
+                  </label>
+                }
+              }
+
+              @if (isAdmin()) {
+                <div class="spec-builder-shell">
+                  <div
+                    class="spec-builder-toggle"
+                    [class.hidden]="showSpecFieldBuilder()"
+                  >
+                    <button
+                      class="secondary-action inline-flex items-center gap-2"
+                      type="button"
+                      [attr.aria-expanded]="showSpecFieldBuilder()"
+                      [disabled]="isAddingSpecField()"
+                      (click)="toggleSpecFieldBuilder()"
+                    >
+                      <svg
+                        class="h-[17px] w-[17px]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M12 5v14M5 12h14"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                      Add field
+                    </button>
+                  </div>
+
+                  @if (showSpecFieldBuilder()) {
+                    <div class="field-definition-editor app-motion-enter">
+                      <div class="field-grid">
+                        <label class="form-field field-grid-full">
+                          <span class="field-label-row">
+                            <span>
+                              Field Label <span class="required-mark">*</span>
+                            </span>
+                            <app-help-tooltip
+                              text="The label users will see on this asset type, such as RAM GB or License Key."
+                              ariaLabel="Help for Field Label"
+                            />
+                          </span>
+                          <input
+                            name="newSpecFieldLabel"
+                            [ngModel]="newSpecFieldForm.fieldLabel"
+                            (ngModelChange)="updateNewFieldLabel($event)"
+                            placeholder="RAM GB"
+                          />
+                        </label>
+                      </div>
+
+                      <div class="field-grid items-end">
+                        <div class="form-field">
+                          <span class="field-label-row">
+                            <span>
+                              Field Type <span class="required-mark">*</span>
+                            </span>
+                            <app-help-tooltip
+                              text="Choose the input format. Select is best when users must pick from fixed values."
+                              ariaLabel="Help for Field Type"
+                            />
+                          </span>
+                          <app-select
+                            name="newSpecFieldType"
+                            ariaLabel="Field type"
+                            [options]="assetFieldTypes"
+                            [(ngModel)]="newSpecFieldForm.fieldType"
+                            (ngModelChange)="handleNewFieldTypeChange()"
+                          />
+                        </div>
+
+                        <label class="field-inline-check">
+                          <input
+                            name="newSpecFieldRequired"
+                            type="checkbox"
+                            [(ngModel)]="newSpecFieldForm.isRequired"
+                            (ngModelChange)="specFieldBuilderError.set('')"
+                          />
+                          Required
+                        </label>
+                      </div>
+
+                      @if (newSpecFieldForm.fieldType === "select") {
+                        <div class="form-field field-grid-full">
+                          <span class="field-label-row">
+                            <span>
+                              Select Options <span class="required-mark">*</span>
+                            </span>
+                            <app-help-tooltip
+                              text="Add one option per row. Users can only select from these saved values."
+                              ariaLabel="Help for Select Options"
+                            />
+                          </span>
+                          <div class="option-list" role="list">
+                            @for (
+                              option of newSpecFieldForm.optionValues;
+                              track $index
+                            ) {
+                              <div class="option-row" role="listitem">
+                                <span class="option-index">
+                                  {{ $index + 1 }}
+                                </span>
+                                <input
+                                  [name]="'newSpecFieldOption' + $index"
+                                  [ngModel]="option"
+                                  (ngModelChange)="
+                                    updateNewSpecFieldOption($index, $event)
+                                  "
+                                  [placeholder]="'Option ' + ($index + 1)"
+                                />
+                                @if (
+                                  $index < newSpecFieldForm.optionValues.length - 1
+                                ) {
+                                  <button
+                                    class="option-remove-button"
+                                    type="button"
+                                    [disabled]="isAddingSpecField()"
+                                    [attr.aria-label]="
+                                      'Remove option ' + ($index + 1)
+                                    "
+                                    (click)="removeNewSpecFieldOption($index)"
+                                  >
+                                    <svg
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      aria-hidden="true"
+                                    >
+                                      <path
+                                        d="m6 6 12 12M18 6 6 18"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                      />
+                                    </svg>
+                                  </button>
+                                }
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      }
+
+                      @if (specFieldBuilderError()) {
+                        <p class="field-builder-error">
+                          {{ specFieldBuilderError() }}
+                        </p>
+                      }
+
+                      <div class="field-builder-actions">
+                        <button
+                          class="secondary-action"
+                          type="button"
+                          [disabled]="isAddingSpecField()"
+                          (click)="toggleSpecFieldBuilder()"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          class="save-action"
+                          type="button"
+                          [disabled]="isAddingSpecField()"
+                          (click)="saveNewSpecField()"
+                        >
+                          {{ isAddingSpecField() ? "Saving..." : "Add field" }}
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </section>
+        }
+      </div>
+
+      @if (!embedded || assetTypeId() > 0) {
+        <aside
+          class="summary-panel"
+          [attr.aria-label]="
+            isEditMode() ? 'Edit asset summary' : 'Create asset summary'
+          "
+        >
+          <div>
+            <p class="summary-label">Asset type</p>
+            <p class="summary-title app-ellipsis">{{ assetTypeName() }}</p>
+          </div>
+
+          <div class="summary-divider"></div>
+
+          <div class="summary-list">
+            <p>
+              <span>Location</span>
+              <strong>{{ selectedLocationLabel() }}</strong>
+            </p>
+            <p>
+              <span>Status</span>
+              <strong>{{ createForm.status }}</strong>
+            </p>
+            <p>
+              <span>Specifications</span>
+              <strong>{{ specFields().length }}</strong>
+            </p>
+          </div>
+
+          @if (saveError()) {
+            <p class="form-error">{{ saveError() }}</p>
+          }
+
+          <div class="summary-actions">
+            <button
+              class="secondary-action"
+              type="button"
+              [disabled]="isSaving()"
+              (click)="resetForm()"
+            >
+              {{ isEditMode() ? "Revert" : "Reset" }}
+            </button>
+            <button class="save-action" type="submit" [disabled]="isSaving()">
+              {{
+                isSaving()
+                  ? isEditMode()
+                    ? "Saving..."
+                    : "Creating..."
+                  : isEditMode()
+                    ? "Save changes"
+                    : "Create asset"
+              }}
+            </button>
+          </div>
+        </aside>
+      }
+    </form>
+
+    @if (isScannerOpen()) {
+      <app-barcode-scanner-dialog
+        (closeDialog)="closeScanner()"
+        (barcodeScanned)="handleBarcodeScan($event)"
+      />
+    }
+
+    @if (previewLinkedFileId(); as fileId) {
+      <app-file-record-preview-dialog
+        [open]="true"
+        [fileId]="fileId"
+        (closeDialog)="closeLinkedFilePreview()"
+      />
+    }
+
+    <app-confirm-delete-modal
+      [open]="isBarcodeRegenerationConfirmOpen()"
+      title="Reissue barcode?"
+      message="This will replace the current barcode value. Are you sure you want to continue?"
+      [itemName]="createForm.barcode"
+      cancelLabel="Keep current"
+      confirmLabel="Regenerate"
+      variant="warning"
+      (cancel)="cancelBarcodeRegeneration()"
+      (confirm)="confirmBarcodeRegeneration()"
+    />
+
+  }
+
+  @if (isLinkedFileDragging()) {
+    <div class="linked-file-drag-overlay" aria-hidden="true">
+      <div class="linked-file-drag-overlay-card">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <p>Drop files to upload and link</p>
+      </div>
+    </div>
+  }
+</ng-template>

@@ -1,0 +1,357 @@
+<div class="min-h-screen bg-(--background) text-(--text-primary)">
+  <app-sidebar />
+  <app-mobile-tabbar />
+
+  <div class="lg:pl-60">
+    <app-topbar
+      [displayName]="displayName()"
+      [role]="role()"
+      [initials]="initials()"
+      [avatarUrl]="avatarUrl()"
+      (signOut)="logout()"
+    />
+
+    <main class="px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8 lg:pb-12">
+      <section class="mx-auto max-w-[1100px]">
+        <div class="app-motion-enter border-b border-(--gray-150) pb-5">
+          <a class="back-button" [routerLink]="backLink()">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="m15 6-6 6 6 6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Back
+          </a>
+
+          <nav class="breadcrumb" aria-label="Breadcrumb">
+            <a routerLink="/licenses">Software Licenses</a>
+            <span aria-hidden="true">/</span>
+            <span>{{ mode() === "edit" ? "Edit" : "New" }}</span>
+          </nav>
+
+          <div class="heading-row">
+            <div>
+              <p class="heading-eyebrow">Software License</p>
+              <h1>{{ title() }}</h1>
+            </div>
+          </div>
+          <p class="section-note mt-2">{{ subtitle() }}</p>
+        </div>
+
+        @if (isLoading()) {
+          <section class="page-state app-motion-enter app-motion-delay-1">
+            <app-loading
+              variant="page"
+              message="Loading license..."
+              ariaLabel="Loading license"
+            />
+          </section>
+        } @else if (notFound()) {
+          <section class="page-state page-state-error app-motion-enter app-motion-delay-1">
+            <p>This software license could not be found.</p>
+            <a appButton="secondary" routerLink="/licenses">Back to licenses</a>
+          </section>
+        } @else if (loadError()) {
+          <section class="page-state page-state-error app-motion-enter app-motion-delay-1">
+            <p>{{ loadError() }}</p>
+          </section>
+        } @else {
+          <div class="create-shell app-motion-enter app-motion-delay-1">
+            <div class="form-panel">
+              <section class="form-section">
+                <div class="section-label">
+                  <h2>License details</h2>
+                  <p>Core identification for this software license.</p>
+                </div>
+                <div class="section-fields">
+                  <div class="field-grid">
+                    <label class="form-field">
+                      <span>Software Name <span class="required-mark">*</span></span>
+                      <input
+                        type="text"
+                        [value]="draft().softwareName"
+                        (input)="updateDraft('softwareName', $any($event.target).value)"
+                        placeholder="Microsoft Office"
+                      />
+                    </label>
+
+                    <label class="form-field">
+                      <span>Version</span>
+                      <input
+                        type="text"
+                        [value]="draft().softwareVersion"
+                        (input)="updateDraft('softwareVersion', $any($event.target).value)"
+                        placeholder="2024"
+                      />
+                    </label>
+
+                    <label class="form-field">
+                      <span>License Key</span>
+                      <input
+                        type="text"
+                        [value]="draft().licenseKey"
+                        (input)="updateDraft('licenseKey', $any($event.target).value)"
+                        placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
+                      />
+                    </label>
+
+                    <label class="form-field">
+                      <span>Expiry Date</span>
+                      <app-date-field
+                        title="Expiry Date"
+                        placeholder="Select expiry date"
+                        [ngModel]="draft().expiryDate"
+                        (ngModelChange)="updateDraft('expiryDate', $event || '')"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </section>
+
+              <section class="form-section">
+                <div class="section-label">
+                  <h2>Allocation</h2>
+                  <p>Choose how many assets can use this license.</p>
+                </div>
+                <div class="section-fields">
+                  <div class="field-grid">
+                    <label class="form-field">
+                      <span>Allocation Type</span>
+                      <app-select
+                        ariaLabel="Choose allocation type"
+                        [options]="allocationTypeOptions"
+                        [ngModel]="draft().allocationType"
+                        (ngModelChange)="
+                          updateDraft(
+                            'allocationType',
+                            $event === 'multi' ? 'multi' : 'single'
+                          )
+                        "
+                      />
+                    </label>
+
+                    <label class="form-field">
+                      <span>Allocation Limit</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="255"
+                        [value]="allocationLimitInputValue()"
+                        [disabled]="isAllocationLimitLocked()"
+                        (input)="updateDraft('allocationLimit', $any($event.target).value)"
+                        [placeholder]="
+                          isAllocationLimitLocked() ? 'Single-seat license' : '25'
+                        "
+                      />
+                      @if (!isAllocationLimitLocked()) {
+                        <small class="field-hint">
+                          Maximum number of assets that can share this license.
+                        </small>
+                      }
+                    </label>
+                  </div>
+                </div>
+              </section>
+
+              <section class="form-section">
+                <div class="section-label">
+                  <h2>Details &amp; attachments</h2>
+                  <p>Add context or upload to the private album.</p>
+                </div>
+                <div class="section-fields">
+                  <label class="form-field">
+                    <span>Description</span>
+                    <textarea
+                      rows="3"
+                      [value]="draft().description"
+                      (input)="updateDraft('description', $any($event.target).value)"
+                      placeholder="Internal note"
+                    ></textarea>
+                  </label>
+
+                  <div class="form-field">
+                    <span>Private Album</span>
+                    <label class="album-dropzone" [class.album-dropzone-active]="isDragging()">
+                      <input
+                        type="file"
+                        class="sr-only"
+                        accept="image/*,application/pdf"
+                        multiple
+                        (change)="handleAlbumSelection($event)"
+                      />
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                      <span class="album-dropzone-title">
+                        <strong>Click to browse</strong> or drag &amp; drop
+                      </span>
+                      <span class="album-dropzone-hint">Images or PDFs</span>
+                    </label>
+                    <small class="field-hint">
+                      Optional. Upload images or PDFs into the license's private album.
+                    </small>
+
+                    @if (albumFiles().length > 0) {
+                      <div class="album-upload-list mt-3" role="list">
+                        @for (file of albumFiles(); track file.name + '-' + file.size + '-' + $index) {
+                          <div class="album-upload-item" role="listitem">
+                            <div
+                              class="album-upload-thumb"
+                              [class.album-upload-thumb-pdf]="file.type === 'application/pdf'"
+                              [attr.aria-label]="file.type === 'application/pdf' ? 'PDF file' : 'Image file'"
+                            >
+                              @if (file.type === 'application/pdf') {
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                  <path
+                                    d="M7 4h7l5 5v11H7V4Z"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linejoin="round"
+                                  />
+                                  <path
+                                    d="M14 4v5h5M10 13h6M10 17h6"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                  />
+                                </svg>
+                              } @else {
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                  <rect
+                                    x="4"
+                                    y="5"
+                                    width="16"
+                                    height="14"
+                                    rx="2"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                  />
+                                  <circle cx="9" cy="10" r="1.7" stroke="currentColor" stroke-width="1.8" />
+                                  <path
+                                    d="m8 17 4-4 2.4 2.4L16 14l4 3"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                  />
+                                </svg>
+                              }
+                            </div>
+                            <span class="app-ellipsis album-upload-name">{{ file.name }}</span>
+                            <button
+                              class="option-remove-button"
+                              type="button"
+                              [attr.aria-label]="'Remove ' + file.name"
+                              (click)="removeAlbumFile($index)"
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path
+                                  d="m6 6 12 12M18 6 6 18"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  @if (error()) {
+                    <p class="form-error">{{ error() }}</p>
+                  }
+                </div>
+              </section>
+            </div>
+
+            <aside class="summary-panel">
+              <div>
+                <p class="summary-label">Summary</p>
+                <p class="summary-title">
+                  {{ draft().softwareName || "New license" }}
+                </p>
+              </div>
+
+              <div class="summary-divider"></div>
+
+              <div class="summary-list">
+                <p>
+                  <span>Version</span>
+                  <strong>{{ draft().softwareVersion || "—" }}</strong>
+                </p>
+                <p>
+                  <span>Allocation</span>
+                  <strong>
+                    {{ draft().allocationType === "multi" ? "Multi" : "Single" }}
+                    @if (draft().allocationType === "multi" && draft().allocationLimit) {
+                      ({{ draft().allocationLimit }})
+                    }
+                  </strong>
+                </p>
+                <p>
+                  <span>Expiry</span>
+                  <strong>{{ draft().expiryDate || "Lifetime" }}</strong>
+                </p>
+                <p>
+                  <span>Attachments</span>
+                  <strong>{{ albumFiles().length }} file(s)</strong>
+                </p>
+              </div>
+
+              <div class="summary-divider"></div>
+
+              <div class="summary-actions">
+                <button
+                  appButton="secondary"
+                  type="button"
+                  [disabled]="isSaving()"
+                  (click)="cancel()"
+                >
+                  Cancel
+                </button>
+                <button
+                  appButton
+                  type="button"
+                  [disabled]="isSaving()"
+                  (click)="submit()"
+                >
+                  {{ isSaving() ? busyLabel() : submitLabel() }}
+                </button>
+              </div>
+            </aside>
+          </div>
+        }
+      </section>
+    </main>
+  </div>
+
+  @if (isDragging()) {
+    <div class="album-drag-overlay" aria-hidden="true">
+      <div class="album-drag-overlay-card">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <p>Drop files to add to the private album</p>
+      </div>
+    </div>
+  }
+</div>

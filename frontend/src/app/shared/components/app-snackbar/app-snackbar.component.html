@@ -1,0 +1,47 @@
+<section class="snackbar-stack" aria-live="polite" aria-atomic="false">
+  @for (item of messages(); track item.id) {
+    <article
+      class="snackbar"
+      [class.snackbar-success]="item.variant === 'success'"
+      [class.snackbar-error]="item.variant === 'error'"
+      [class.snackbar-info]="item.variant === 'info'"
+      [class.snackbar-warning]="item.variant === 'warning'"
+      [style.--snackbar-duration]="item.durationMs + 'ms'"
+    >
+      <span class="snackbar-icon" aria-hidden="true">
+        @if (item.variant === 'success') {
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="m5 12.4 4.1 4.1L19 6.8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        } @else if (item.variant === 'error') {
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 7.5v5.4M12 16.5v.1" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+          </svg>
+        } @else if (item.variant === 'warning') {
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 7.5v5.4M12 16.5v.1" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+          </svg>
+        } @else {
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 10.5v6M12 7.2v.1" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+          </svg>
+        }
+      </span>
+
+      <p>{{ item.message }}</p>
+
+      <button
+        class="snackbar-dismiss"
+        type="button"
+        aria-label="Dismiss notification"
+        (click)="dismiss(item.id)"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" />
+        </svg>
+      </button>
+
+      <span class="snackbar-progress" aria-hidden="true"></span>
+    </article>
+  }
+</section>

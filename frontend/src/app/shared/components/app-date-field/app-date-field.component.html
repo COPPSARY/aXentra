@@ -1,0 +1,33 @@
+<button
+  type="button"
+  class="date-field-trigger"
+  [class.date-field-trigger-invalid]="invalid"
+  [class.date-field-trigger-placeholder]="!hasValue"
+  [disabled]="isDisabled"
+  [attr.aria-label]="ariaLabel"
+  (click)="openPicker()"
+>
+  <span class="date-field-value">{{ displayValue }}</span>
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </svg>
+</button>
+
+<app-date-form
+  [open]="isOpen"
+  [title]="title"
+  [description]="description"
+  [value]="value"
+  [minDate]="minDate"
+  [maxDate]="maxDate"
+  [confirmLabel]="confirmLabel"
+  [cancelLabel]="cancelLabel"
+  (cancel)="closePicker()"
+  (confirm)="handleConfirm($event)"
+/>

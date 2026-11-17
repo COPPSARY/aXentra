@@ -1,0 +1,133 @@
+/* Asset type card: identity (icon + name + total), then where those
+   assets are right now, in the same status colours as the dashboard. */
+.asset-card {
+  display: flex;
+  min-height: 220px;
+  flex-direction: column;
+  gap: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-container);
+  background: var(--surface);
+  padding: var(--space-4) var(--space-4) var(--space-4);
+  cursor: pointer;
+  transition:
+    border-color 140ms var(--ease-out-expo),
+    background-color 140ms var(--ease-out-expo);
+}
+
+.asset-card:hover,
+.asset-card:focus-visible {
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
+  outline: none;
+}
+
+.asset-card-head {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.asset-card-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--type-subtitle-size);
+  font-weight: var(--weight-semibold);
+  line-height: 20px;
+}
+
+.asset-card-total {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+}
+
+.asset-card-total app-count-up {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.asset-icon {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.asset-icon svg {
+  width: 36px;
+  height: 36px;
+}
+
+.asset-icon-image {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  object-fit: cover;
+}
+
+.asset-icon-initials {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-semibold);
+}
+
+.asset-card-bar {
+  margin-top: var(--space-1);
+}
+
+.asset-card-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+
+.asset-card-stat {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--type-body-size);
+}
+
+.asset-card-stat dt {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+  overflow: hidden;
+  color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-card-stat dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.asset-card-stat-zero {
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asset-card {
+    transition: none;
+  }
+}

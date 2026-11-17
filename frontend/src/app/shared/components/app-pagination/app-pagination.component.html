@@ -1,0 +1,74 @@
+<nav
+  class="app-pagination"
+  aria-label="Pagination"
+  [attr.aria-disabled]="disabled || safeTotalPages <= 1 ? 'true' : null"
+>
+  <button
+    class="app-pagination__arrow"
+    type="button"
+    aria-label="Previous page"
+    [disabled]="disabled || safeCurrentPage <= 1"
+    (click)="goToPreviousPage()"
+  >
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="m15 6-6 6 6 6"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  </button>
+
+  <div class="app-pagination__pages" aria-label="Pages">
+    @for (item of pageItems; track $index) {
+      @if (item === "gap") {
+        <input
+          class="app-pagination__jump"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          [max]="safeTotalPages"
+          placeholder="..."
+          aria-label="Jump to page"
+          title="Jump to page"
+          [disabled]="disabled"
+          [(ngModel)]="jumpPage"
+          (keydown.enter)="commitJumpPage()"
+          (blur)="commitJumpPage()"
+        />
+      } @else {
+        <button
+          class="app-pagination__page"
+          type="button"
+          [class.app-pagination__page--active]="item === safeCurrentPage"
+          [attr.aria-current]="item === safeCurrentPage ? 'page' : null"
+          [attr.aria-label]="'Page ' + item"
+          [disabled]="disabled"
+          (click)="goToPage(item)"
+        >
+          {{ item }}
+        </button>
+      }
+    }
+  </div>
+
+  <button
+    class="app-pagination__arrow"
+    type="button"
+    aria-label="Next page"
+    [disabled]="disabled || safeCurrentPage >= safeTotalPages"
+    (click)="goToNextPage()"
+  >
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="m9 6 6 6-6 6"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  </button>
+</nav>

@@ -1,0 +1,1759 @@
+<div class="min-h-screen bg-(--background) text-(--text-primary)" (click)="closeActionMenu()">
+  <app-sidebar />
+  <app-mobile-tabbar />
+
+  <div class="lg:pl-60">
+    <app-topbar
+      [displayName]="displayName()"
+      [role]="role()"
+      [initials]="initials()"
+      [avatarUrl]="avatarUrl()"
+      (signOut)="logout()"
+    />
+
+    <main class="px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8 lg:pb-12">
+      <section class="mx-auto max-w-(--content-max)">
+        <header class="list-page-header">
+          <div class="min-w-0">
+            <h1 class="app-page-heading__title">Files</h1>
+          </div>
+        </header>
+
+        <input
+          #filePicker
+          class="hidden"
+          type="file"
+          [attr.accept]="acceptedFileTypes"
+          multiple
+          (change)="onUploadSelection($event)"
+        />
+
+        <section
+          class="files-dropzone app-motion-enter app-motion-delay-2 mt-5"
+          [class.files-dropzone-active]="isDropActive()"
+          (dragenter)="onDragEnter($event)"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event)"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M12 16V7m0 0L8.8 10.2M12 7l3.2 3.2M5 17.5V19a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1.5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <p class="files-dropzone-title">Drag and drop files here</p>
+          <p class="files-dropzone-subtitle">
+            or click
+            <button type="button" (click)="triggerUpload(filePicker)">
+              browse file
+            </button>
+          </p>
+        </section>
+
+        @if (uploadError()) {
+          <p
+            class="mt-3 rounded-xl border border-(--status-error-border) bg-(--status-error-bg) px-4 py-3 text-sm font-medium text-(--status-error-text)"
+          >
+            {{ uploadError() }}
+          </p>
+        }
+
+        <section class="mt-7">
+          <div class="files-breaker app-motion-enter">
+            <h2>Uploaded files</h2>
+          </div>
+
+          <div
+            class="files-pagination-row app-motion-enter app-motion-delay-1 mt-4"
+          >
+            <app-pagination
+              [currentPage]="page()"
+              [totalPages]="effectiveTotalPages()"
+              [disabled]="isLoading()"
+              (pageChange)="goToPage($event)"
+            />
+          </div>
+
+          @if (isLoading()) {
+            <div class="app-motion-list mt-4" aria-label="Loading files">
+              <app-loading
+                variant="page"
+                message="Loading files..."
+                ariaLabel="Loading files"
+              />
+            </div>
+          } @else if (loadError()) {
+            <p
+              class="mt-4 rounded-xl border border-(--status-error-border) bg-(--status-error-bg) px-4 py-3 text-sm font-medium text-(--status-error-text)"
+            >
+              {{ loadError() }}
+            </p>
+          } @else if (visibleFiles().length === 0) {
+            <p
+              class="mt-4 rounded-xl border border-(--gray-300) bg-white px-4 py-8 text-center text-sm font-medium text-(--gray-700)"
+            >
+              No files found.
+            </p>
+          } @else {
+            <div class="files-list mt-4">
+              @for (item of visibleFiles(); track item.fileId) {
+                <article
+                  class="files-item cursor-pointer focus-visible:outline-none"
+                  [class.files-item-menu-open]="
+                    openActionFileId() === item.fileId
+                  "
+                  role="button"
+                  tabindex="0"
+                  [attr.aria-label]="
+                    'View details for ' + filePrimaryLabel(item)
+                  "
+                  (click)="openDetailModal(item)"
+                  (keydown.enter)="openDetailModal(item)"
+                  (keydown.space)="handleFileRowSpace($event, item)"
+                >
+                  <div
+                    class="files-item-leading"
+                    [class.files-item-leading-pdf]="isPdfFile(item)"
+                    [attr.aria-label]="resolveFileTypeLabel(item)"
+                  >
+                    @if (isAlbumFile(item)) {
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M4.75 8.75A2.75 2.75 0 0 1 7.5 6h2.348c.73 0 1.42.334 1.873.906l.558.704c.143.181.362.286.593.286H16.5a2.75 2.75 0 0 1 2.75 2.75v5.854a2.75 2.75 0 0 1-2.75 2.75h-9a2.75 2.75 0 0 1-2.75-2.75V8.75Z"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linejoin="round"
+                        />
+                        <path
+                          d="M8.25 12.25h7.5M8.25 15.25h5"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    } @else {
+                      @switch (resolveFileCategory(item)) {
+                        @case ("document") {
+                          <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                              d="M7 4h7l5 5v11H7V4Z"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M14 4v5h5M10 13h6M10 17h6"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        }
+                        @case ("image") {
+                          <svg viewBox="0 0 24 24" fill="none">
+                            <rect
+                              x="4"
+                              y="5"
+                              width="16"
+                              height="14"
+                              rx="2"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                            />
+                            <circle
+                              cx="9"
+                              cy="10"
+                              r="1.7"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                            />
+                            <path
+                              d="m8 17 4-4 2.4 2.4L16 14l4 3"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        }
+                        @default {
+                          <svg viewBox="0 0 24 24" fill="none">
+                            <rect
+                              x="6"
+                              y="4"
+                              width="12"
+                              height="16"
+                              rx="2"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                            />
+                            <path
+                              d="M9 9h6M9 13h6"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linecap="round"
+                            />
+                          </svg>
+                        }
+                      }
+                    }
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <h3
+                      class="app-ellipsis text-[15px] font-semibold text-(--gray-900)"
+                    >
+                      {{ filePrimaryLabel(item) }}
+                    </h3>
+                    <div class="files-meta">
+                      <span>{{ fileSecondaryLabel(item) }}</span>
+                      <span>{{ fileDateLabel(item) }}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    class="row-action files-preview-action"
+                    type="button"
+                    [attr.aria-label]="
+                      isAlbumFile(item)
+                        ? 'Open album popup'
+                        : 'Open file in new page'
+                    "
+                    (click)="
+                      $event.stopPropagation();
+                      isAlbumFile(item)
+                        ? openFileEntry(item)
+                        : previewFile(item)
+                    "
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M9 5h-2a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M13 5h6v6"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="m11 13 8-8"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+
+                  <div
+                    class="files-action-cell"
+                    (click)="$event.stopPropagation()"
+                  >
+                    <button
+                      class="row-action"
+                      type="button"
+                      aria-label="Open file actions"
+                      aria-haspopup="menu"
+                      [attr.aria-expanded]="openActionFileId() === item.fileId"
+                      (click)="toggleActionMenu(item.fileId)"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M6 12h.01M12 12h.01M18 12h.01"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    </button>
+
+                    @if (openActionFileId() === item.fileId) {
+                      <div class="action-menu" role="menu">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          (click)="handleFileAction('view-details', item)"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          (click)="handleFileAction('manage-links', item)"
+                        >
+                          Manage Links
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          (click)="handleFileAction('rename', item)"
+                        >
+                          Rename
+                        </button>
+                        <button
+                          class="danger-menu-item"
+                          type="button"
+                          role="menuitem"
+                          (click)="handleFileAction('delete', item)"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </article>
+              }
+            </div>
+          }
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <app-confirm-delete-modal
+    [open]="filePendingDelete() !== null"
+    title="Delete file"
+    message="This file will be removed and unlinked from all assets."
+    [itemName]="pendingDeleteFileName()"
+    [isBusy]="isDeleting()"
+    [error]="deleteError()"
+    (cancel)="cancelDelete()"
+    (confirm)="confirmDelete()"
+  />
+
+  <app-confirm-delete-modal
+    [open]="pendingDetailAlbumRemoval() !== null"
+    title="Remove file item"
+    message="This uploaded image or PDF will be removed from the album."
+    [itemName]="pendingDetailAlbumRemovalName()"
+    confirmLabel="Remove"
+    busyLabel="Removing..."
+    [isBusy]="isRemovingAlbumItems()"
+    [error]="detailError()"
+    (cancel)="cancelDetailAlbumRemoval()"
+    (confirm)="confirmDetailAlbumRemoval()"
+  />
+
+  <app-confirm-delete-modal
+    [open]="pendingReassignment() !== null"
+    [title]="pendingReassignment()?.title || 'Relink records'"
+    [message]="pendingReassignment()?.message || ''"
+    [detailLines]="pendingReassignment()?.detailLines || []"
+    [itemName]="pendingReassignment()?.itemName || ''"
+    cancelLabel="Cancel"
+    [confirmLabel]="pendingReassignment()?.confirmLabel || 'Confirm'"
+    variant="warning"
+    (cancel)="cancelPendingReassignment()"
+    (confirm)="confirmPendingReassignment()"
+  />
+
+  @if (filePendingRename()) {
+    <div class="files-assign-modal-backdrop" (click)="closeRenameModal()">
+      <section
+        class="files-assign-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="files-rename-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="files-assign-modal-header">
+          <h2 id="files-rename-title">Rename File</h2>
+          <p class="app-ellipsis">{{ pendingRenameFileName() }}</p>
+        </header>
+
+        <div class="files-assign-modal-body">
+          <label class="grid gap-2">
+            <span class="text-sm font-semibold text-(--gray-900)">File name</span>
+            <div class="flex items-center gap-2">
+              <input
+                class="min-h-[42px] flex-1 rounded-[8px] border border-(--gray-300) bg-white px-3 text-sm text-(--gray-900) outline-none focus:border-(--accent) focus:shadow-[0_0_0_3px_rgb(71_124_230_/_14%)]"
+                type="text"
+                [value]="renameDraft()"
+                [disabled]="isRenaming()"
+                (input)="updateRenameDraft($event)"
+                (keydown.enter)="submitRename()"
+              />
+
+              @if (renameFileExtension()) {
+                <span
+                  class="inline-flex min-h-[42px] items-center rounded-[8px] border border-(--gray-300) bg-(--gray-100) px-3 text-sm font-semibold text-(--gray-700)"
+                >
+                  {{ renameFileExtension() }}
+                </span>
+              }
+            </div>
+
+            @if (renameFileExtension()) {
+              <span class="text-xs text-(--gray-600)">
+                The file extension is locked.
+              </span>
+            }
+          </label>
+
+          @if (renameError()) {
+            <div class="files-assignment-error">{{ renameError() }}</div>
+          }
+        </div>
+
+        <footer class="files-assign-modal-footer">
+          <button
+            class="files-modal-cancel"
+            type="button"
+            [disabled]="isRenaming()"
+            (click)="closeRenameModal()"
+          >
+            Cancel
+          </button>
+          <button
+            class="files-modal-save"
+            type="button"
+            [disabled]="isRenaming() || !renameDraft().trim()"
+            (click)="submitRename()"
+          >
+            {{ isRenaming() ? "Saving..." : "Save" }}
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
+
+  @if (isAlbumPreviewOpen()) {
+    <div class="files-upload-preview-backdrop" (click)="closeAlbumPreview()">
+      <section
+        class="files-upload-preview-modal app-motion-enter"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="files-album-preview-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="files-upload-preview-header">
+          <h2 id="files-album-preview-title">Album Items</h2>
+          @if (albumPreviewFile(); as albumFile) {
+            <p class="app-ellipsis">
+              {{ filePrimaryLabel(albumFile) }} ·
+              {{ albumPreviewItems().length }} item(s)
+            </p>
+          }
+        </header>
+
+        <div class="files-upload-preview-body">
+          <div class="files-upload-preview-list">
+            @if (albumPreviewItems().length === 0) {
+              <div class="files-assignment-state">
+                No album items available.
+              </div>
+            } @else {
+              @for (
+                item of albumPreviewItems();
+                track item.fileName + "-" + $index
+              ) {
+                <article
+                  class="files-upload-preview-item w-full cursor-pointer text-left transition-[background-color,border-color] duration-150 hover:bg-[#eceff3] focus-visible:bg-[#eceff3] focus-visible:outline-none"
+                  role="button"
+                  tabindex="0"
+                  [attr.aria-label]="
+                    'View details for ' + albumPreviewItemLabel(item, $index)
+                  "
+                  (click)="openAlbumPreviewItemDetails($index)"
+                  (keydown.enter)="openAlbumPreviewItemDetails($index)"
+                  (keydown.space)="
+                    $event.preventDefault(); openAlbumPreviewItemDetails($index)
+                  "
+                >
+                  <div
+                    class="files-upload-preview-thumb"
+                    [class.files-upload-preview-thumb-document]="
+                      resolveAlbumItemCategory(item) === 'document'
+                    "
+                    [attr.aria-label]="resolveAlbumItemTypeLabel(item)"
+                  >
+                    @if (
+                      resolveAlbumItemCategory(item) === "image" &&
+                      item.publicUrl
+                    ) {
+                      <img [src]="item.publicUrl" [alt]="item.fileName" />
+                    } @else {
+                      @switch (resolveAlbumItemCategory(item)) {
+                        @case ("document") {
+                          <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                              d="M7 4h7l5 5v11H7V4Z"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M14 4v5h5M10 13h6M10 17h6"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        }
+                        @case ("image") {
+                          <svg viewBox="0 0 24 24" fill="none">
+                            <rect
+                              x="4"
+                              y="5"
+                              width="16"
+                              height="14"
+                              rx="2"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                            />
+                            <circle
+                              cx="9"
+                              cy="10"
+                              r="1.7"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                            />
+                            <path
+                              d="m8 17 4-4 2.4 2.4L16 14l4 3"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        }
+                        @default {
+                          <svg viewBox="0 0 24 24" fill="none">
+                            <rect
+                              x="6"
+                              y="4"
+                              width="12"
+                              height="16"
+                              rx="2"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                            />
+                            <path
+                              d="M9 9h6M9 13h6"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linecap="round"
+                            />
+                          </svg>
+                        }
+                      }
+                    }
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <h3 class="app-ellipsis">
+                      {{ albumPreviewItemLabel(item, $index) }}
+                    </h3>
+                    <p class="files-upload-preview-meta">
+                      {{ albumPreviewItemMeta(item) }}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="inline-flex min-h-[36px] items-center justify-center rounded-[8px] border border-(--gray-300) bg-white px-3 text-[13px] font-bold text-(--gray-700) transition-[border-color,color,background-color] duration-150 hover:border-(--gray-300) hover:bg-(--gray-50) hover:text-(--gray-900) focus-visible:border-(--gray-300) focus-visible:bg-(--gray-50) focus-visible:text-(--gray-900) focus-visible:outline-none"
+                    (click)="
+                      $event.stopPropagation(); openAlbumPreviewItem(item)
+                    "
+                  >
+                    Open
+                  </button>
+                </article>
+              }
+            }
+          </div>
+        </div>
+
+        <footer class="files-upload-preview-footer">
+          <button
+            class="files-modal-cancel"
+            type="button"
+            (click)="closeAlbumPreview()"
+          >
+            Close
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
+
+  @if (isDetailModalOpen()) {
+    <div class="files-assign-modal-backdrop" (click)="closeDetailModal()">
+      <section
+        class="app-motion-enter flex max-h-[88vh] w-full max-w-[980px] flex-col overflow-hidden rounded-[12px] border border-(--gray-300) bg-white"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="files-detail-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="files-assign-modal-header">
+          <h2 id="files-detail-title">File Details</h2>
+          @if (detailSourceFile(); as detailFile) {
+            <p class="app-ellipsis">{{ filePrimaryLabel(detailFile) }}</p>
+          }
+        </header>
+
+        <div class="files-detail-body grid gap-4 overflow-y-auto px-[18px] py-4">
+          @if (detailError()) {
+            <div class="files-assignment-error">{{ detailError() }}</div>
+          }
+
+          @if (detailSourceFile(); as detailFile) {
+            <section
+              class="grid gap-[14px] rounded-[12px] border border-(--gray-150) bg-[linear-gradient(135deg,#f8fbff_0%,#ffffff_100%)] p-[14px] sm:grid-cols-[auto_minmax(0,1fr)]"
+            >
+              <div
+                class="files-detail-hero-icon inline-flex h-[52px] w-[52px] items-center justify-center rounded-[14px] text-white"
+                [style.background]="
+                  isAlbumFile(detailFile)
+                    ? '#6b7280'
+                    : isPdfFile(detailFile)
+                      ? '#d92d20'
+                      : '#477ce6'
+                "
+              >
+                @if (isAlbumFile(detailFile)) {
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M4.75 8.75A2.75 2.75 0 0 1 7.5 6h2.348c.73 0 1.42.334 1.873.906l.558.704c.143.181.362.286.593.286H16.5a2.75 2.75 0 0 1 2.75 2.75v5.854a2.75 2.75 0 0 1-2.75 2.75h-9a2.75 2.75 0 0 1-2.75-2.75V8.75Z"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M8.25 12.25h7.5M8.25 15.25h5"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                } @else {
+                  @switch (resolveFileCategory(detailFile)) {
+                    @case ("document") {
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M7 4h7l5 5v11H7V4Z"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linejoin="round"
+                        />
+                        <path
+                          d="M14 4v5h5M10 13h6M10 17h6"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    }
+                    @case ("image") {
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <rect
+                          x="4"
+                          y="5"
+                          width="16"
+                          height="14"
+                          rx="2"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                        />
+                        <circle
+                          cx="9"
+                          cy="10"
+                          r="1.7"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                        />
+                        <path
+                          d="m8 17 4-4 2.4 2.4L16 14l4 3"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    }
+                    @default {
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <rect
+                          x="6"
+                          y="4"
+                          width="12"
+                          height="16"
+                          rx="2"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                        />
+                        <path
+                          d="M9 9h6M9 13h6"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    }
+                  }
+                }
+              </div>
+
+              <div
+                class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+              >
+                <div class="min-w-0">
+                  <h3 class="app-ellipsis text-[18px] font-bold text-(--gray-900)">
+                    {{ filePrimaryLabel(detailFile) }}
+                  </h3>
+                  <p class="mt-1 text-[13px] font-medium text-(--gray-600)">
+                    {{ detailKindLabel(detailFile) }} |
+                    {{ detailItemCountLabel(detailFile) }} |
+                    {{ formatSize(detailFile.fileSize ?? 0) }}
+                  </p>
+                </div>
+
+                <input
+                  #appendFilePicker
+                  class="hidden"
+                  type="file"
+                  [attr.accept]="acceptedFileTypes"
+                  multiple
+                  (change)="onAppendUploadSelection($event, detailFile)"
+                />
+                <button
+                  class="files-modal-save inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap px-3"
+                  type="button"
+                  [disabled]="isUploading()"
+                  (click)="triggerUpload(appendFilePicker)"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                    class="h-[16px] w-[16px] shrink-0"
+                  >
+                    <path
+                      d="M12 5v14M5 12h14"
+                      stroke="currentColor"
+                      stroke-width="2.2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  Add More File
+                </button>
+              </div>
+            </section>
+
+            <div class="grid gap-4 lg:grid-cols-2">
+              <section
+                class="min-w-0 rounded-[12px] border border-(--gray-150) bg-white p-4"
+              >
+                <h3 class="text-[15px] font-bold text-(--gray-900)">Overview</h3>
+                <dl class="mt-[14px] grid gap-[14px_16px] lg:grid-cols-2">
+                  <div>
+                    <dt
+                      class="text-[12px] font-bold uppercase tracking-[0.04em] text-(--gray-600)"
+                    >
+                      Label
+                    </dt>
+                    <dd
+                      class="mt-1 overflow-wrap-anywhere text-[14px] font-medium text-(--gray-900)"
+                    >
+                      {{ detailFile.fileLabel || "-" }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt
+                      class="text-[12px] font-bold uppercase tracking-[0.04em] text-(--gray-600)"
+                    >
+                      Original Name
+                    </dt>
+                    <dd
+                      class="mt-1 overflow-wrap-anywhere text-[14px] font-medium text-(--gray-900)"
+                    >
+                      {{ detailFile.fileName || "-" }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt
+                      class="text-[12px] font-bold uppercase tracking-[0.04em] text-(--gray-600)"
+                    >
+                      Date Created
+                    </dt>
+                    <dd
+                      class="mt-1 overflow-wrap-anywhere text-[14px] font-medium text-(--gray-900)"
+                    >
+                      {{ createdDateLabel(detailFile) }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt
+                      class="text-[12px] font-bold uppercase tracking-[0.04em] text-(--gray-600)"
+                    >
+                      Date Modified
+                    </dt>
+                    <dd
+                      class="mt-1 overflow-wrap-anywhere text-[14px] font-medium text-(--gray-900)"
+                    >
+                      {{ modifiedDateLabel(detailFile) }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt
+                      class="text-[12px] font-bold uppercase tracking-[0.04em] text-(--gray-600)"
+                    >
+                      Created By
+                    </dt>
+                    <dd
+                      class="mt-1 overflow-wrap-anywhere text-[14px] font-medium text-(--gray-900)"
+                    >
+                      {{ fileCreatedByLabel(detailFile) }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt
+                      class="text-[12px] font-bold uppercase tracking-[0.04em] text-(--gray-600)"
+                    >
+                      Modified By
+                    </dt>
+                    <dd
+                      class="mt-1 overflow-wrap-anywhere text-[14px] font-medium text-(--gray-900)"
+                    >
+                      {{ fileModifiedByLabel(detailFile) }}
+                    </dd>
+                  </div>
+                  <div class="min-w-0 lg:col-span-2">
+                    <dt
+                      class="text-[12px] font-bold uppercase tracking-[0.04em] text-(--gray-600)"
+                    >
+                      Description
+                    </dt>
+                    <dd
+                      class="mt-1 overflow-wrap-anywhere text-[14px] font-medium text-(--gray-900)"
+                    >
+                      {{ detailFile.description || "-" }}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section
+                class="min-w-0 rounded-[12px] border border-(--gray-150) bg-white p-4"
+              >
+                <h3 class="text-[15px] font-bold text-(--gray-900)">
+                  {{ isAlbumFile(detailFile) ? "Album Items" : "File Preview" }}
+                </h3>
+
+                @if (selectedDetailAlbumItem(); as selectedItem) {
+                  <div
+                    class="mt-[14px] grid min-h-[220px] place-items-center overflow-hidden rounded-[12px] border border-(--gray-150) bg-(--gray-50)"
+                  >
+                    @if (
+                      resolveAlbumItemCategory(selectedItem) === "image" &&
+                      selectedItem.publicUrl
+                    ) {
+                      <div
+                        class="pointer-events-none relative h-[320px] w-full overflow-hidden bg-white"
+                      >
+                        <img
+                          class="h-full w-full scale-[1.02] object-cover object-top opacity-95"
+                          [src]="selectedItem.publicUrl"
+                          [alt]="selectedItem.fileName"
+                        />
+                      </div>
+                    } @else if (
+                      isPdfAlbumItem(selectedItem) &&
+                      detailPreviewResourceUrl(selectedItem)
+                    ) {
+                      <div
+                        class="pointer-events-none relative h-[320px] w-full overflow-hidden bg-white"
+                      >
+                        <iframe
+                          class="h-[420px] w-[calc(100%+18px)] max-w-none origin-top scale-[1.02] border-0 bg-white"
+                          style="margin-right: -18px"
+                          [src]="detailPreviewResourceUrl(selectedItem)"
+                          [title]="selectedItem.fileName"
+                          tabindex="-1"
+                        ></iframe>
+                      </div>
+                    } @else {
+                      <div
+                        class="inline-flex h-[84px] w-[84px] items-center justify-center rounded-[20px] text-white"
+                        [style.background]="
+                          resolveAlbumItemCategory(selectedItem) === 'document'
+                            ? '#d92d20'
+                            : '#477ce6'
+                        "
+                      >
+                        @switch (resolveAlbumItemCategory(selectedItem)) {
+                          @case ("document") {
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M7 4h7l5 5v11H7V4Z"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linejoin="round"
+                              />
+                              <path
+                                d="M14 4v5h5M10 13h6M10 17h6"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          }
+                          @case ("image") {
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              aria-hidden="true"
+                            >
+                              <rect
+                                x="4"
+                                y="5"
+                                width="16"
+                                height="14"
+                                rx="2"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                              />
+                              <circle
+                                cx="9"
+                                cy="10"
+                                r="1.7"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                              />
+                              <path
+                                d="m8 17 4-4 2.4 2.4L16 14l4 3"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          }
+                          @default {
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              aria-hidden="true"
+                            >
+                              <rect
+                                x="6"
+                                y="4"
+                                width="12"
+                                height="16"
+                                rx="2"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                              />
+                              <path
+                                d="M9 9h6M9 13h6"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                              />
+                            </svg>
+                          }
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  <div class="mt-3 grid gap-1">
+                    <strong
+                      class="app-ellipsis text-[14px] font-bold text-(--gray-900)"
+                      >{{ selectedItem.fileName }}</strong
+                    >
+                    <span
+                      class="overflow-wrap-anywhere text-[12px] font-medium text-(--gray-600)"
+                      >{{ albumPreviewItemMeta(selectedItem) }}</span
+                    >
+                  </div>
+
+                  <div class="mt-3 flex flex-wrap gap-[10px]">
+                    <button
+                      type="button"
+                      class="inline-flex min-h-[36px] items-center justify-center rounded-[8px] border border-(--accent) bg-(--accent) px-3 text-[13px] font-bold text-white transition-[border-color,color,background-color] duration-150 hover:border-(--accent-hover) hover:bg-(--accent-hover) focus-visible:border-(--accent-hover) focus-visible:bg-(--accent-hover) focus-visible:outline-none"
+                      (click)="openSelectedDetailItem()"
+                    >
+                      Open
+                    </button>
+                    <button
+                      type="button"
+                      class="inline-flex min-h-[36px] items-center justify-center rounded-[8px] border border-(--gray-300) bg-white px-3 text-[13px] font-bold text-(--gray-700) transition-[border-color,color,background-color] duration-150 hover:border-(--gray-300) hover:bg-(--gray-50) hover:text-(--gray-900) focus-visible:border-(--gray-300) focus-visible:bg-(--gray-50) focus-visible:text-(--gray-900) focus-visible:outline-none"
+                      (click)="downloadSelectedDetailItem()"
+                    >
+                      Download
+                    </button>
+                    @if (isDetailAlbumItemRemovable(selectedItem)) {
+                      <button
+                        type="button"
+                        class="inline-flex min-h-[36px] min-w-[40px] items-center justify-center rounded-[8px] border text-[13px] font-bold border-(--status-error-text) bg-(--status-error-text) px-3 text-white transition-[border-color,background-color] duration-150 hover:border-(--status-error-text) hover:bg-(--status-error-text) focus-visible:border-(--status-error-text) focus-visible:bg-(--status-error-text) focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label="Remove file item"
+                        [disabled]="isRemovingAlbumItems()"
+                        (click)="openDetailAlbumRemoval(selectedItem)"
+                      >
+                        Remove
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <div class="files-assignment-state">
+                    No file items available.
+                  </div>
+                }
+
+                @if (detailAlbumItems().length > 1) {
+                  <div
+                    class="files-detail-album-list mt-[14px] grid max-h-[220px] gap-2 overflow-y-auto"
+                  >
+                    @for (
+                      item of detailAlbumItems();
+                      track item.fileName + "-" + $index
+                    ) {
+                      <div
+                        class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-[10px] border border-(--gray-150) bg-white px-3 py-[10px] text-left transition-[border-color,background-color] duration-150"
+                        [style.border-color]="
+                          $index === selectedDetailAlbumItemIndex()
+                            ? '#d1d5db'
+                            : null
+                        "
+                        [style.background-color]="
+                          $index === selectedDetailAlbumItemIndex()
+                            ? '#eceff3'
+                            : null
+                        "
+                      >
+                        <span
+                          role="button"
+                          tabindex="0"
+                          class="inline-flex h-[34px] w-[34px] items-center justify-center rounded-[10px] text-white"
+                          [style.background]="
+                            resolveAlbumItemCategory(item) === 'image'
+                              ? '#477ce6'
+                              : isPdfAlbumItem(item)
+                                ? '#d92d20'
+                                : '#6b7280'
+                          "
+                          (click)="selectDetailAlbumItem($index)"
+                          (keydown.enter)="selectDetailAlbumItem($index)"
+                          (keydown.space)="selectDetailAlbumItem($index)"
+                        >
+                          @if (resolveAlbumItemCategory(item) === "image") {
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              aria-hidden="true"
+                              class="h-[18px] w-[18px]"
+                            >
+                              <rect
+                                x="4"
+                                y="5"
+                                width="16"
+                                height="14"
+                                rx="2"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                              />
+                              <circle
+                                cx="9"
+                                cy="10"
+                                r="1.7"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                              />
+                              <path
+                                d="m8 17 4-4 2.4 2.4L16 14l4 3"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          } @else {
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              aria-hidden="true"
+                              class="h-[18px] w-[18px]"
+                            >
+                              <path
+                                d="M7 4h7l5 5v11H7V4Z"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linejoin="round"
+                              />
+                              <path
+                                d="M14 4v5h5M10 13h6M10 17h6"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          }
+                        </span>
+                        <button
+                          type="button"
+                          class="min-w-0 text-left focus-visible:outline-none"
+                          (click)="selectDetailAlbumItem($index)"
+                        >
+                          <strong
+                            class="app-ellipsis block text-[13px] font-bold text-(--gray-900)"
+                            >{{ albumPreviewItemLabel(item, $index) }}</strong
+                          >
+                          <small
+                            class="app-ellipsis mt-[2px] block text-[12px] font-medium text-(--gray-600)"
+                            >{{ albumPreviewItemMeta(item) }}</small
+                          >
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </section>
+
+              <section
+                class="min-w-0 rounded-[12px] border border-(--gray-150) bg-white p-4"
+              >
+                <h3 class="text-[15px] font-bold text-(--gray-900)">Assets</h3>
+                @if (detailFile.assets.length === 0) {
+                  <div class="files-assignment-state">No assets linked.</div>
+                } @else {
+                  <div class="mt-[14px] grid gap-2">
+                    @for (asset of detailFile.assets; track asset.assetId) {
+                      <a
+                        class="grid gap-[3px] rounded-[10px] border border-(--gray-150) bg-(--gray-50) px-3 py-[10px] transition hover:border-(--gray-300) hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]/20"
+                        [routerLink]="[
+                          '/assets/types',
+                          asset.assetTypeId,
+                          'assets',
+                          asset.assetId,
+                        ]"
+                      >
+                        <strong
+                          class="app-ellipsis text-[14px] font-bold text-(--gray-900)"
+                          >{{ asset.assetName }}</strong
+                        >
+                        <span class="text-[12px] font-medium text-(--gray-600)"
+                          >ID {{ asset.assetId }} | {{ asset.status }}</span
+                        >
+                      </a>
+                    }
+                  </div>
+                }
+              </section>
+
+              <section
+                class="min-w-0 rounded-[12px] border border-(--gray-150) bg-white p-4"
+              >
+                <h3 class="text-[15px] font-bold text-(--gray-900)">Software</h3>
+                @if (detailFile.softwareLicenses.length === 0) {
+                  <div class="files-assignment-state">
+                    No software licenses linked.
+                  </div>
+                } @else {
+                  <div class="mt-[14px] grid gap-2">
+                    @for (
+                      license of detailFile.softwareLicenses;
+                      track license.softwareLicenseId
+                    ) {
+                      <a
+                        class="grid gap-[3px] rounded-[10px] border border-(--gray-150) bg-(--gray-50) px-3 py-[10px] transition hover:border-(--gray-300) hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]/20"
+                        [routerLink]="['/licenses']"
+                        [queryParams]="{ licenseId: license.softwareLicenseId }"
+                      >
+                        <strong
+                          class="app-ellipsis text-[14px] font-bold text-(--gray-900)"
+                          >{{ softwareLicenseLabel(license) }}</strong
+                        >
+                        <span class="text-[12px] font-medium text-(--gray-600)"
+                          >ID {{ license.softwareLicenseId }}</span
+                        >
+                      </a>
+                    }
+                  </div>
+                }
+              </section>
+            </div>
+          } @else if (isDetailLoading()) {
+            <div class="files-assignment-state">
+              <app-loading
+                variant="inline"
+                message="Loading file details..."
+                ariaLabel="Loading file details"
+              />
+            </div>
+          }
+        </div>
+
+        <footer class="files-assign-modal-footer">
+          <button
+            class="files-modal-cancel"
+            type="button"
+            (click)="closeDetailModal()"
+          >
+            Close
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
+
+  @if (isUploadPreviewOpen()) {
+    <div class="files-upload-preview-backdrop" (click)="closeUploadPreview()">
+      <section
+        class="files-upload-preview-modal app-motion-enter"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="files-upload-preview-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="files-upload-preview-header">
+          <h2 id="files-upload-preview-title">
+            {{ isAppendUploadMode() ? "Preview Append" : "Preview Upload" }}
+          </h2>
+          <p>
+            {{ pendingUploadFiles().length }} file(s) selected ·
+            {{ formatSize(pendingUploadTotalSize()) }}
+            @if (appendUploadTargetFile(); as appendTarget) {
+              - append to {{ filePrimaryLabel(appendTarget) }}
+            }
+          </p>
+        </header>
+
+        <div class="files-upload-preview-body">
+          @if (isPendingUploadLimitExceeded()) {
+            <p class="files-upload-preview-warning">
+              Too many files selected ({{ pendingUploadFiles().length }}).
+              Maximum {{ maxFilesPerUpload }} files can be uploaded at once.
+            </p>
+          }
+
+          @if (pendingUploadBlockedCount() > 0) {
+            <p class="files-upload-preview-warning">
+              {{ pendingUploadBlockedCount() }} unsupported file(s) will not be
+              uploaded. Supported: {{ acceptedFileTypes }}.
+            </p>
+          }
+
+          <div class="grid gap-4 px-[18px]">
+            <label class="grid gap-2">
+              <span class="text-sm font-semibold text-(--gray-900)"
+                >Album Label</span
+              >
+              <input
+                class="min-h-[42px] w-full rounded-[8px] border border-(--gray-300) bg-white px-3 text-sm text-(--gray-900) outline-none focus:border-(--accent) focus:shadow-[0_0_0_3px_rgb(71_124_230_/_14%)]"
+                type="text"
+                [value]="uploadLabelDraft()"
+                [disabled]="isUploading()"
+                (input)="updateUploadLabelDraft($event)"
+                [placeholder]="
+                  isAppendUploadMode()
+                    ? 'Leave blank to keep current label'
+                    : 'Project documentation album'
+                "
+              />
+            </label>
+
+            <label class="grid gap-2">
+              <span class="text-sm font-semibold text-(--gray-900)"
+                >Description</span
+              >
+              <textarea
+                class="min-h-[88px] w-full rounded-[8px] border border-(--gray-300) bg-white px-3 py-2 text-sm text-(--gray-900) outline-none focus:border-(--accent) focus:shadow-[0_0_0_3px_rgb(71_124_230_/_14%)]"
+                rows="3"
+                [value]="uploadDescriptionDraft()"
+                [disabled]="isUploading()"
+                (input)="updateUploadDescriptionDraft($event)"
+                [placeholder]="
+                  isAppendUploadMode()
+                    ? 'Leave blank to keep current description'
+                    : 'Optional note for this shared album'
+                "
+              ></textarea>
+            </label>
+          </div>
+
+          <div class="files-upload-preview-list">
+            @for (
+              item of pendingUploadFiles();
+              track item.file.name + "-" + item.file.size + "-" + $index
+            ) {
+              <article
+                class="files-upload-preview-item"
+                [class.files-upload-preview-item-blocked]="!item.isSupported"
+              >
+                <div
+                  class="files-upload-preview-thumb"
+                  [class.files-upload-preview-thumb-document]="
+                    pendingUploadCategory(item.file) === 'document'
+                  "
+                >
+                  @if (item.previewUrl) {
+                    <img [src]="item.previewUrl" [alt]="item.file.name" />
+                  } @else {
+                    @switch (pendingUploadCategory(item.file)) {
+                      @case ("document") {
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M7 4h7l5 5v11H7V4Z"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linejoin="round"
+                          />
+                          <path
+                            d="M14 4v5h5M10 13h6M10 17h6"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      }
+                      @case ("image") {
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <rect
+                            x="4"
+                            y="5"
+                            width="16"
+                            height="14"
+                            rx="2"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                          />
+                          <circle
+                            cx="9"
+                            cy="10"
+                            r="1.7"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                          />
+                          <path
+                            d="m8 17 4-4 2.4 2.4L16 14l4 3"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      }
+                      @default {
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <rect
+                            x="6"
+                            y="4"
+                            width="12"
+                            height="16"
+                            rx="2"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                          />
+                          <path
+                            d="M9 9h6M9 13h6"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                          />
+                        </svg>
+                      }
+                    }
+                  }
+                </div>
+
+                <div class="min-w-0 flex-1">
+                  <h3 class="app-ellipsis">{{ item.file.name }}</h3>
+                  <p class="files-upload-preview-meta">
+                    {{ formatSize(item.file.size) }} ·
+                    {{ item.file.type || "Unknown type" }}
+                  </p>
+                  @if (!item.isSupported) {
+                    <p
+                      class="files-upload-preview-meta files-upload-preview-meta-blocked"
+                    >
+                      Unsupported file type
+                    </p>
+                  }
+                </div>
+
+                <button
+                  class="files-upload-preview-remove"
+                  type="button"
+                  (click)="removePendingUpload($index)"
+                  [attr.aria-label]="'Remove ' + item.file.name"
+                >
+                  Remove
+                </button>
+              </article>
+            }
+          </div>
+        </div>
+
+        <footer class="files-upload-preview-footer">
+          <button
+            class="files-modal-cancel"
+            type="button"
+            [disabled]="isUploading()"
+            (click)="closeUploadPreview()"
+          >
+            Cancel
+          </button>
+          <button
+            class="files-modal-save"
+            type="button"
+            [disabled]="
+              isUploading() ||
+              pendingUploadSupportedCount() === 0 ||
+              isPendingUploadLimitExceeded()
+            "
+            (click)="submitUploadPreview()"
+          >
+            {{
+              isUploading()
+                ? "Uploading..."
+                : isAppendUploadMode()
+                  ? "Append Files"
+                  : "Upload"
+            }}
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
+
+  @if (isAssignmentModalOpen()) {
+    <div class="files-assign-modal-backdrop" (click)="closeAssignmentModal()">
+      <section
+        class="files-assign-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="files-assign-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="files-assign-modal-header">
+          <h2 id="files-assign-title">
+            {{
+              assignmentMode() === "asset" ? "Assign Assets" : "Assign Software"
+            }}
+          </h2>
+          @if (selectedFile(); as selectedFile) {
+            <p class="app-ellipsis">{{ filePrimaryLabel(selectedFile) }}</p>
+          }
+        </header>
+
+        <button
+          class="files-assignment-tabs"
+          [class.files-assignment-tabs-software]="
+            assignmentMode() === 'software'
+          "
+          type="button"
+          [attr.aria-pressed]="assignmentMode() === 'software'"
+          [attr.aria-label]="
+            assignmentMode() === 'asset'
+              ? 'Switch linked record view to Software'
+              : 'Switch linked record view to Assets'
+          "
+          (click)="toggleAssignmentMode()"
+        >
+          <span class="files-assignment-thumb" aria-hidden="true"></span>
+          <span
+            class="files-assignment-tab"
+            [class.files-assignment-tab-active]="assignmentMode() === 'asset'"
+          >
+            Assets
+          </span>
+          <span
+            class="files-assignment-tab"
+            [class.files-assignment-tab-active]="
+              assignmentMode() === 'software'
+            "
+          >
+            Software
+          </span>
+        </button>
+
+        <div
+          class="files-assign-modal-toolbar"
+          [class.files-assign-modal-toolbar-single]="
+            assignmentMode() === 'software'
+          "
+        >
+          <label class="files-assign-search">
+            <span class="sr-only">
+              {{
+                assignmentMode() === "asset"
+                  ? "Search assets"
+                  : "Search software licenses"
+              }}
+            </span>
+            <input
+              type="search"
+              [placeholder]="
+                assignmentMode() === 'asset'
+                  ? 'Search assets'
+                  : 'Search software'
+              "
+              [value]="
+                assignmentMode() === 'asset'
+                  ? assetSearchTerm()
+                  : softwareSearchTerm()
+              "
+              (input)="
+                assignmentMode() === 'asset'
+                  ? updateAssetSearchTerm($event)
+                  : updateSoftwareSearchTerm($event)
+              "
+            />
+          </label>
+
+          @if (assignmentMode() === "asset") {
+            <app-select
+              ariaLabel="Filter assets by asset type"
+              placeholder="Asset type"
+              [options]="assetTypeFilterOptions()"
+              [ngModel]="selectedAssetTypeId()"
+              (ngModelChange)="setAssetTypeFilter($event)"
+            />
+          }
+        </div>
+
+        <div class="files-assign-modal-body">
+          @if (selectedFile(); as selectedFile) {
+            <div
+              class="files-assignment-preview flex flex-col gap-3 rounded-[14px] border border-(--gray-150) bg-white px-4 py-[14px] shadow-[0_1px_2px_rgb(15_23_42_/_0.04)] md:flex-row md:items-start md:justify-between"
+            >
+              <div class="files-assignment-preview-copy grid min-w-0 gap-1">
+                <div
+                  class="files-assignment-preview-label text-[11px] font-bold uppercase tracking-[0.08em] text-(--gray-600)"
+                >
+                  {{
+                    assignmentMode() === "asset"
+                      ? "Asset Links"
+                      : "Software Links"
+                  }}
+                </div>
+                <h3
+                  class="app-ellipsis mt-1 text-[15px] font-semibold text-(--gray-900)"
+                >
+                  {{ filePrimaryLabel(selectedFile) }}
+                </h3>
+                <p
+                  class="files-assignment-preview-meta text-[13px] font-medium leading-[1.5] text-(--gray-600)"
+                >
+                  <!--
+                  {{ assignmentLinkedCount() }} currently linked ·
+                    -->
+                  Review available records, then choose what should stay linked
+                  to this file.
+                </p>
+              </div>
+
+              <div
+                class="files-assignment-preview-stats flex flex-wrap gap-2 md:justify-end"
+                aria-label="Assignment summary"
+              >
+                <span
+                  class="files-assignment-stat"
+                >
+                  <strong>{{ assignmentLinkedCount() }}</strong>
+                  <span>Linked</span>
+                </span>
+              </div>
+            </div>
+          }
+          @if (
+            isAssignmentsLoading() ||
+            (assignmentMode() === "asset" && isAssignmentAssetPageLoading()) ||
+            (assignmentMode() === "software" &&
+              isAssignmentSoftwarePageLoading())
+          ) {
+            <div class="files-assignment-state">
+              <app-loading
+                variant="inline"
+                [message]="
+                  assignmentMode() === 'asset'
+                    ? 'Loading assets...'
+                    : 'Loading software licenses...'
+                "
+                [ariaLabel]="
+                  assignmentMode() === 'asset'
+                    ? 'Loading assets for assignment'
+                    : 'Loading software licenses for assignment'
+                "
+              />
+            </div>
+          } @else if (assignmentError()) {
+            <div class="files-assignment-error">{{ assignmentError() }}</div>
+          } @else if (
+            assignmentMode() === "asset" &&
+            filteredAssignableAssets().length === 0
+          ) {
+            <div class="files-assignment-state">
+              No assets match the selected type or search.
+            </div>
+          } @else if (
+            assignmentMode() === "software" &&
+            filteredAssignableSoftwareLicenses().length === 0
+          ) {
+            <div class="files-assignment-state">
+              No software licenses match your search or filter.
+            </div>
+          } @else {
+            <div
+              class="files-assignment-list-shell grid min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-[14px] border border-(--gray-150) bg-white shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]"
+            >
+              <div
+                class="files-assignment-list-header flex flex-col gap-2 border-b border-(--gray-150) bg-(--gray-50) px-[14px] py-3 md:flex-row md:items-center md:justify-between"
+              >
+                <p class="text-[13px] font-bold text-(--gray-900)">
+                  @if (assignmentMode() === "asset") {
+                    Showing {{ assetAssignmentPageStart() }}-{{
+                      assetAssignmentPageEnd()
+                    }}
+                    of {{ assetAssignmentTotalItems() }}
+                  } @else {
+                    Showing {{ softwareAssignmentPageStart() }}-{{
+                      softwareAssignmentPageEnd()
+                    }}
+                    of {{ softwareAssignmentTotalItems() }}
+                  }
+                </p>
+                @if (assignmentMode() === "asset") {
+                  <div class="files-assignment-page-controls">
+                    <app-pagination
+                      [currentPage]="assetAssignmentPage()"
+                      [totalPages]="assetAssignmentTotalPages()"
+                      [disabled]="isAssignmentAssetPageLoading()"
+                      (pageChange)="goToAssetAssignmentPage($event)"
+                    />
+                  </div>
+                } @else {
+                  <div class="files-assignment-page-controls">
+                    <app-pagination
+                      [currentPage]="softwareAssignmentPage()"
+                      [totalPages]="softwareAssignmentTotalPages()"
+                      [disabled]="isAssignmentSoftwarePageLoading()"
+                      (pageChange)="goToSoftwareAssignmentPage($event)"
+                    />
+                  </div>
+                }
+              </div>
+
+              <div class="files-assets-checklist">
+                @if (assignmentMode() === "asset") {
+                  @for (
+                    asset of filteredAssignableAssets();
+                    track asset.assetId
+                  ) {
+                    <label
+                      class="files-asset-option"
+                      [class.files-asset-option-selected]="
+                        isAssetSelected(asset.assetId)
+                      "
+                    >
+                      <input
+                        type="checkbox"
+                        [checked]="isAssetSelected(asset.assetId)"
+                        (change)="toggleAssetSelection(asset.assetId)"
+                      />
+                      <span class="files-asset-option-body">
+                        <span class="files-asset-option-name app-ellipsis">
+                          {{ asset.assetName }}
+                        </span>
+                        <span class="files-asset-option-sub">
+                          ID {{ asset.assetId }} - {{ asset.status }}
+                          @if (asset.fileId) {
+                            - File: {{ assetLinkedFileLabel(asset) }}
+                          }
+                        </span>
+                      </span>
+                    </label>
+                  }
+                } @else {
+                  @for (
+                    license of filteredAssignableSoftwareLicenses();
+                    track license.softwareLicenseId
+                  ) {
+                    <label
+                      class="files-asset-option"
+                      [class.files-asset-option-selected]="
+                        isSoftwareLicenseSelected(license.softwareLicenseId)
+                      "
+                    >
+                      <input
+                        type="checkbox"
+                        [checked]="
+                          isSoftwareLicenseSelected(license.softwareLicenseId)
+                        "
+                        (change)="
+                          toggleSoftwareLicenseSelection(
+                            license.softwareLicenseId
+                          )
+                        "
+                      />
+                      <span class="files-asset-option-body">
+                        <span class="files-asset-option-name app-ellipsis">
+                          {{ softwareLicenseLabel(license) }}
+                        </span>
+                        <span class="files-asset-option-sub">
+                          ID {{ license.softwareLicenseId }} -
+                          {{ license.status }}
+                          @if (
+                            license.fileId &&
+                            license.fileId !== selectedFile()?.fileId
+                          ) {
+                            - File: {{ softwareLinkedFileLabel(license) }}
+                          } @else if (
+                            license.fileId === selectedFile()?.fileId
+                          ) {
+                            - File: Current file
+                          }
+                        </span>
+                      </span>
+                    </label>
+                  }
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <footer class="files-assign-modal-footer">
+          <button
+            class="files-modal-cancel"
+            type="button"
+            [disabled]="isSavingAssignment()"
+            (click)="closeAssignmentModal()"
+          >
+            Cancel
+          </button>
+          <button
+            class="files-modal-save"
+            type="button"
+            [disabled]="isAssignmentSaveDisabled()"
+            (click)="saveAssignment()"
+          >
+            {{ isSavingAssignment() ? "Saving..." : "Save" }}
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
+</div>

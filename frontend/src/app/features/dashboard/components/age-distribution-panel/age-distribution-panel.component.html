@@ -1,0 +1,54 @@
+<article class="panel">
+  <header class="panel-header">
+    <h2>{{ title }}</h2>
+    @if (subtitle) {
+      <p>{{ subtitle }}</p>
+    }
+  </header>
+
+  <div class="donut-layout">
+    <div class="donut" (mouseleave)="setHoveredBucket(null)">
+      <svg viewBox="0 0 220 220" class="donut-svg" aria-hidden="true">
+        <circle cx="110" cy="110" r="72" class="donut-track" />
+        @for (bucket of buckets; track bucket.label; let index = $index) {
+          <circle
+            cx="110"
+            cy="110"
+            r="72"
+            class="donut-segment"
+            [class.is-active]="hoveredBucketIndex() === index"
+            [attr.stroke]="bucket.color"
+            [attr.stroke-dasharray]="sliceDasharray(bucket.value)"
+            [attr.stroke-dashoffset]="sliceDashoffset(index)"
+            (mouseenter)="setHoveredBucket(index)"
+          />
+        }
+      </svg>
+      <div class="donut-center">
+        <strong>{{ centerValue() }}</strong>
+        <span>{{ centerLabel() }}</span>
+      </div>
+      @if (hoveredBucketIndex() !== null) {
+        <div class="donut-hover-tooltip">
+          <p>{{ hoveredBucketLabel() }}</p>
+          <strong>{{ hoveredBucketValue() }}%</strong>
+        </div>
+      }
+    </div>
+
+    <div class="donut-legend">
+      @for (bucket of buckets; track bucket.label; let index = $index) {
+        <p
+          [attr.title]="bucket.label + ': ' + bucket.value + '%'"
+          [class.is-active]="hoveredBucketIndex() === index"
+          (mouseenter)="setHoveredBucket(index)"
+          (mouseleave)="setHoveredBucket(null)"
+        >
+          <span class="dot" [style.background]="bucket.color"></span>
+          <span>{{ bucket.label }}</span>
+          <strong>{{ bucket.value }}%</strong>
+        </p>
+      }
+    </div>
+  </div>
+</article>

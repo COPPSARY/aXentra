@@ -1,0 +1,279 @@
+locationIdParam:
+  in: path
+  name: locationId
+  required: true
+  schema:
+    type: integer
+    minimum: 1
+  description: Location id
+
+locationSchema:
+  type: object
+  properties:
+    locationId:
+      type: integer
+      example: 1
+    name:
+      type: string
+      example: Phnom Penh HQ
+    description:
+      type: string
+      nullable: true
+      example: Main office
+    address:
+      type: string
+      example: Street 2004, Phnom Penh
+    createdBy:
+      type: integer
+      nullable: true
+      example: 1
+    updatedBy:
+      type: integer
+      nullable: true
+      example: 1
+    createdAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-05-04T10:00:00.000Z
+    updatedAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: 2026-05-04T10:00:00.000Z
+  required:
+    - locationId
+    - name
+    - address
+
+locationCreateBody:
+  type: object
+  required:
+    - name
+    - address
+  properties:
+    name:
+      type: string
+      maxLength: 150
+      example: Phnom Penh HQ
+    description:
+      type: string
+      nullable: true
+      example: Main office
+    address:
+      type: string
+      maxLength: 500
+      example: Street 2004, Phnom Penh
+
+locationUpdateBody:
+  type: object
+  required:
+    - version
+  description: |
+    Update location payload. `version` is required for optimistic locking.
+  properties:
+    version:
+      $ref: ./assetCommon.yaml#/versionField
+    name:
+      type: string
+      maxLength: 150
+      example: Phnom Penh HQ - Renovated
+    description:
+      type: string
+      nullable: true
+      example: Updated office description
+    address:
+      type: string
+      maxLength: 500
+      example: Street 2004, Phnom Penh
+
+locationDeleteBody:
+  type: object
+  required:
+    - name
+  additionalProperties: false
+  description: |
+    Confirm the destructive operation with the exact location name.
+    The match is case-sensitive.
+  properties:
+    name:
+      type: string
+      maxLength: 150
+      example: Phnom Penh HQ
+
+paginatedLocationsResponse:
+  allOf:
+    - $ref: ./assetCommon.yaml#/paginationMeta
+    - type: object
+      properties:
+        locations:
+          type: array
+          items:
+            $ref: '#/locationSchema'
+      required:
+        - locations
+
+locationsPath:
+  get:
+    tags: [Locations]
+    summary: List locations
+    description: |
+      Requires authentication. Super admin sees all locations. Admin sees assigned locations only.
+      Results are paginated.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ./assetCommon.yaml#/pageQueryParam
+      - $ref: ./assetCommon.yaml#/limitQueryParam
+    responses:
+      '200':
+        description: Locations fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/paginatedLocationsResponse'
+      '400':
+        description: Invalid pagination query parameters
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+  post:
+    tags: [Locations]
+    summary: Create location
+    description: |
+      Requires authentication. Super_admin role required.
+      Required body fields: `name`, `address`.
+      Other body fields are optional.
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/locationCreateBody'
+    responses:
+      '201':
+        description: Location created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/locationSchema'
+      '400':
+        description: Validation failed
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '409':
+        description: Location name already exists
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/conflictErrorResponse
+
+locationByIdPath:
+  get:
+    tags: [Locations]
+    summary: Get location by id
+    description: Requires authentication. Scoped by role/location access.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/locationIdParam'
+    responses:
+      '200':
+        description: Location fetched successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/locationSchema'
+      '400':
+        description: Invalid location id
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: Location not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+  patch:
+    tags: [Locations]
+    summary: Update location
+    description: Requires authentication. Super admin only.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/locationIdParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/locationUpdateBody'
+    responses:
+      '200':
+        description: Location updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/locationSchema'
+      '400':
+        description: Validation failed
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: Location not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse
+      '409':
+        description: Location name already exists, or version mismatch (resource was modified by another user)
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/conflictErrorResponse
+  delete:
+    tags: [Locations]
+    summary: Delete location
+    description: |
+      Requires authentication. Super admin only.
+      The request must contain the exact location name.
+      The database deletes all dependent location records.
+      This operation cannot be undone.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/locationIdParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/locationDeleteBody'
+    responses:
+      '200':
+        description: Location deleted successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/locationSchema'
+      '400':
+        description: Invalid location id, missing name, or name mismatch
+      '401':
+        description: Authentication required or invalid token
+      '403':
+        description: Forbidden
+      '404':
+        description: Location not found
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/notFoundErrorResponse

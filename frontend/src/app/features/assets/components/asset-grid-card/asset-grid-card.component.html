@@ -1,0 +1,110 @@
+<article
+  class="asset-card"
+  [class.asset-card-menu-open]="menuOpen"
+>
+  <a
+    class="asset-card-primary-link"
+    [routerLink]="[
+      '/assets/types',
+      asset.assetTypeId,
+      'assets',
+      asset.assetId,
+    ]"
+    [queryParams]="{ assetTypeName: assetTypeName, view: viewMode }"
+    [attr.aria-label]="'View ' + asset.assetName"
+    [attr.title]="'View ' + asset.assetName"
+  ></a>
+
+  <div class="asset-card-media" [class.asset-card-media-empty]="!imageUrl">
+    <div class="asset-card-image-link">
+      @if (imageUrl; as resolvedImageUrl) {
+        <img
+          [src]="resolvedImageUrl"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          (error)="onImageError()"
+        />
+      } @else {
+        <span class="asset-card-image-fallback" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect
+              x="3"
+              y="5"
+              width="18"
+              height="14"
+              rx="2"
+              stroke="currentColor"
+              stroke-width="1.7"
+            />
+            <path
+              d="m5.5 16 4.2-4.2 3.2 3.2 2.1-2.1 3.5 3.6"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <circle cx="16.5" cy="9" r="1.3" fill="currentColor" />
+          </svg>
+          <span>No image</span>
+        </span>
+      }
+    </div>
+
+    <span class="asset-card-status {{ statusTone(asset.status) }}">
+      <span aria-hidden="true"></span>
+      {{ asset.status }}
+    </span>
+
+    <button
+      class="asset-card-action"
+      type="button"
+      aria-label="Open asset actions"
+      aria-haspopup="menu"
+      [attr.aria-expanded]="menuOpen"
+      (click)="toggleMenu($event)"
+      (keydown.escape)="closeMenu()"
+    >
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M6 12h.01M12 12h.01M18 12h.01"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        />
+      </svg>
+    </button>
+  </div>
+
+  <div class="asset-card-body">
+    <h3 class="asset-card-name" [attr.title]="asset.assetName">{{ asset.assetName }}</h3>
+    @if (asset.barcode) {
+      <p class="asset-card-tag tabular">{{ asset.barcode }}</p>
+    }
+    <p
+      class="asset-card-product-line app-ellipsis"
+      [class.asset-card-product-none]="!asset.productName"
+      [attr.title]="asset.productName || 'No product assigned'"
+    >
+      {{ asset.productName || "No product assigned" }}
+    </p>
+    @if (asset.status === 'Loaned' && (asset.assignedUserName || asset.assignedUsername)) {
+      <p class="asset-card-holder app-ellipsis">
+        On loan to <strong>{{ asset.assignedUserName || asset.assignedUsername }}</strong>
+      </p>
+    }
+
+    @if (displaySpecs.length > 0) {
+      <dl class="asset-card-specs" aria-label="Asset specifications">
+        @for (spec of displaySpecs; track spec.fieldId) {
+          <div class="asset-card-spec-row">
+            <dt [attr.title]="spec.label">{{ spec.label }}</dt>
+            <dd [attr.title]="formatSpecValue(spec)">
+              {{ formatSpecValue(spec) }}
+            </dd>
+          </div>
+        }
+      </dl>
+    }
+  </div>
+</article>

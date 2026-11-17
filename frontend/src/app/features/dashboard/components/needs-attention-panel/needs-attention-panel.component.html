@@ -1,0 +1,71 @@
+<section class="attention app-surface" aria-labelledby="attention-title">
+  <header class="attention-header">
+    <h2 id="attention-title" class="attention-title">Needs attention</h2>
+    @if (!isLoading() && items().length > 0) {
+      <span class="attention-count tabular">
+        {{ items().length }}
+        @if (overdueCount() > 0) {
+          <span class="attention-count-overdue">
+            · {{ overdueCount() }} overdue
+          </span>
+        }
+      </span>
+    }
+  </header>
+
+  @if (isLoading()) {
+    <ul class="attention-list" aria-hidden="true">
+      @for (row of [1, 2, 3]; track row) {
+        <li class="attention-row attention-row-skeleton">
+          <span class="app-skeleton attention-skel-title"></span>
+          <span class="app-skeleton attention-skel-badge"></span>
+        </li>
+      }
+    </ul>
+  } @else if (items().length === 0) {
+    <div class="attention-empty">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="m5 12.5 4.5 4.5L19 7.5"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <p>No overdue returns or warranties ending soon.</p>
+    </div>
+  } @else {
+    <ul class="attention-list">
+      @for (item of visibleItems(); track item.key) {
+        <li>
+          <a class="attention-row" [routerLink]="item.link">
+            <span class="attention-copy">
+              <span class="attention-name app-ellipsis" [title]="item.title">
+                {{ item.title }}
+              </span>
+              <span class="attention-meta app-ellipsis">
+                {{ kindLabel(item) }} · {{ item.date | date: 'd MMM y' }}
+                @if (item.detail) {
+                  · {{ item.detail }}
+                }
+              </span>
+            </span>
+            <span
+              class="app-badge tabular"
+              [class.app-badge--danger]="toneFor(item) === 'danger'"
+              [class.app-badge--warning]="toneFor(item) === 'warning'"
+            >
+              {{ dueLabel(item) }}
+            </span>
+          </a>
+        </li>
+      }
+    </ul>
+    @if (hiddenCount() > 0) {
+      <p class="attention-more tabular">
+        {{ hiddenCount() }} more not shown
+      </p>
+    }
+  }
+</section>

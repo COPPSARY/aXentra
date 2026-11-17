@@ -1,0 +1,21 @@
+<div class="flex min-h-screen flex-col bg-slate-50">
+  <app-public-loan-header />
+
+  <main class="flex-1">
+    @if (state(); as s) {
+      @switch (s.kind) {
+        @case ('loading') {
+          <app-public-loan-skeleton />
+        }
+        @case ('loaded') {
+          <app-public-loan-content [view]="s.view" />
+        }
+        @case ('error') {
+          <app-public-loan-error [error]="s.error" />
+        }
+      }
+    }
+  </main>
+
+  <app-public-loan-footer />
+</div>

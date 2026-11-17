@@ -1,0 +1,101 @@
+<section class="asset-label-card" aria-label="Asset label">
+  @if (barcode) {
+    <div class="tag-row">
+      <button type="button" class="print-action" (click)="openPrintDialog()">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M7 9V4h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7v-6Z"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linejoin="round"
+          />
+        </svg>
+        Print label
+      </button>
+    </div>
+
+    <div class="label-preview-shell">
+      <app-asset-label-preview
+        [assetName]="asset.assetName"
+        [barcode]="barcode"
+        template="standard"
+      />
+    </div>
+
+    <footer class="card-actions">
+      <div class="tag-details">
+        <span>Barcode</span>
+        <strong>{{ barcode }}</strong>
+      </div>
+
+      <div class="copy-control">
+        <button
+          type="button"
+          class="copy-action"
+          [disabled]="isCopying()"
+          (click)="copyLabelImage()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            @if (copied()) {
+              <path
+                d="m5 12 4.2 4.2L19 6.5"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            } @else {
+              <path
+                d="M8 8.5V6.8c0-1 .8-1.8 1.8-1.8h7.4c1 0 1.8.8 1.8 1.8v7.4c0 1-.8 1.8-1.8 1.8h-1.7M6.8 8h7.4c1 0 1.8.8 1.8 1.8v7.4c0 1-.8 1.8-1.8 1.8H6.8c-1 0-1.8-.8-1.8-1.8V9.8C5 8.8 5.8 8 6.8 8Z"
+                stroke="currentColor"
+                stroke-width="1.9"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            }
+          </svg>
+          {{
+            isCopying()
+              ? "Copying…"
+              : copied()
+                ? "Image copied"
+                : copyErrorMessage()
+                  ? "Try again"
+                  : "Copy image"
+          }}
+        </button>
+        @if (copyErrorMessage()) {
+          <p class="copy-error" role="alert">{{ copyErrorMessage() }}</p>
+        }
+      </div>
+    </footer>
+  } @else {
+    <div class="no-label-state" role="status">
+      <span class="no-label-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M4 7V5h4M16 5h4v4M20 15v4h-4M8 19H4v-4M7 12h10"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          />
+        </svg>
+      </span>
+      <div>
+        <strong>Barcode unavailable.</strong>
+        <p>
+          This asset does not have a barcode yet. Add or generate one, then
+          refresh the asset.
+        </p>
+      </div>
+    </div>
+  }
+</section>
+
+@if (printDialogOpen()) {
+  <app-print-asset-label-dialog
+    [assets]="labelItems"
+    (closeDialog)="closePrintDialog()"
+    (printReady)="closePrintDialog()"
+  />
+}

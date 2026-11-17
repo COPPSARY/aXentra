@@ -1,0 +1,449 @@
+<header
+  class="sticky top-0 z-[320] border-b border-(--border) bg-(--surface) px-4 py-3 sm:px-6 md:py-2 lg:px-8"
+>
+  @if (mobileMoreDestinationTitle) {
+    <div class="mobile-more-context md:hidden">
+      <a
+        class="mobile-more-back"
+        routerLink="/more"
+        aria-label="Back to More"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="m15 18-6-6 6-6"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span>Back</span>
+      </a>
+      <p>{{ mobileMoreDestinationTitle }}</p>
+    </div>
+  }
+
+  <div
+    class="flex min-h-12 flex-wrap items-center justify-between gap-3 md:flex-nowrap"
+  >
+    <div
+      class="mobile-topbar-actions flex w-full items-center justify-between gap-3 md:hidden"
+    >
+      @if (shouldShowLocationBlock) {
+        <div class="location-anchor">
+          <button
+            class="identity-block location-block location-block-mobile"
+            [class.location-block-open]="isLocationMenuOpen()"
+            type="button"
+            [attr.aria-label]="locationBlockAriaLabel"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="isLocationMenuOpen()"
+            (click)="toggleLocationMenu()"
+          >
+            <span
+              class="identity-avatar identity-avatar-location"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linejoin="round"
+                />
+                <circle
+                  cx="12"
+                  cy="10"
+                  r="2.5"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+              </svg>
+            </span>
+            <span class="location-block-copy min-w-0 text-left">
+              <span
+                class="location-block-title block max-w-42 truncate text-sm font-medium leading-5"
+              >
+                {{ locationDisplayName }}
+              </span>
+            </span>
+            <svg
+              class="location-block-caret h-4 w-4 transition-transform duration-150"
+              [class.rotate-180]="isLocationMenuOpen()"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+
+          @if (isLocationMenuOpen()) {
+            <div
+              class="location-menu-panel app-motion-pop absolute left-0 top-14 z-40 w-[min(22rem,calc(100vw-2rem))] border border-(--border) bg-(--surface) p-1.5"
+              role="menu"
+              aria-label="Location menu"
+            >
+              <div class="location-menu-header">Switch location</div>
+              <div class="location-menu-list">
+                @for (
+                  location of visibleLocations();
+                  track location.locationId
+                ) {
+                  <button
+                    class="menu-item location-menu-item"
+                    [class.location-menu-item-active]="
+                      isLocationActive(location.locationId)
+                    "
+                    type="button"
+                    role="menuitemradio"
+                    [attr.aria-checked]="isLocationActive(location.locationId)"
+                    (click)="switchLocation(location.locationId)"
+                  >
+                    <span class="location-menu-copy">
+                      <span class="location-menu-name">{{
+                        location.name
+                      }}</span>
+                      <span class="location-menu-meta">
+                        {{ location.address }}
+                      </span>
+                    </span>
+                    @if (isLocationActive(location.locationId)) {
+                      <span class="location-menu-check" aria-hidden="true">
+                        <svg viewBox="0 0 20 20" fill="none">
+                          <path
+                            d="m5.5 10 3 3 6-6"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </span>
+                    }
+                  </button>
+                }
+              </div>
+              @if (shouldShowLocationDirectoryAction) {
+                <div class="location-menu-footer">
+                  <button
+                    class="location-menu-directory-action"
+                    type="button"
+                    (click)="openLocationDirectory()"
+                  >
+                    {{ locationDirectoryActionLabel }}
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <div class="relative">
+        <button
+          class="identity-block identity-block-mobile"
+          type="button"
+          aria-label="Open user menu"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="isUserMenuOpen"
+          (click)="toggleUserMenu()"
+          (keydown.escape)="closeUserMenu()"
+        >
+          @if (avatarUrl) {
+            <img
+              class="identity-avatar rounded-full object-cover"
+              [src]="avatarUrl"
+              alt=""
+              draggable="false"
+            />
+          } @else {
+            <span
+              class="identity-avatar flex items-center justify-center rounded-full bg-(--brand-100) text-xs font-semibold text-(--accent-text)"
+              >{{ initials }}</span
+            >
+          }
+        </button>
+
+        @if (isUserMenuOpen) {
+          <div
+            class="user-menu-panel app-motion-pop absolute right-0 top-13 z-40 w-48 border border-(--border) bg-(--surface) p-1.5"
+            role="menu"
+            aria-label="User menu"
+          >
+            <a
+              class="menu-item"
+              routerLink="/profile"
+              role="menuitem"
+              (click)="closeUserMenu()"
+            >
+              My Profile
+            </a>
+            <button
+              class="menu-item menu-item-danger"
+              type="button"
+              role="menuitem"
+              (click)="logOut()"
+            >
+              Log out
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="topbar-search-actions w-full md:max-w-[46rem] md:flex-1">
+      <div class="topbar-search-field">
+        <app-global-search />
+      </div>
+      <button
+        class="topbar-scan-button"
+        type="button"
+        [attr.aria-label]="
+          isFindingBarcode()
+            ? 'Searching for scanned asset'
+            : 'Scan asset barcode or QR code'
+        "
+        [title]="
+          isFindingBarcode() ? 'Searching for scanned asset' : 'Scan asset'
+        "
+        [disabled]="isFindingBarcode()"
+        (click)="openBarcodeScanner()"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M7 8v8M10 8v8M14 8v8M17 8v8"
+            stroke="currentColor"
+            stroke-width="1.9"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <div class="hidden min-w-0 items-center justify-end gap-3 md:flex">
+      @if (shouldShowLocationBlock) {
+        <div class="location-anchor lg:hidden">
+          <button
+            class="identity-block location-block"
+            [class.location-block-open]="isLocationMenuOpen()"
+            type="button"
+            [attr.aria-label]="locationBlockAriaLabel"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="isLocationMenuOpen()"
+            (click)="toggleLocationMenu()"
+          >
+            <span
+              class="identity-avatar identity-avatar-location"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linejoin="round"
+                />
+                <circle
+                  cx="12"
+                  cy="10"
+                  r="2.5"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+              </svg>
+            </span>
+            <span class="location-block-copy hidden min-w-0 text-left md:block">
+              <span
+                class="location-block-title block max-w-32 truncate text-sm font-medium leading-5"
+              >
+                {{ locationDisplayName }}
+              </span>
+              <span
+                class="location-block-subtitle block max-w-32 truncate text-xs leading-4"
+              >
+                {{ locationSubtitle }}
+              </span>
+            </span>
+            <svg
+              class="location-block-caret hidden h-4 w-4 transition-transform duration-150 md:block"
+              [class.rotate-180]="isLocationMenuOpen()"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+
+          @if (isLocationMenuOpen()) {
+            <div
+              class="location-menu-panel app-motion-pop absolute right-0 top-13 z-40 w-80 border border-(--border) bg-(--surface) p-1.5"
+              role="menu"
+              aria-label="Location menu"
+            >
+              <div class="location-menu-header">Switch location</div>
+              <div class="location-menu-list">
+                @for (
+                  location of visibleLocations();
+                  track location.locationId
+                ) {
+                  <button
+                    class="menu-item location-menu-item"
+                    [class.location-menu-item-active]="
+                      isLocationActive(location.locationId)
+                    "
+                    type="button"
+                    role="menuitemradio"
+                    [attr.aria-checked]="isLocationActive(location.locationId)"
+                    (click)="switchLocation(location.locationId)"
+                  >
+                    <span class="location-menu-copy">
+                      <span class="location-menu-name">{{
+                        location.name
+                      }}</span>
+                      <span class="location-menu-meta">
+                        {{ location.address }}
+                      </span>
+                    </span>
+                    @if (isLocationActive(location.locationId)) {
+                      <span class="location-menu-check" aria-hidden="true">
+                        <svg viewBox="0 0 20 20" fill="none">
+                          <path
+                            d="m5.5 10 3 3 6-6"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </span>
+                    }
+                  </button>
+                }
+              </div>
+              @if (shouldShowLocationDirectoryAction) {
+                <div class="location-menu-footer">
+                  <button
+                    class="location-menu-directory-action"
+                    type="button"
+                    (click)="openLocationDirectory()"
+                  >
+                    {{ locationDirectoryActionLabel }}
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <div class="relative">
+        <button
+          class="identity-block"
+          type="button"
+          aria-label="Open user menu"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="isUserMenuOpen"
+          (click)="toggleUserMenu()"
+          (keydown.escape)="closeUserMenu()"
+        >
+          @if (avatarUrl) {
+            <img
+              class="identity-avatar rounded-full object-cover"
+              [src]="avatarUrl"
+              alt=""
+              draggable="false"
+            />
+          } @else {
+            <span
+              class="identity-avatar flex items-center justify-center rounded-full bg-(--brand-100) text-xs font-semibold text-(--accent-text)"
+              >{{ initials }}</span
+            >
+          }
+          <span class="hidden min-w-0 text-left md:block">
+            <span
+              class="block max-w-28 truncate text-sm font-medium leading-5 text-(--text-primary)"
+              >{{ displayName }}</span
+            >
+            <span
+              class="block max-w-28 truncate text-xs leading-4 text-(--text-muted)"
+              >{{ formattedRole }}</span
+            >
+          </span>
+          <svg
+            class="hidden h-4 w-4 text-(--text-muted) transition-transform duration-150 md:block"
+            [class.rotate-180]="isUserMenuOpen"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="m6 9 6 6 6-6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+
+        @if (isUserMenuOpen) {
+          <div
+            class="user-menu-panel app-motion-pop absolute right-0 top-13 z-40 w-48 border border-(--border) bg-(--surface) p-1.5"
+            role="menu"
+            aria-label="User menu"
+          >
+            <a
+              class="menu-item"
+              routerLink="/profile"
+              role="menuitem"
+              (click)="closeUserMenu()"
+            >
+              My Profile
+            </a>
+            <button
+              class="menu-item menu-item-danger"
+              type="button"
+              role="menuitem"
+              (click)="logOut()"
+            >
+              Log out
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</header>
+
+@if (isBarcodeScannerOpen()) {
+  <app-barcode-scanner-dialog
+    (closeDialog)="closeBarcodeScanner()"
+    (barcodeScanned)="handleBarcodeScanned($event)"
+  />
+}
+
+@if (scannedAssetResult(); as scannedAsset) {
+  <app-barcode-scan-result-modal
+    [assetName]="scannedAsset.assetName"
+    [barcode]="scannedAsset.barcode"
+    [assetStatus]="scannedAsset.status"
+    [locationName]="scannedAsset.locationName"
+    [restricted]="scannedAsset.restricted"
+    (closeDialog)="closeScannedAssetResult()"
+    (openAsset)="openScannedAssetResult()"
+  />
+}

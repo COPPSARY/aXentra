@@ -1,0 +1,17 @@
+<div class="app-async-error" role="alert" aria-live="assertive">
+  <div class="app-async-error__banner">
+    <p class="app-async-error__message">{{ message }}</p>
+    <button
+      type="button"
+      appButton="secondary"
+      class="app-async-error__retry"
+      (click)="onRetry()"
+    >
+      {{ retryLabel }}
+    </button>
+  </div>
+
+  <!-- Any previously loaded content is projected here so it stays visible and
+       unchanged beneath the error banner (Requirement 4.3). -->
+  <ng-content></ng-content>
+</div>

@@ -1,0 +1,75 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.date-field-trigger {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-container);
+  background: #fff;
+  padding: 10px 12px;
+  color: var(--gray-900);
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-title-line);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--app-motion-fast) var(--app-motion-ease),
+    background-color var(--app-motion-fast) var(--app-motion-ease),
+    box-shadow var(--app-motion-fast) var(--app-motion-ease);
+}
+
+.date-field-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date-field-trigger svg {
+  height: 18px;
+  width: 18px;
+  flex: 0 0 auto;
+  color: var(--gray-600);
+}
+
+.date-field-trigger:hover:not(:disabled),
+.date-field-trigger:focus-visible {
+  border-color: var(--gray-500);
+  outline: none;
+}
+
+.date-field-trigger:focus-visible {
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.date-field-trigger:disabled {
+  cursor: not-allowed;
+  background: var(--gray-50);
+  color: var(--gray-500);
+  opacity: 0.75;
+}
+
+.date-field-trigger-placeholder .date-field-value {
+  color: var(--text-muted);
+  font-weight: var(--weight-regular);
+}
+
+.date-field-trigger-invalid {
+  border-color: var(--status-error-text);
+}
+
+.date-field-trigger-invalid:hover:not(:disabled),
+.date-field-trigger-invalid:focus-visible {
+  border-color: var(--status-error-text);
+}
+
+.date-field-trigger-invalid:focus-visible {
+  box-shadow: 0 0 0 1px var(--accent);
+}

@@ -1,0 +1,208 @@
+:host {
+  display: block;
+}
+
+.switcher {
+  position: relative;
+}
+
+/* Trigger: neutral, full width, name never truncated by a narrow topbar. */
+.switcher-trigger {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  align-items: center;
+  gap: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  padding: 6px 8px 6px 6px;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background-color 120ms var(--ease-out-expo),
+    border-color 120ms var(--ease-out-expo);
+}
+
+.switcher-trigger:hover,
+.switcher-trigger-open {
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
+}
+
+.switcher-icon {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+}
+
+.switcher-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.switcher-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.switcher-name,
+.switcher-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switcher-name {
+  color: var(--text-primary);
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-semibold);
+  line-height: 20px;
+}
+
+.switcher-meta {
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+  line-height: 16px;
+}
+
+.switcher-chevron {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+
+/* Panel grows out of the trigger. */
+.switcher-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  z-index: 40;
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-container);
+  background: var(--surface);
+  box-shadow: var(--shadow-popover);
+  transform-origin: top center;
+  animation: app-pop-in 160ms var(--ease-out-expo) both;
+}
+
+.switcher-search {
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-2);
+}
+
+.switcher-search input {
+  width: 100%;
+  min-height: 32px;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  padding: 0 var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--type-body-size);
+}
+
+.switcher-list {
+  display: grid;
+  max-height: min(320px, 50vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+}
+
+.switcher-option {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  padding: 6px 8px;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 120ms var(--ease-out-expo);
+}
+
+.switcher-option:hover,
+.switcher-option-current {
+  background: var(--surface-hover);
+}
+
+.switcher-option-copy {
+  display: grid;
+  min-width: 0;
+}
+
+.switcher-option-name,
+.switcher-option-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switcher-option-name {
+  color: var(--text-primary);
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-medium);
+}
+
+.switcher-option-current .switcher-option-name {
+  font-weight: var(--weight-semibold);
+}
+
+.switcher-option-meta {
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+}
+
+/* The only colour: the check on the current location. */
+.switcher-check {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.switcher-empty {
+  margin: 0;
+  padding: var(--space-3) var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--type-body-size);
+}
+
+.switcher-footer {
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: transparent;
+  padding: 10px 12px;
+  color: var(--accent-text);
+  cursor: pointer;
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-medium);
+  text-align: left;
+}
+
+.switcher-footer:hover {
+  background: var(--surface-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switcher-panel {
+    animation: none;
+  }
+}

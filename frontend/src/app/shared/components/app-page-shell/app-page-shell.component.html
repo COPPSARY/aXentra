@@ -1,0 +1,22 @@
+<header class="app-page-shell__header">
+  <div class="app-page-shell__heading">
+    @if (heading) {
+      <h1 class="app-page-shell__title" [id]="headingId">{{ heading }}</h1>
+    }
+    <!-- Optional richer title markup, used in place of the plain heading. -->
+    <ng-content select="[pageShellTitle]"></ng-content>
+    @if (description) {
+      <p class="app-page-shell__description">{{ description }}</p>
+    }
+  </div>
+
+  <!-- Primary action control, aligned with the title at the top (Req 5.1). -->
+  <div class="app-page-shell__actions">
+    <ng-content select="[pageShellActions]"></ng-content>
+  </div>
+</header>
+
+<!-- Content region, rendered below the title and primary action (Req 5.1). -->
+<div class="app-page-shell__content">
+  <ng-content></ng-content>
+</div>

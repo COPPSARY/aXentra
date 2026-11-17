@@ -1,0 +1,25 @@
+realtimeStreamPath:
+  get:
+    tags: [System]
+    summary: Open admin realtime stream
+    description: |
+      Opens a server-sent events stream for admin-facing data changes. The stream emits
+      `ready`, `change`, and `heartbeat` events. Clients should treat `change` as a signal
+      to refetch the affected REST resource rather than relying on the event as a full row payload.
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Realtime stream established
+        content:
+          text/event-stream:
+            schema:
+              type: string
+              example: |
+                event: ready
+                data: {"clientId":1,"timestamp":"2026-05-13T09:00:00.000Z"}
+      '401':
+        description: Authentication required
+      '403':
+        description: Insufficient permissions
+

@@ -1,0 +1,21 @@
+<div class="app-table-pattern">
+  <!-- Toolbar above the table; tabs sit within/above the toolbar (Req 5.2). -->
+  <div class="app-table-pattern__toolbar">
+    <div class="app-table-pattern__tabs">
+      <ng-content select="[tablePatternTabs]"></ng-content>
+    </div>
+    <div class="app-table-pattern__toolbar-actions">
+      <ng-content select="[tablePatternToolbar]"></ng-content>
+    </div>
+  </div>
+
+  <!-- The data table (Req 5.2). -->
+  <div class="app-table-pattern__table">
+    <ng-content></ng-content>
+  </div>
+
+  <!-- Pagination controls below the table (Req 5.2). -->
+  <div class="app-table-pattern__pagination">
+    <ng-content select="[tablePatternPagination]"></ng-content>
+  </div>
+</div>

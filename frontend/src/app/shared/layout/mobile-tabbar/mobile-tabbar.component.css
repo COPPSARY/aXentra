@@ -1,0 +1,74 @@
+.mobile-tabbar {
+  isolation: isolate;
+  min-width: 0;
+}
+
+.tab-item {
+  position: relative;
+  display: flex;
+  min-height: 70px;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-primary);
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-caption-line);
+  text-decoration: none;
+  touch-action: manipulation;
+  transition:
+    color var(--app-motion-fast) var(--app-motion-ease),
+    transform var(--app-motion-fast) var(--app-motion-ease);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab-item::before {
+  position: absolute;
+  top: 0;
+  right: 12px;
+  left: 12px;
+  height: 4px;
+  border-radius: 0 0 var(--radius-pill) var(--radius-pill);
+  background: transparent;
+  content: "";
+}
+
+.tab-item svg {
+  height: 30px;
+  width: 30px;
+  flex: 0 0 auto;
+}
+
+.tab-item span {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-item:hover,
+.tab-item:focus-visible {
+  color: var(--accent);
+  outline: none;
+}
+
+.tab-item:active {
+  transform: translateY(1px);
+}
+
+.tab-item-active {
+  color: var(--accent);
+}
+
+.tab-item-active::before {
+  background: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-item {
+    transition: none;
+  }
+}

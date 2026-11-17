@@ -1,0 +1,227 @@
+:host {
+  display: block;
+}
+
+.panel {
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-container);
+  background: var(--panel-bg);
+  padding: 16px 20px 20px;
+}
+
+.panel-header h2 {
+  margin: 0;
+  color: var(--gray-900);
+  font-size: var(--type-body-size);
+  line-height: var(--type-heading-line);
+  font-weight: var(--weight-semibold);
+}
+
+.panel-header p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-medium);
+}
+
+.line-chart-wrap {
+  margin-top: 14px;
+}
+
+.interactive-chart {
+  position: relative;
+}
+
+.line-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart-hover-segment {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.hover-guide {
+  stroke: #c5d2e6;
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  pointer-events: none;
+}
+
+.grid-line {
+  stroke: var(--gray-150);
+  stroke-width: 1;
+}
+
+.line-assigned,
+.line-returned {
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 800;
+  stroke-dashoffset: 800;
+  animation: path-draw 850ms ease-out forwards;
+}
+
+.line-assigned {
+  stroke: var(--chart-assigned);
+}
+
+.line-returned {
+  stroke: var(--chart-returned);
+  stroke-dasharray: 6 6;
+}
+
+.dot-assigned,
+.dot-returned {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: dot-reveal 520ms ease both;
+  transition:
+    transform var(--app-motion-fast) var(--app-motion-ease),
+    filter var(--app-motion-fast) var(--app-motion-ease);
+}
+
+.dot-assigned {
+  fill: var(--chart-assigned);
+}
+
+.dot-returned {
+  fill: var(--gray-500);
+}
+
+.chart-point-hit {
+  fill: transparent;
+  pointer-events: all;
+}
+
+.chart-point-group:hover .dot-assigned,
+.chart-point-group:hover .dot-returned {
+  transform: scale(1.25);
+}
+
+.dot-assigned.is-active,
+.dot-returned.is-active {
+  transform: scale(1.35);
+  filter: drop-shadow(0 0 5px rgb(15 23 42 / 20%));
+}
+
+.chart-hover-tooltip {
+  position: absolute;
+  top: 8px;
+  transform: translateX(-50%);
+  min-width: 116px;
+  border: 1px solid #d7dfea;
+  border-radius: var(--radius-container);
+  background: rgb(255 255 255 / 95%);
+  backdrop-filter: blur(4px);
+  padding: 8px 9px;
+  box-shadow: 0 8px 20px rgb(15 23 42 / 10%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.chart-hover-tooltip p {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--gray-700);
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-medium);
+}
+
+.chart-hover-tooltip p + p {
+  margin-top: 3px;
+}
+
+.chart-hover-month {
+  margin-bottom: 4px !important;
+  color: var(--gray-800) !important;
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-semibold) !important;
+}
+
+.chart-hover-tooltip strong {
+  color: var(--gray-900);
+  font-weight: var(--weight-semibold);
+}
+
+.line-legend {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: var(--gray-600);
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-semibold);
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  margin-right: 6px;
+}
+
+.legend-dot.assigned {
+  background: var(--chart-assigned);
+}
+
+.legend-dot.returned {
+  background: var(--gray-500);
+}
+
+.line-labels {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  color: var(--gray-600);
+  font-size: var(--type-caption-size);
+  font-weight: var(--weight-medium);
+  text-align: center;
+}
+
+@keyframes path-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes dot-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 767px) {
+  .panel {
+    padding: 14px;
+  }
+
+  .line-labels {
+    font-size: var(--type-caption-size);
+    gap: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line-assigned,
+  .line-returned,
+  .dot-assigned,
+  .dot-returned {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1,0 +1,105 @@
+<div class="global-search-shell">
+  <div class="global-search-bar" [class.global-search-bar-open]="isOpen()">
+    <label class="global-search-input-wrap">
+      <span class="sr-only">Global search</span>
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="m21 21-4.4-4.4M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4Z"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
+      <input
+        type="search"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="Search assets, profiles, products, licenses, files..."
+        [value]="query()"
+        [attr.aria-expanded]="isOpen()"
+        aria-haspopup="listbox"
+        (input)="updateQuery($event)"
+        (focus)="focusSearch()"
+        (keydown)="handleKeydown($event)"
+      />
+    </label>
+
+    @if (isLoading() || isNavigating()) {
+      <span class="global-search-status" aria-hidden="true">
+        <span class="global-search-spinner"></span>
+      </span>
+    } @else if (query()) {
+      <button
+        class="global-search-clear"
+        type="button"
+        aria-label="Clear search"
+        (click)="clearSearch()"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="m6 6 12 12M18 6 6 18"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+    }
+  </div>
+
+  @if (isOpen()) {
+    <div
+      class="global-search-panel app-motion-enter"
+      role="listbox"
+      aria-label="Global search results"
+    >
+      @if (shouldShowTypeHint()) {
+        <div class="global-search-state">
+          Type at least {{ minimumCharactersRemaining() }} more
+          character{{ minimumCharactersRemaining() === 1 ? "" : "s" }} to
+          search.
+        </div>
+      } @else if (errorMessage()) {
+        <div class="global-search-state global-search-state-error">
+          {{ errorMessage() }}
+        </div>
+      } @else if (isLoading()) {
+        <div class="global-search-state">Searching...</div>
+      } @else if (!hasVisibleResults()) {
+        <div class="global-search-state">{{ emptyStateMessage() }}</div>
+      } @else {
+        @for (group of renderedGroups(); track group.key) {
+          <section class="global-search-group">
+            <header class="global-search-group-title">
+              {{ group.label }}
+            </header>
+
+            <div class="global-search-group-list">
+              @for (item of group.items; track item.resource + '-' + item.id) {
+                <button
+                  class="global-search-result"
+                  [class.global-search-result-active]="isResultActive(item.flatIndex)"
+                  type="button"
+                  role="option"
+                  [attr.aria-selected]="isResultActive(item.flatIndex)"
+                  (mouseenter)="setActiveResult(item.flatIndex)"
+                  (click)="openResult(item)"
+                >
+                  <span class="global-search-result-copy">
+                    <span class="global-search-result-label">{{ item.label }}</span>
+                    @if (item.subtitle) {
+                      <span class="global-search-result-subtitle">
+                        {{ item.subtitle }}
+                      </span>
+                    }
+                  </span>
+                  <span class="global-search-result-meta">{{ group.label }}</span>
+                </button>
+              }
+            </div>
+          </section>
+        }
+      }
+    </div>
+  }
+</div>

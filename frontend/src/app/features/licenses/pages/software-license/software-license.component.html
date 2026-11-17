@@ -1,0 +1,501 @@
+<div class="min-h-screen bg-(--background) text-(--text-primary)" (click)="closeActionMenu()">
+  <app-sidebar />
+  <app-mobile-tabbar />
+
+  <div class="lg:pl-60">
+    <app-topbar
+      [displayName]="displayName()"
+      [role]="role()"
+      [initials]="initials()"
+      [avatarUrl]="avatarUrl()"
+      (signOut)="logout()"
+    />
+
+    <main class="px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8 lg:pb-12">
+      <section class="mx-auto max-w-(--content-max)">
+        <header class="list-page-header">
+          <div class="min-w-0">
+            <h1 class="app-page-heading__title">Software licenses</h1>
+          </div>
+          <div class="list-page-header__actions">
+            <button appButton type="button" (click)="openCreateLicense()">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+              New license
+            </button>
+          </div>
+        </header>
+
+        <section class="mt-6">
+          <section
+            class="license-table app-motion-enter app-motion-delay-1"
+            aria-label="Software licenses table"
+          >
+            <div class="table-toolbar">
+              <div class="table-toolbar-leading">
+                <div class="tabs-scroll max-md:hidden">
+                  @for (tab of filterTabs(); track tab.value) {
+                    <button
+                      class="table-tab"
+                      [class.table-tab-active]="filter() === tab.value"
+                      type="button"
+                      [attr.aria-pressed]="filter() === tab.value"
+                      (click)="setFilter(tab.value)"
+                    >
+                      {{ tab.label }} ({{ tab.count }})
+                    </button>
+                  }
+                </div>
+
+                <div class="license-mobile-filter md:hidden">
+                  <app-select
+                    ariaLabel="Filter software licenses by status"
+                    [options]="filterOptions"
+                    [ngModel]="filter()"
+                    (ngModelChange)="setFilter($event)"
+                  />
+                </div>
+
+                <span class="table-summary md:hidden">
+                  Showing {{ pageStart() }}-{{ pageEnd() }} of {{ totalItems() }}
+                </span>
+              </div>
+
+              <app-pagination
+                [currentPage]="page()"
+                [totalPages]="totalPages()"
+                [disabled]="isLoading()"
+                (pageChange)="goToPage($event)"
+              />
+            </div>
+
+            <div class="table-scroll">
+              <div class="table-head">
+                <span>Software</span>
+                <span>License Key</span>
+                <span>Expiry</span>
+                <span>Seats</span>
+                <span>Status</span>
+                <span class="text-center">Action</span>
+              </div>
+
+              @if (isLoading()) {
+                <div class="table-state">
+                  <app-loading
+                    variant="inline"
+                    message="Loading software licenses..."
+                    ariaLabel="Loading software licenses"
+                  />
+                </div>
+              } @else if (loadError()) {
+                <div class="table-state table-state-error">
+                  {{ loadError() }}
+                </div>
+              } @else if (licenses().length === 0) {
+                <div class="table-state">No software licenses found.</div>
+              } @else {
+                <div class="table-body app-motion-list">
+                  @for (item of licenses(); track item.softwareLicenseId) {
+                    <article
+                      class="licenses-table-row licenses-table-row-clickable"
+                      role="button"
+                      tabindex="0"
+                      [attr.aria-label]="'View details for ' + getLicenseTitle(item)"
+                      [class.license-item-menu-open]="
+                        openActionLicenseId() === item.softwareLicenseId
+                      "
+                      (click)="openLicenseDetail(item)"
+                      (keydown.enter)="openLicenseDetail(item)"
+                      (keydown.space)="$event.preventDefault(); openLicenseDetail(item)"
+                    >
+                      <div class="licenses-table-name">
+                        <span
+                          class="license-item-leading"
+                          aria-hidden="true"
+                          [style.background]="licenseBadgeBackground(item)"
+                        >
+                          {{ getLicenseInitial(item) }}
+                        </span>
+
+                        <div class="min-w-0">
+                          <h3
+                            class="app-ellipsis text-(--gray-900)"
+                            [title]="item.description || getLicenseTitle(item)"
+                          >
+                            {{ getLicenseTitle(item) }}
+                          </h3>
+                        </div>
+                      </div>
+
+                      <div class="licenses-table-key-cell">
+                        <span
+                          class="licenses-table-value licenses-table-key"
+                          [title]="licenseKeyTooltip(item)"
+                        >
+                          {{ item.licenseKey || "No key" }}
+                        </span>
+
+                        @if (item.licenseKey) {
+                          <button
+                            class="license-key-copy"
+                            type="button"
+                            [attr.aria-label]="
+                              copiedLicenseId() === item.softwareLicenseId
+                                ? 'License key copied'
+                                : 'Copy license key'
+                            "
+                            [title]="
+                              copiedLicenseId() === item.softwareLicenseId
+                                ? 'Copied'
+                                : 'Copy key'
+                            "
+                            (click)="$event.stopPropagation(); copyLicenseKey(item)"
+                          >
+                            @if (copiedLicenseId() === item.softwareLicenseId) {
+                              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                                <path
+                                  d="m5.5 10 3 3 6-6"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                />
+                              </svg>
+                            } @else {
+                              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                                <rect
+                                  x="7"
+                                  y="4"
+                                  width="9"
+                                  height="11"
+                                  rx="2"
+                                  stroke="currentColor"
+                                  stroke-width="1.7"
+                                />
+                                <path
+                                  d="M4.5 12V6.5A2.5 2.5 0 0 1 7 4h4"
+                                  stroke="currentColor"
+                                  stroke-width="1.7"
+                                  stroke-linecap="round"
+                                />
+                              </svg>
+                            }
+                          </button>
+                        }
+                      </div>
+
+                      <span class="licenses-table-value">
+                        {{
+                          item.expiryDate ? formatExpiryDate(item.expiryDate) : "Lifetime"
+                        }}
+                      </span>
+
+                      <span class="licenses-table-value licenses-table-number">
+                        {{ seatsLabel(item) }}
+                      </span>
+
+                      <span
+                        class="status-pill license-status-pill"
+                        [class]="statusClass(item.status)"
+                      >
+                        <span aria-hidden="true"></span>
+                        {{ item.status }}
+                      </span>
+
+                      <div class="license-action-cell" (click)="$event.stopPropagation()">
+                        <button
+                          class="row-action"
+                          type="button"
+                          aria-label="Open software license actions"
+                          aria-haspopup="menu"
+                          [attr.aria-expanded]="
+                            openActionLicenseId() === item.softwareLicenseId
+                          "
+                          (click)="toggleActionMenu(item.softwareLicenseId)"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                              d="M6 12h.01M12 12h.01M18 12h.01"
+                              stroke="currentColor"
+                              stroke-width="3"
+                              stroke-linecap="round"
+                            />
+                          </svg>
+                        </button>
+
+                        @if (openActionLicenseId() === item.softwareLicenseId) {
+                          <div class="action-menu" role="menu">
+                            <button
+                              type="button"
+                              role="menuitem"
+                              (click)="handleLicenseAction('view', item)"
+                            >
+                              View Details
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              (click)="handleLicenseAction('edit', item)"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              (click)="handleLicenseAction('assign', item)"
+                            >
+                              Assign Seats
+                            </button>
+                            <button
+                              class="danger-menu-item"
+                              type="button"
+                              role="menuitem"
+                              (click)="handleLicenseAction('delete', item)"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    </article>
+                  }
+                </div>
+              }
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  @if (isAssignModalOpen()) {
+    <div class="licenses-modal-backdrop" (click)="closeAssignModal()">
+      <section
+        class="licenses-modal licenses-modal-assign app-motion-enter"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="assign-license-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="licenses-modal-header">
+          <h2 id="assign-license-title">Assign Seats</h2>
+          <p>{{ assigningLicense()?.softwareName || "" }}</p>
+        </header>
+
+        <div class="licenses-modal-body">
+          @if (isAssignLoading()) {
+            <app-loading
+              variant="inline"
+              message="Loading assignment data..."
+              ariaLabel="Loading assignment data"
+            />
+          } @else {
+            <div class="licenses-assignment-counts">
+              <div class="licenses-assignment-stat">
+                <span>Available Seats</span>
+                <strong>{{ assignableSeatCount() }}</strong>
+              </div>
+              <div class="licenses-assignment-stat">
+                <span>Assigned</span>
+                <strong>{{ activeAssignments().length }}</strong>
+              </div>
+              <div class="licenses-assignment-stat">
+                <span>Allocation</span>
+                <strong>
+                  {{ assigningLicense()?.allocationType || "single" }}
+                  @if (assigningLicense()?.allocationLimit) {
+                    ({{ assigningLicense()?.allocationLimit }})
+                  }
+                </strong>
+              </div>
+            </div>
+
+            <div class="licenses-assign-layout">
+              <section class="licenses-assign-panel">
+                <div class="licenses-assign-panel-header">
+                  <h3>Assign to Asset</h3>
+                  <p>Choose assets, then assign seats.</p>
+                </div>
+
+                @if (assetTypeFilterOptions().length > 0) {
+                  <div class="licenses-assignment-filter">
+                    <app-select
+                      ariaLabel="Filter assets by asset type"
+                      placeholder="Asset type"
+                      [options]="assetTypeFilterOptions()"
+                      [ngModel]="selectedAssetTypeId()"
+                      (ngModelChange)="setAssetTypeFilter($event)"
+                    />
+                  </div>
+                }
+
+                <div class="licenses-assignment-list-shell">
+                  <div class="licenses-assignment-list-header">
+                    <p>
+                      Showing {{ assetAssignmentPageStart() }}-{{
+                        assetAssignmentPageEnd()
+                      }}
+                      of {{ assetAssignmentTotalItems() }}
+                    </p>
+
+                    <div class="licenses-assignment-page-controls">
+                      <app-pagination
+                        [currentPage]="assetAssignmentPage()"
+                        [totalPages]="assetAssignmentTotalPages()"
+                        [disabled]="isAssignmentAssetPageLoading()"
+                        (pageChange)="goToAssetAssignmentPage($event)"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="licenses-assets-checklist">
+                    @if (isAssignmentAssetPageLoading()) {
+                      <app-loading
+                        variant="inline"
+                        message="Loading assets..."
+                        ariaLabel="Loading assets"
+                      />
+                    } @else if (assets().length === 0) {
+                      <p class="licenses-inline-state">
+                        No assets available for assignment.
+                      </p>
+                    } @else {
+                      @for (asset of assets(); track asset.assetId) {
+                        <label
+                          class="licenses-asset-option"
+                          [class.licenses-asset-option-selected]="
+                            isAssignmentAssetSelected(asset.assetId)
+                          "
+                          [class.licenses-asset-option-disabled]="
+                            isAssignmentAssetDisabled(asset.assetId)
+                          "
+                        >
+                          <input
+                            type="checkbox"
+                            name="software-license-assignment-asset"
+                            [checked]="isAssignmentAssetSelected(asset.assetId)"
+                            [disabled]="
+                              isAssignmentAssetDisabled(asset.assetId)
+                            "
+                            (change)="selectAssignmentAsset(asset.assetId)"
+                          />
+                          <span class="licenses-asset-option-body">
+                            <span class="licenses-asset-option-name app-ellipsis">
+                              {{ asset.assetName }}
+                            </span>
+                            <span class="licenses-asset-option-sub">
+                              ID {{ asset.assetId }} - {{ asset.status }}
+                              @if (isAssignmentAssetAlreadyAssigned(asset.assetId)) {
+                                - Already assigned
+                              }
+                            </span>
+                          </span>
+                        </label>
+                      }
+                    }
+                  </div>
+                </div>
+
+                <button
+                  appButton
+                  class="licenses-inline-action"
+                  type="button"
+                  [disabled]="
+                    isAssigning() || selectedAssetCount() === 0
+                  "
+                  (click)="assignSelectedAsset()"
+                >
+                  @if (isAssigning()) {
+                    Assigning...
+                  } @else if (selectedAssetCount() > 1) {
+                    Assign {{ selectedAssetCount() }} Seats
+                  } @else {
+                    Assign Seat
+                  }
+                </button>
+              </section>
+
+              <section class="licenses-assign-panel licenses-assignment-history">
+                <div class="licenses-assign-panel-header">
+                  <h3>Active Assignments</h3>
+                  <p>Remove a seat from an asset when it is no longer in use.</p>
+                </div>
+
+                @if (activeAssignments().length === 0) {
+                  <p class="licenses-inline-state">No active assignments.</p>
+                } @else {
+                  <ul class="licenses-assignment-list">
+                    @for (
+                      assignment of activeAssignments();
+                      track assignment.licenseLinkAssetId
+                    ) {
+                      <li>
+                        @if (assignmentAssetLink(assignment)) {
+                          <button
+                            class="licenses-asset-link"
+                            type="button"
+                            (click)="openAssignedAsset(assignment)"
+                          >
+                            {{ assignmentAssetLabel(assignment) }}
+                          </button>
+                        } @else {
+                          <span>{{ assignmentAssetLabel(assignment) }}</span>
+                        }
+                        <button
+                          type="button"
+                          [disabled]="
+                            unassigningAssignmentId() === assignment.licenseLinkAssetId
+                          "
+                          (click)="unassignLicense(assignment.licenseLinkAssetId)"
+                        >
+                          {{
+                            unassigningAssignmentId() === assignment.licenseLinkAssetId
+                              ? "Unassigning..."
+                              : "Unassign"
+                          }}
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              </section>
+            </div>
+
+            @if (assignError()) {
+              <p class="licenses-form-error">{{ assignError() }}</p>
+            }
+          }
+        </div>
+
+        <footer class="licenses-modal-footer">
+          <button
+            appButton="secondary"
+            class="licenses-modal-cancel"
+            type="button"
+            [disabled]="isAssigning() || unassigningAssignmentId() !== null"
+            (click)="closeAssignModal()"
+          >
+            Close
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
+
+  <app-confirm-delete-modal
+    [open]="licensePendingDelete() !== null"
+    title="Delete software license"
+    message="This software license will be permanently removed."
+    [itemName]="licensePendingDelete()?.softwareName || ''"
+    [isBusy]="isDeleting()"
+    [error]="deleteError()"
+    (cancel)="cancelDelete()"
+    (confirm)="confirmDelete()"
+  />
+</div>

@@ -1,0 +1,180 @@
+<div class="print-backdrop" (click)="close()" (keydown)="handleKeydown($event)">
+  <section
+    class="print-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="print-label-title"
+    aria-describedby="print-label-description"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="print-header">
+      <div>
+        <p class="print-eyebrow">Asset labels</p>
+        <h2 id="print-label-title">
+          {{ bulk ? "Print selected asset labels" : "Print asset label" }}
+        </h2>
+        <p id="print-label-description">
+          @if (bulk) {
+            {{ assets.length }} selected
+            {{ assets.length === 1 ? "asset" : "assets" }} in one print document
+          } @else {
+            Print the asset barcode as a barcode or QR code.
+          }
+        </p>
+      </div>
+      <button
+        class="icon-button"
+        type="button"
+        aria-label="Close print label dialog"
+        [disabled]="isGenerating()"
+        (click)="close()"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="m6 6 12 12M18 6 6 18"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+    </header>
+
+    <div class="print-content">
+      <section class="preview-panel" aria-labelledby="label-preview-heading">
+        <div class="section-heading">
+          <div>
+            <h3 id="label-preview-heading">Preview</h3>
+            <p>{{ selectedTemplateOption.size }} · actual layout</p>
+          </div>
+          @if (bulk && assets.length > 1) {
+            <span class="preview-count">First of {{ assets.length }}</span>
+          }
+        </div>
+
+        <div class="preview-stage">
+          @if (previewAsset; as asset) {
+            @if (asset.barcode) {
+              <app-asset-label-preview
+                [assetName]="asset.assetName"
+                [barcode]="asset.barcode"
+                [template]="selectedTemplate"
+                [includeAssetName]="includeAssetName"
+              />
+            } @else {
+              <div class="preview-empty">
+                This asset does not have a barcode.
+              </div>
+            }
+          }
+        </div>
+
+        @if (missingBarcodeCount > 0) {
+          <div class="print-warning" role="status">
+            <div>
+              <strong>
+                {{ missingBarcodeCount }} selected
+                {{
+                  missingBarcodeCount === 1 ? "asset is" : "assets are"
+                }}
+                missing a barcode.
+              </strong>
+              <span>
+                Printing never generates or updates barcodes. Add or generate
+                the missing barcode before printing.
+              </span>
+            </div>
+          </div>
+        }
+      </section>
+
+      <form class="options-panel" (ngSubmit)="print()">
+        <fieldset>
+          <legend>Template</legend>
+          <div class="template-options">
+            @for (option of templates; track option.value) {
+              <label
+                class="template-option"
+                [class.template-option-selected]="
+                  selectedTemplate === option.value
+                "
+              >
+                <input
+                  type="radio"
+                  name="labelTemplate"
+                  [value]="option.value"
+                  [checked]="selectedTemplate === option.value"
+                  [disabled]="isGenerating()"
+                  (change)="setTemplate(option.value)"
+                />
+                <span>
+                  <strong>{{ option.label }}</strong>
+                  <small>{{ option.size }} · {{ option.description }}</small>
+                </span>
+              </label>
+            }
+          </div>
+        </fieldset>
+
+        @if (!bulk) {
+          <label class="form-field">
+            <span>Quantity</span>
+            <input
+              data-dialog-initial-focus
+              type="number"
+              name="quantity"
+              min="1"
+              max="100"
+              step="1"
+              inputmode="numeric"
+              [(ngModel)]="quantity"
+              [disabled]="isGenerating()"
+            />
+            <small>Maximum 100 labels per print document.</small>
+          </label>
+        }
+
+        <label class="check-option">
+          <input
+            type="checkbox"
+            name="includeAssetName"
+            [(ngModel)]="includeAssetName"
+            [disabled]="isGenerating() || selectedTemplate !== 'standard'"
+          />
+          <span>
+            <strong>Include asset name</strong>
+            <small>Available on the Standard template.</small>
+          </span>
+        </label>
+
+        @if (errorMessage()) {
+          <p class="print-error" role="alert">{{ errorMessage() }}</p>
+        }
+      </form>
+    </div>
+
+    <footer class="print-footer">
+      <span class="print-status" aria-live="polite">
+        {{ isGenerating() ? "Preparing vector label document…" : "" }}
+      </span>
+      <button
+        class="secondary-action"
+        type="button"
+        [disabled]="isGenerating()"
+        (click)="close()"
+      >
+        Cancel
+      </button>
+      <button
+        class="primary-action"
+        type="button"
+        [disabled]="isGenerating() || printableAssets.length === 0"
+        (click)="print()"
+      >
+        {{
+          isGenerating() ? "Preparing…" : bulk ? "Print labels" : "Print label"
+        }}
+      </button>
+    </footer>
+  </section>
+</div>

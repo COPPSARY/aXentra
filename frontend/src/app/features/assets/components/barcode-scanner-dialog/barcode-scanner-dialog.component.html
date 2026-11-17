@@ -1,0 +1,118 @@
+<div
+  class="scanner-backdrop"
+  (click)="cancel()"
+  (keydown)="handleDialogKeydown($event)"
+>
+  <section
+    class="scanner-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="asset-label-scanner-title"
+    aria-describedby="asset-label-scanner-description"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="scanner-header">
+      <div>
+        <h2 id="asset-label-scanner-title">Scan asset</h2>
+        <p id="asset-label-scanner-description">
+          Scan a barcode or QR code to find an asset.
+        </p>
+      </div>
+      <button type="button" aria-label="Close scanner" (click)="cancel()">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="m6 6 12 12M18 6 6 18"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+    </header>
+
+    <div class="scanner-body">
+      <section class="scanner-block">
+        <h3>Camera</h3>
+
+        <div class="camera-panel" [class.camera-panel-active]="isCameraActive()">
+          @if (isCameraActive()) {
+            <div class="camera-surface">
+              <video
+                #scannerVideo
+                [class.camera-preview-mirrored]="isFrontCameraActive()"
+                muted
+                playsinline
+                aria-label="Asset label camera preview"
+              ></video>
+              <div class="scanner-frame" aria-hidden="true">
+                <span class="scanner-corner scanner-corner-top-left"></span>
+                <span class="scanner-corner scanner-corner-top-right"></span>
+                <span class="scanner-corner scanner-corner-bottom-left"></span>
+                <span class="scanner-corner scanner-corner-bottom-right"></span>
+                <span class="scanner-beam"></span>
+              </div>
+            </div>
+
+            <div class="camera-toolbar">
+              <p>Scanning barcode or QR code…</p>
+              <button class="secondary-action" type="button" (click)="stopCamera()">
+                Stop camera
+              </button>
+            </div>
+          } @else if (isRequestingCamera()) {
+            <div class="camera-empty-state camera-requesting" role="status">
+              <span class="camera-spinner" aria-hidden="true"></span>
+              <p>Requesting camera access…</p>
+            </div>
+          } @else {
+            <div class="camera-empty-state">
+              <button class="camera-start" type="button" (click)="startCamera()">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M4 7V5h4M16 5h4v4M20 15v4h-4M8 19H4v-4M7 12h10M8 9v6M11 9v6M15 9v6"
+                    stroke="currentColor"
+                    stroke-width="1.9"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                Start camera
+              </button>
+            </div>
+          }
+        </div>
+      </section>
+
+      <p class="scan-guidance">Hold the barcode or QR code inside the frame.</p>
+
+      <div aria-live="polite" aria-atomic="true">
+        @if (cameraError()) {
+          <p class="scanner-error">{{ cameraError() }}</p>
+        }
+      </div>
+
+      <form class="manual-scan" (ngSubmit)="submitManualBarcode()">
+        <label>
+          <span>Barcode</span>
+          <input
+            #manualBarcodeInput
+            name="barcode"
+            type="text"
+            autocomplete="off"
+            inputmode="text"
+            [ngModel]="manualBarcode()"
+            (ngModelChange)="updateManualBarcode($event)"
+            placeholder="Scan or enter a barcode"
+          />
+        </label>
+
+        <div class="scanner-actions">
+          <button class="secondary-action" type="button" (click)="cancel()">
+            Cancel
+          </button>
+          <button class="primary-action" type="submit">Search</button>
+        </div>
+      </form>
+    </div>
+  </section>
+</div>

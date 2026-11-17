@@ -1,0 +1,133 @@
+loginPath:
+  post:
+    tags: [Authentication]
+    summary: Login with username and password
+    description: |
+      Required body fields: `username`, `password`.
+      Optional body field: `rememberMe`.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./assetCommon.yaml#/loginBody
+    responses:
+      '200':
+        description: Login successful
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/loginResponse
+      '400':
+        description: Validation failed
+      '401':
+        description: Invalid credentials
+      '429':
+        description: Too many requests
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/rateLimitErrorResponse
+
+forgotPasswordPath:
+  post:
+    tags: [Authentication]
+    summary: Request a password reset
+    description: |
+      Required body field: `email`.
+      Always returns a success message to avoid account enumeration.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./assetCommon.yaml#/forgotPasswordBody
+    responses:
+      '200':
+        description: Request accepted
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/messageResponse
+      '400':
+        description: Validation failed
+      '429':
+        description: Too many requests
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/rateLimitErrorResponse
+
+resetPasswordPath:
+  post:
+    tags: [Authentication]
+    summary: Reset password with a reset token
+    description: |
+      Required body fields: `token`, `password`, `confirmPassword`.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./assetCommon.yaml#/resetPasswordBody
+    responses:
+      '200':
+        description: Password reset successful
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/messageResponse
+      '400':
+        description: Validation failed or token invalid/expired
+
+refreshSessionPath:
+  post:
+    tags: [Authentication]
+    summary: Refresh access token
+    description: |
+      No required body fields.
+      Optional body field: `refreshToken`.
+      Refresh token can be sent via HttpOnly cookie or request body.
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: ./assetCommon.yaml#/refreshSessionBody
+    responses:
+      '200':
+        description: Token refreshed successfully
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/loginResponse
+      '401':
+        description: Missing, invalid, or expired refresh token
+      '429':
+        description: Too many requests
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/rateLimitErrorResponse
+
+logoutPath:
+  post:
+    tags: [Authentication]
+    summary: Logout and revoke refresh token
+    description: |
+      No required body fields.
+      Optional body field: `refreshToken`.
+      Revokes the active refresh token and clears refresh-token cookie.
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: ./assetCommon.yaml#/refreshSessionBody
+    responses:
+      '200':
+        description: Logout successful
+        content:
+          application/json:
+            schema:
+              $ref: ./assetCommon.yaml#/messageResponse

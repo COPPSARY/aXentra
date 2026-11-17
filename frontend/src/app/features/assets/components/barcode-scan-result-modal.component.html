@@ -1,0 +1,122 @@
+<div class="scan-result-backdrop" (click)="close()">
+  <section
+    class="scan-result-dialog app-motion-enter"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="scan-result-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="scan-result-header">
+      <div class="scan-result-heading">
+        <span
+          class="scan-result-icon"
+          [class.scan-result-icon-locked]="restricted"
+          aria-hidden="true"
+        >
+          @if (restricted) {
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M8 10V8a4 4 0 1 1 8 0v2M7 10h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1Z"
+                stroke="currentColor"
+                stroke-width="1.9"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          } @else {
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="m5 12 4.2 4.2L19 6.5"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          }
+        </span>
+        <div>
+          <h2 id="scan-result-title">
+            {{ restricted ? "Access restricted" : "Asset found" }}
+          </h2>
+          <p>
+            @if (restricted) {
+              You do not have permission to view this asset.
+            } @else {
+              This label matches an asset you can access.
+            }
+          </p>
+        </div>
+      </div>
+
+      <button
+        class="scan-result-close"
+        type="button"
+        aria-label="Close result dialog"
+        (click)="close()"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="m6 6 12 12M18 6 6 18"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+    </header>
+
+    <div class="scan-result-body">
+      @if (restricted) {
+        <p class="scan-result-warning">
+          No asset details are shown. Ask an administrator if you believe you
+          should have access.
+        </p>
+      } @else {
+        <div class="scan-result-details">
+          <div class="scan-result-row">
+            <span class="scan-result-label">Asset</span>
+            <strong>{{ resolvedAssetName }}</strong>
+          </div>
+          <div class="scan-result-row">
+            <span class="scan-result-label">Barcode</span>
+            <strong class="scan-result-tag">{{ resolvedBarcode }}</strong>
+          </div>
+          <div class="scan-result-row">
+            <span class="scan-result-label">Status</span>
+            <strong>{{ resolvedAssetStatus }}</strong>
+          </div>
+          <div class="scan-result-row">
+            <span class="scan-result-label">Location</span>
+            <strong>{{ resolvedLocationName }}</strong>
+          </div>
+        </div>
+      }
+    </div>
+
+    <footer class="scan-result-footer">
+      <button class="scan-result-secondary" type="button" (click)="close()">
+        Close
+      </button>
+
+      @if (restricted) {
+        <button class="scan-result-locked" type="button" disabled>
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M8 10V8a4 4 0 1 1 8 0v2M7 10h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1Z"
+              stroke="currentColor"
+              stroke-width="1.9"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Locked
+        </button>
+      } @else {
+        <button class="scan-result-primary" type="button" (click)="open()">
+          View asset
+        </button>
+      }
+    </footer>
+  </section>
+</div>

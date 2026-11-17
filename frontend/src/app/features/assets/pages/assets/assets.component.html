@@ -1,0 +1,182 @@
+<div class="min-h-screen bg-(--background) text-(--text-primary)">
+  <app-sidebar />
+  <app-mobile-tabbar />
+
+  <div class="lg:pl-60">
+    <app-topbar
+      [displayName]="displayName()"
+      [role]="role()"
+      [initials]="initials()"
+      [avatarUrl]="avatarUrl()"
+      (signOut)="logout()"
+    />
+
+    <main class="px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8 lg:pb-12">
+      <section class="mx-auto max-w-(--content-max)">
+        @if (!isCreateFlowOpen()) {
+          <header class="list-page-header">
+            <div class="min-w-0">
+              <h1 class="app-page-heading__title">Assets</h1>
+              <p class="app-page-heading__description">{{ currentLocationName() || "Current location" }}</p>
+            </div>
+          </header>
+
+          <div
+            class="assets-toolbar app-motion-enter app-motion-delay-1 mt-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between"
+          >
+            <div
+              class="assets-primary-actions flex flex-wrap items-center gap-4"
+            >
+              <div class="assets-guided-action">
+                <button
+                  class="assets-new-action"
+                  type="button"
+                  (click)="startCreateFlow()"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M12 5v14M5 12h14"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  New Asset
+                </button>
+                <app-help-tooltip
+                  text="Create a record for a new physical asset, then assign its type, location, and label details."
+                  ariaLabel="What New Asset does"
+                />
+              </div>
+
+              <div class="assets-guided-action">
+                <button
+                  class="assets-scan-action"
+                  type="button"
+                  [disabled]="isFindingBarcode()"
+                  (click)="openBarcodeScan()"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M4 7V5h4M16 5h4v4M20 15v4h-4M8 19H4v-4M7 12h10M8 9v6M11 9v6M15 9v6"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  {{ isFindingBarcode() ? "Searching..." : "Scan asset" }}
+                </button>
+                <app-help-tooltip
+                  text="Scan an asset barcode or QR label to jump directly to its asset record."
+                  ariaLabel="What Scan asset does"
+                />
+              </div>
+            </div>
+
+            <div
+              class="assets-view-controls flex items-center gap-3 xl:ml-auto"
+            >
+            </div>
+          </div>
+        }
+
+        @if (isCreateFlowOpen()) {
+          @defer (on immediate) {
+            <section
+              class="app-motion-enter mt-6"
+              aria-label="Create new asset"
+            >
+              <app-create-asset
+                [embedded]="true"
+                [assetTypeIdInput]="selectedCreateAssetTypeId()"
+                [assetTypeOptions]="assetTypeOptions()"
+                (assetTypeIdInputChange)="setCreateAssetType($event)"
+                (cancelRequested)="cancelCreateFlow()"
+                (assetCreated)="handleEmbeddedAssetCreated($event)"
+              />
+            </section>
+          } @placeholder (minimum 250ms) {
+            <section
+              class="app-motion-enter mt-6 rounded-[28px] border border-(--gray-150) bg-white p-6 shadow-[0_20px_45px_rgba(15,23,42,0.06)]"
+              aria-label="Preparing create asset form"
+            >
+              <app-loading
+                variant="page"
+                message="Preparing create asset form..."
+                ariaLabel="Preparing create asset form"
+              />
+            </section>
+          } @loading (after 120ms; minimum 400ms) {
+            <section
+              class="app-motion-enter mt-6 rounded-[28px] border border-(--gray-300) bg-white px-6 py-10 shadow-[0_20px_45px_rgba(15,23,42,0.06)]"
+              aria-label="Loading create asset form"
+            >
+              <app-loading
+                variant="page"
+                message="Loading create asset form..."
+                ariaLabel="Loading create asset form"
+              />
+            </section>
+          } @error {
+            <section
+              class="app-motion-enter mt-6 rounded-2xl border border-(--status-error-border) bg-(--status-error-bg) px-5 py-4 text-sm font-medium text-(--status-error-text)"
+              aria-label="Unable to load create asset form"
+            >
+              Unable to load the create asset form. Close this panel and try
+              again.
+            </section>
+          }
+        } @else if (isLoading()) {
+          <section
+            class="app-motion-enter mt-6 rounded-[28px] border border-(--gray-150) bg-white px-6 py-8 shadow-[0_20px_45px_rgba(15,23,42,0.06)]"
+            aria-label="Loading asset categories"
+          >
+            <app-loading
+              variant="page"
+              message="Loading asset categories..."
+              ariaLabel="Loading asset categories"
+            />
+          </section>
+        } @else if (loadError()) {
+          <div
+            class="app-motion-enter mt-6 rounded-xl border border-(--status-error-border) bg-(--status-error-bg) px-4 py-3 text-sm font-medium text-(--status-error-text)"
+          >
+            {{ loadError() }}
+          </div>
+        } @else if (categoryCards().length === 0) {
+          <div
+            class="app-motion-enter mt-6 rounded-xl border border-(--gray-300) bg-white px-4 py-8 text-center text-sm font-medium text-(--gray-700)"
+          >
+            No asset categories found.
+          </div>
+        } @else {
+          <div
+            class="assets-grid-layer app-motion-list mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-4"
+          >
+            @for (item of categoryCards(); track item.assetTypeId) {
+              <app-asset-category-card [item]="item" />
+            }
+          </div>
+        }
+      </section>
+    </main>
+  </div>
+
+  @if (isScanDialogOpen()) {
+    <app-barcode-scanner-dialog
+      (closeDialog)="closeBarcodeScan()"
+      (barcodeScanned)="handleBarcodeScanned($event)"
+    />
+  }
+
+  @if (scannedAssetResult(); as scannedAsset) {
+    <app-barcode-scan-result-modal
+      [assetName]="scannedAsset.assetName"
+      [locationName]="scannedAsset.locationName"
+      [restricted]="scannedAsset.restricted"
+      (closeDialog)="closeScannedAssetResult()"
+      (openAsset)="openScannedAssetResult()"
+    />
+  }
+</div>

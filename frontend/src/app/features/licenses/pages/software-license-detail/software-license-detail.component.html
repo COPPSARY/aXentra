@@ -1,0 +1,234 @@
+<div class="min-h-screen bg-(--background) text-(--text-primary)">
+  <app-sidebar />
+  <app-mobile-tabbar />
+
+  <div class="lg:pl-60">
+    <app-topbar
+      [displayName]="displayName()"
+      [role]="role()"
+      [initials]="initials()"
+      [avatarUrl]="avatarUrl()"
+      (signOut)="logout()"
+    />
+
+    <main class="px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8 lg:pb-12">
+      <section class="mx-auto max-w-[1100px]">
+        <header class="list-page-header detail-head">
+          <div class="min-w-0">
+            <nav class="app-page-heading__breadcrumb" aria-label="Breadcrumb">
+              <a routerLink="/licenses">Software licenses</a>
+              <span aria-hidden="true">/</span>
+              <span class="app-ellipsis">{{ license() ? getLicenseTitle(license()!) : 'License' }}</span>
+            </nav>
+            <h1 class="app-page-heading__title app-ellipsis">
+              {{ license() ? getLicenseTitle(license()!) : 'Software license' }}
+            </h1>
+            @if (license(); as lic) {
+              <p class="detail-head-meta">
+                <span class="status-pill license-status-pill" [class]="statusClass(lic.status)">
+                  <span aria-hidden="true"></span>
+                  {{ lic.status }}
+                </span>
+                <span class="tabular">{{ seatsSummary() }} seats</span>
+              </p>
+            }
+          </div>
+          @if (license()) {
+            <div class="list-page-header__actions">
+              <button type="button" class="app-button app-button--danger" (click)="requestDelete()">
+                Delete
+              </button>
+              <span class="detail-head-sep" aria-hidden="true"></span>
+              <button appButton="secondary" type="button" (click)="goToEdit()">Edit</button>
+              <button appButton type="button" (click)="goToAssign()">Assign seats</button>
+            </div>
+          }
+        </header>
+
+        @if (isLoading()) {
+          <section class="page-state app-motion-enter app-motion-delay-1">
+            <app-loading
+              variant="page"
+              message="Loading license detail..."
+              ariaLabel="Loading license detail"
+            />
+          </section>
+        } @else if (notFound()) {
+          <section class="page-state page-state-error app-motion-enter app-motion-delay-1">
+            <p>This software license could not be found.</p>
+            <a appButton="secondary" routerLink="/licenses">Back to licenses</a>
+          </section>
+        } @else if (loadError()) {
+          <section class="page-state page-state-error app-motion-enter app-motion-delay-1">
+            <p>{{ loadError() }}</p>
+          </section>
+        } @else {
+          @if (license(); as lic) {
+          <section class="detail-shell app-motion-enter app-motion-delay-1">
+            <div class="detail-main">
+              <section class="detail-card">
+                <div class="section-heading">
+                  <h3>License Details</h3>
+                </div>
+
+                <div class="detail-grid">
+                  <div class="detail-field">
+                    <span>Name</span>
+                    <strong>{{ lic.softwareName }}</strong>
+                  </div>
+                  <div class="detail-field">
+                    <span>Version</span>
+                    <strong>{{ lic.softwareVersion || '-' }}</strong>
+                  </div>
+                  <div class="detail-field">
+                    <span>Status</span>
+                    <strong>{{ lic.status }}</strong>
+                  </div>
+                  <div class="detail-field">
+                    <span>Seats</span>
+                    <strong>{{ seatsSummary() }}</strong>
+                  </div>
+                  <div class="detail-field">
+                    <span>Allocation</span>
+                    <strong>
+                      {{ lic.allocationType || 'single' }}
+                      @if (lic.allocationLimit) {
+                        ({{ lic.allocationLimit }})
+                      }
+                    </strong>
+                  </div>
+                  <div class="detail-field">
+                    <span>Expiry</span>
+                    <strong>
+                      {{
+                        lic.expiryDate
+                          ? formatExpiryDate(lic.expiryDate)
+                          : 'Lifetime'
+                      }}
+                    </strong>
+                  </div>
+                  <div class="detail-field detail-field-full">
+                    <span>License Key</span>
+                    <div class="detail-key-row">
+                      <strong class="detail-key-value">{{ lic.licenseKey || '-' }}</strong>
+                      @if (lic.licenseKey) {
+                        <button
+                          class="detail-key-copy"
+                          type="button"
+                          [attr.aria-label]="copied() ? 'License key copied' : 'Copy license key'"
+                          [title]="copied() ? 'Copied' : 'Copy key'"
+                          (click)="copyLicenseKey(lic)"
+                        >
+                          {{ copied() ? 'Copied' : 'Copy' }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+                  <div class="detail-field detail-field-full">
+                    <span>Description</span>
+                    <strong>{{ lic.description || '-' }}</strong>
+                  </div>
+                  <div class="detail-field detail-field-full">
+                    <span>Attached File</span>
+                    <strong>
+                      @if (isFileLoading() && lic.fileId) {
+                        Resolving file...
+                      } @else {
+                        {{ attachedFileLabel(lic) }}
+                      }
+                    </strong>
+                  </div>
+                </div>
+              </section>
+
+              <section class="detail-card">
+                <div class="section-heading">
+                  <div>
+                    <p>Assignments</p>
+                    <h3>Assignment History</h3>
+                  </div>
+                </div>
+
+                @if (assignments().length === 0) {
+                  <div class="detail-empty">No assignment history for this lic.</div>
+                } @else {
+                  <div class="loan-list">
+                    @for (assignment of assignments(); track assignment.licenseLinkAssetId) {
+                      <div class="assignment-row">
+                        <div class="assignment-main">
+                          @if (assignmentAssetLink(assignment)) {
+                            <button
+                              class="assignment-link"
+                              type="button"
+                              (click)="openAssignedAsset(assignment)"
+                            >
+                              {{ assignmentAssetLabel(assignment) }}
+                            </button>
+                          } @else {
+                            <strong>{{ assignmentAssetLabel(assignment) }}</strong>
+                          }
+                        </div>
+                        <span
+                          class="loan-status-pill"
+                          [class.loan-status-active]="!assignment.unassignedAt"
+                          [class.loan-status-cancelled]="assignment.unassignedAt"
+                        >
+                          {{ assignment.unassignedAt ? 'Unassigned' : 'Assigned' }}
+                        </span>
+                      </div>
+                    }
+                  </div>
+                }
+              </section>
+            </div>
+
+            <aside class="detail-side">
+              <section class="detail-card">
+                <h3 class="side-title">Overview</h3>
+
+                <div class="meta-list">
+                  <div class="meta-row">
+                    <span>Seats in use</span>
+                    <strong class="tabular">{{ seatsSummary() }}</strong>
+                  </div>
+                  @if (seatUsage(); as usage) {
+                    <div
+                      class="seat-meter"
+                      [class.seat-meter-full]="usage.used >= usage.total"
+                      [class.seat-meter-near]="usage.used < usage.total && usage.used / usage.total >= 0.85"
+                      role="img"
+                      [attr.aria-label]="usage.used + ' of ' + usage.total + ' seats in use'"
+                    >
+                      <span [style.width.%]="usage.total ? (usage.used / usage.total) * 100 : 0"></span>
+                    </div>
+                  }
+                  <div class="meta-row">
+                    <span>Active Assignments</span>
+                    <strong>{{ assignedCount() }}</strong>
+                  </div>
+                  <div class="meta-row">
+                    <span>Private Album</span>
+                    <strong>{{ lic.images?.length ?? 0 }} item(s)</strong>
+                  </div>
+                </div>
+              </section>
+
+            </aside>
+          </section>
+          }
+        }
+      </section>
+    </main>
+  </div>
+
+  <app-confirm-delete-modal
+    [open]="licensePendingDelete() !== null"
+    title="Delete software license"
+    message="This software license will be permanently removed."
+    [itemName]="licensePendingDelete()?.softwareName || ''"
+    [isBusy]="isDeleting()"
+    [error]="deleteError()"
+    (cancel)="cancelDelete()"
+    (confirm)="confirmDelete()"
+  />
+</div>

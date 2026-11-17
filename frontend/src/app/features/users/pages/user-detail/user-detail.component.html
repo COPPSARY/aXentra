@@ -1,0 +1,152 @@
+<div class="min-h-screen bg-(--background) text-(--text-primary)">
+  <app-sidebar />
+  <app-mobile-tabbar />
+
+  <div class="lg:pl-60">
+    <app-topbar
+      [displayName]="displayName()"
+      [role]="role()"
+      [initials]="initials()"
+      [avatarUrl]="avatarUrl()"
+      (signOut)="logout()"
+    />
+
+    <main class="px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8 lg:pb-12">
+      <section class="mx-auto max-w-[1100px]">
+        <header class="list-page-header detail-head">
+          <div class="min-w-0">
+            <nav class="app-page-heading__breadcrumb" aria-label="Breadcrumb">
+              <a routerLink="/users">Users</a>
+              <span aria-hidden="true">/</span>
+              <span class="app-ellipsis">{{ detailUser() ? detailDisplayName() : 'User' }}</span>
+            </nav>
+            <h1 class="app-page-heading__title app-ellipsis">
+              {{ detailUser() ? detailDisplayName() : 'User' }}
+            </h1>
+            @if (detailUser()) {
+              <p class="detail-head-meta">{{ detailRoleLabel() }}</p>
+            }
+          </div>
+        </header>
+
+        @if (isLoading()) {
+          <section class="page-state app-motion-enter app-motion-delay-1">
+            <app-loading
+              variant="page"
+              message="Loading user detail..."
+              ariaLabel="Loading user detail"
+            />
+          </section>
+        } @else if (loadError()) {
+          <section class="page-state page-state-error app-motion-enter app-motion-delay-1">
+            <p>{{ loadError() }}</p>
+          </section>
+        } @else {
+          @if (detailUser(); as detailUser) {
+          <section class="detail-shell app-motion-enter app-motion-delay-1">
+            <div class="detail-main">
+              <section class="detail-card">
+                <div class="section-heading">
+                  <h3>Account Details</h3>
+                </div>
+
+                <div class="detail-grid">
+                  <div class="detail-field">
+                    <span>Username</span>
+                    <strong>{{ detailUser.username }}</strong>
+                  </div>
+                  <div class="detail-field">
+                    <span>Email</span>
+                    <strong>{{ detailUser.email || '-' }}</strong>
+                  </div>
+                  <div class="detail-field">
+                    <span>Role</span>
+                    <strong>{{ detailRoleLabel() }}</strong>
+                  </div>
+                  <div class="detail-field">
+                    <span>Locations</span>
+                    <strong>{{ locationSummary() }}</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section class="detail-card">
+                <div class="section-heading">
+                  <div>
+                    <p>Loan Contracts</p>
+                    <h3>All statuses</h3>
+                  </div>
+                </div>
+
+                @if (isLoanContractsLoading()) {
+                  <div class="table-state">
+                    <app-loading
+                      variant="inline"
+                      message="Loading loan contracts..."
+                      ariaLabel="Loading loan contracts"
+                    />
+                  </div>
+                } @else if (loanContractsError()) {
+                  <div class="detail-error">{{ loanContractsError() }}</div>
+                } @else if (loanContracts().length === 0) {
+                  <div class="detail-empty">No loan contracts recorded for this user.</div>
+                } @else {
+                  <div class="loan-list">
+                    @for (loan of loanContracts(); track loan.loanId) {
+                      <button
+                        class="loan-row"
+                        type="button"
+                        (click)="openLoanContract(loan)"
+                      >
+                        <div class="loan-main">
+                          <strong>{{ loan.loanNo }}</strong>
+                          <span>{{ loan.loanPeriod }}</span>
+                          @if (loan.extensionSummary) {
+                            <span>{{ loan.extensionSummary }}</span>
+                          }
+                        </div>
+
+                        <span
+                          class="loan-status-pill"
+                          [class.loan-status-active]="loan.status === 'Active'"
+                          [class.loan-status-returned]="loan.status === 'Returned'"
+                          [class.loan-status-overdue]="loan.status === 'Overdue'"
+                          [class.loan-status-cancelled]="loan.status === 'Cancelled'"
+                        >
+                          {{ loanStatusLabel(loan.status) }}
+                        </span>
+                      </button>
+                    }
+                  </div>
+                }
+              </section>
+            </div>
+
+            <aside class="detail-side">
+              <section class="detail-card">
+                <h3 class="side-title">Timeline</h3>
+
+                <div class="meta-list">
+                  <div class="meta-row">
+                    <span>Joined</span>
+                    <strong>{{ joinedDate() }}</strong>
+                  </div>
+                  <div class="meta-row">
+                    <span>Updated</span>
+                    <strong>{{ updatedDate() }}</strong>
+                  </div>
+                  <div class="meta-row">
+                    <span>Loan Contracts</span>
+                    <strong>{{ loanContracts().length }}</strong>
+                  </div>
+                </div>
+              </section>
+
+            </aside>
+          </section>
+          }
+        }
+      </section>
+    </main>
+  </div>
+</div>

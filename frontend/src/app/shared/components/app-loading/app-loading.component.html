@@ -1,0 +1,31 @@
+<div
+  class="app-loading"
+  [class.app-loading-page]="variant === 'page'"
+  [class.app-loading-section]="variant === 'section'"
+  [class.app-loading-inline]="variant === 'inline'"
+  [class.app-loading-compact]="variant === 'compact'"
+  role="status"
+  aria-live="polite"
+  [attr.aria-label]="ariaLabel"
+>
+  @if (skeleton) {
+    <div class="app-loading-skeleton" aria-hidden="true">
+      @for (row of skeletonRows; track row) {
+        <div class="app-loading-skeleton__row">
+          @for (col of skeletonColumns; track $index) {
+            <span
+              class="app-loading-skeleton__cell"
+              [style.flexGrow]="col"
+            ></span>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="app-loading-bar" aria-hidden="true"><span></span></div>
+  }
+
+  @if (showMessage) {
+    <p class="app-loading-message">{{ message }}</p>
+  }
+</div>

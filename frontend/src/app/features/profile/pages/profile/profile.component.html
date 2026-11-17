@@ -1,0 +1,182 @@
+<div class="min-h-screen bg-[#f7f8fa] text-(--gray-900)">
+  <app-sidebar />
+  <app-mobile-tabbar />
+
+  <div class="lg:pl-[240px]">
+    <app-topbar
+      [displayName]="displayName()"
+      [role]="role()"
+      [initials]="initials()"
+      [avatarUrl]="avatarUrl()"
+      (signOut)="logout()"
+    />
+
+    <main class="mx-auto max-w-[960px] px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-8">
+      <section class="app-page-heading app-motion-enter">
+        <h1 class="app-page-heading__title">Profile</h1>
+      </section>
+
+      <section class="profile-card app-motion-enter app-motion-delay-1 mt-6 rounded-xl border border-(--gray-150) bg-white p-5 shadow-sm">
+        <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex items-center gap-4">
+            @if (avatarUrl()) {
+              <img
+                class="h-20 w-20 rounded-full object-cover ring-1 ring-(--gray-150)"
+                [src]="avatarUrl()"
+                alt=""
+                draggable="false"
+              />
+            } @else {
+              <span class="flex h-20 w-20 items-center justify-center rounded-full bg-(--brand-100) text-2xl font-semibold text-(--accent-hover)">
+                {{ initials() }}
+              </span>
+            }
+
+            <div class="min-w-0">
+              <h2 class="truncate text-xl font-semibold text-black">{{ displayName() }}</h2>
+              <p class="app-ellipsis mt-1 text-sm text-(--gray-700)">{{ user()?.email || 'No email set' }}</p>
+              <p class="app-ellipsis mt-1 text-sm font-medium text-(--accent)">{{ role() }}</p>
+            </div>
+          </div>
+
+          <label class="upload-button">
+            <input
+              class="sr-only"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              [disabled]="isUploading"
+              (change)="selectAvatar($event)"
+            />
+            Change Avatar
+          </label>
+        </div>
+
+      </section>
+
+      <section class="profile-card app-motion-enter app-motion-delay-2 mt-5 rounded-xl border border-(--gray-150) bg-white p-5 shadow-sm">
+        <div class="profile-details-header">
+          <h2 class="text-lg font-semibold text-black">Profile Details</h2>
+          @if (canEditProfile() && !isEditMode) {
+            <button appButton="secondary" type="button" (click)="startEditProfile()">
+              Edit Profile
+            </button>
+          }
+        </div>
+
+        <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <dt class="text-sm font-medium text-(--gray-600)">First Name</dt>
+            <dd class="mt-1">
+              @if (isEditMode) {
+                <input
+                  class="profile-input"
+                  type="text"
+                  [ngModel]="editableFirstName"
+                  (ngModelChange)="updateEditableFirstName($event)"
+                  [disabled]="isSavingProfile"
+                  placeholder="First name"
+                />
+              } @else {
+                <span class="app-ellipsis text-base font-semibold text-black">
+                  {{ user()?.firstName || 'Not set' }}
+                </span>
+              }
+            </dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-(--gray-600)">Last Name</dt>
+            <dd class="mt-1">
+              @if (isEditMode) {
+                <input
+                  class="profile-input"
+                  type="text"
+                  [ngModel]="editableLastName"
+                  (ngModelChange)="updateEditableLastName($event)"
+                  [disabled]="isSavingProfile"
+                  placeholder="Last name"
+                />
+              } @else {
+                <span class="app-ellipsis text-base font-semibold text-black">
+                  {{ user()?.lastName || 'Not set' }}
+                </span>
+              }
+            </dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-(--gray-600)">Username</dt>
+            <dd class="app-ellipsis mt-1 text-base font-semibold text-black">{{ user()?.username }}</dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-(--gray-600)">Role</dt>
+            <dd class="app-ellipsis mt-1 text-base font-semibold text-black">{{ role() || 'Not set' }}</dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-(--gray-600)">Email</dt>
+            <dd class="mt-1">
+              @if (isEditMode) {
+                <input
+                  class="profile-input"
+                  type="email"
+                  [ngModel]="editableEmail"
+                  (ngModelChange)="updateEditableEmail($event)"
+                  [disabled]="isSavingProfile"
+                  placeholder="Email address"
+                />
+              } @else {
+                <span class="app-ellipsis text-base font-semibold text-black">{{ user()?.email || 'Not set' }}</span>
+              }
+            </dd>
+          </div>
+        </dl>
+
+        @if (canEditProfile()) {
+          <div class="mt-4 flex items-center justify-between gap-3 border-t border-(--gray-150) pt-4">
+            <div class="profile-actions">
+              @if (isEditMode) {
+                <button
+                  appButton="secondary"
+                  type="button"
+                  [disabled]="isSavingProfile"
+                  (click)="cancelEditProfile()"
+                >
+                  Cancel
+                </button>
+                <button
+                  appButton
+                  type="button"
+                  [disabled]="isSavingProfile"
+                  (click)="saveProfile()"
+                >
+                  {{ isSavingProfile ? 'Saving...' : 'Save Changes' }}
+                </button>
+              }
+            </div>
+          </div>
+
+          @if (profileError) {
+            <p class="mt-3 text-sm font-semibold text-(--status-error-text)">{{ profileError }}</p>
+          }
+        }
+      </section>
+
+      <section class="profile-card app-motion-enter app-motion-delay-3 mt-5 rounded-xl border border-(--gray-150) bg-white p-5 shadow-sm">
+        <h2 class="text-lg font-semibold text-black">Account Overview</h2>
+
+        <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <dt class="text-sm font-medium text-(--gray-600)">Assigned Locations</dt>
+            <dd class="mt-1 text-base font-semibold text-black">{{ assignedLocations() }}</dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-(--gray-600)">Member Since</dt>
+            <dd class="mt-1 text-base font-semibold text-black">{{ joinedDate() }}</dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-(--gray-600)">Last Updated</dt>
+            <dd class="mt-1 text-base font-semibold text-black">{{ updatedDate() }}</dd>
+          </div>
+        </dl>
+      </section>
+    </main>
+  </div>
+</div>

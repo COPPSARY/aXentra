@@ -1,0 +1,463 @@
+<div class="min-h-screen bg-(--background) text-(--text-primary)">
+  <app-sidebar />
+  <app-mobile-tabbar />
+
+  <div class="lg:pl-[240px]">
+    <app-topbar
+      [displayName]="displayName()"
+      [role]="role()"
+      [initials]="initials()"
+      [avatarUrl]="avatarUrl()"
+      (signOut)="logout()"
+    />
+
+    <main class="px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8 lg:pb-12">
+      <section class="mx-auto max-w-[1100px]">
+        @if (isLoading()) {
+          <div class="details-state">
+            <app-loading
+              variant="page"
+              message="Loading loan details..."
+              ariaLabel="Loading loan details"
+            />
+          </div>
+        } @else if (loadError()) {
+          <div class="details-state details-state-error">{{ loadError() }}</div>
+        } @else {
+          @if (loan(); as currentLoan) {
+            <header class="details-header app-motion-enter">
+              <nav class="app-page-heading__breadcrumb" aria-label="Breadcrumb">
+                <a routerLink="/assets/loans">Asset loans</a>
+                <span aria-hidden="true">/</span>
+                <span>{{ loanNo() }}</span>
+              </nav>
+
+              <div class="hero-row">
+                <div class="hero-main">
+                  <div class="hero-copy">
+                    @if (isEditMode()) {
+                      <p class="mode-label">Edit Loan</p>
+                    }
+
+                    <div class="title-row">
+                      <h1>{{ loanNo() }}</h1>
+                      <span class="status-pill {{ statusTone(effectiveStatus()) }}">
+                        <span></span>
+                        {{ statusLabel(effectiveStatus()) }}
+                      </span>
+                    </div>
+
+                    <p class="hero-subtitle">
+                      {{ borrowerName() }} / {{ loanPeriod() }} / {{ durationLabel() }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="hero-actions">
+                  @if (isEditMode()) {
+                    <button appButton="secondary" type="button" (click)="openViewMode()">
+                      Back to Details
+                    </button>
+                  } @else if (isReturnMode()) {
+                    <button appButton="secondary" type="button" (click)="closeReturnMode()">
+                      Cancel Return
+                    </button>
+                  }
+
+                  @if (canReturnAll() && !isEditMode()) {
+                    <button
+                      appButton
+                      type="button"
+                      [disabled]="isReturningAll() || isReturningSelectedItems()"
+                      (click)="isReturnMode() ? requestReturnAll() : openReturnMode()"
+                    >
+                      {{
+                        isReturningAll()
+                          ? 'Returning...'
+                          : isReturnMode()
+                            ? 'Return All'
+                            : 'Return'
+                      }}
+                    </button>
+                  }
+
+                  @if (!isEditMode() && !isReturnMode()) {
+                    <div class="loan-action-menu-anchor">
+                      <button
+                        class="loan-action-trigger"
+                        type="button"
+                        aria-label="Open loan actions"
+                        aria-haspopup="menu"
+                        [attr.aria-expanded]="isLoanActionMenuOpen()"
+                        (click)="toggleLoanActionMenu($event)"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M6 12h.01M12 12h.01M18 12h.01"
+                            stroke="currentColor"
+                            stroke-width="3"
+                            stroke-linecap="round"
+                          />
+                        </svg>
+                      </button>
+
+                      @if (isLoanActionMenuOpen()) {
+                        <div class="loan-action-menu app-motion-enter" role="menu">
+                          <button
+                            type="button"
+                            role="menuitem"
+                            (click)="handleLoanActionMenu('edit')"
+                          >
+                            Edit Loan
+                          </button>
+                          @if (canExtendLoan()) {
+                            <button
+                              type="button"
+                              role="menuitem"
+                              (click)="handleLoanActionMenu('extend')"
+                            >
+                              Extend Loan
+                            </button>
+                          }
+                          @if (canCancelLoan()) {
+                            <button
+                              type="button"
+                              role="menuitem"
+                              [disabled]="isCancellingLoan()"
+                              (click)="handleLoanActionMenu('cancel')"
+                            >
+                              {{ isCancellingLoan() ? 'Cancelling...' : 'Cancel Loan' }}
+                            </button>
+                          }
+                          @if (canDeleteLoan()) {
+                            <button
+                              type="button"
+                              role="menuitem"
+                              class="loan-action-menu-danger"
+                              [disabled]="isDeletingLoan()"
+                              (click)="handleLoanActionMenu('delete')"
+                            >
+                              {{ isDeletingLoan() ? 'Deleting...' : 'Delete Loan' }}
+                            </button>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            </header>
+
+            <div class="details-layout app-motion-enter app-motion-delay-1">
+              <div class="details-main">
+                <section class="details-card">
+                  <div class="card-heading">
+                    <h2>Overview</h2>
+                  </div>
+
+                  <div class="overview-grid">
+                    <div class="overview-item">
+                      <span>Borrower</span>
+                      <strong>{{ borrowerName() }}</strong>
+                    </div>
+                    <div class="overview-item">
+                      <span>Lender</span>
+                      <strong>{{ lenderName() }}</strong>
+                    </div>
+                    <div class="overview-item">
+                      <span>Created By</span>
+                      <strong>{{ lenderName() }}</strong>
+                    </div>
+                    <div class="overview-item">
+                      <span>Borrow Date</span>
+                      <strong>{{ formatDate(currentLoan.startLoanDate) }}</strong>
+                    </div>
+                    <div class="overview-item">
+                      <span>Loan Status</span>
+                      <strong>{{ statusLabel(effectiveStatus()) }}</strong>
+                    </div>
+                    <div class="overview-item">
+                      <span>Created At</span>
+                      <strong>{{ createdAtLabel() }}</strong>
+                    </div>
+                    <div class="overview-item">
+                      <span>Returned At</span>
+                      <strong>{{ returnDateLabel() }}</strong>
+                    </div>
+                  </div>
+
+                  @if (isEditMode()) {
+                    <div class="form-grid">
+                      <label class="field">
+                        <span>End Date</span>
+                        <app-date-field
+                          title="End Date"
+                          placeholder="Select date"
+                          [minDate]="currentLoan.startLoanDate"
+                          [ngModel]="endLoanDateDraft()"
+                          (ngModelChange)="setEndLoanDateDraft($event || '')"
+                        />
+                      </label>
+
+                      <label class="field field-remark">
+                        <span>Remark</span>
+                        <textarea
+                          rows="4"
+                          [ngModel]="remarkDraft()"
+                          (ngModelChange)="setRemarkDraft($event)"
+                          placeholder="Add a short note"
+                        ></textarea>
+                      </label>
+                    </div>
+                  } @else {
+                    <div class="readonly-fields">
+                      <div class="readonly-item">
+                        <span>End Date</span>
+                        <strong>{{ formatDate(currentLoan.endLoanDate) }}</strong>
+                      </div>
+
+                      <div class="readonly-item readonly-item-remark">
+                        <span>Remark</span>
+                        @if (remarkText() === '-') {
+                          <p class="readonly-empty">No remark added</p>
+                        } @else {
+                          <p class="readonly-note">{{ remarkText() }}</p>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  @if (loanExtensionCount() > 0) {
+                    <div class="extension-card">
+                      <div class="extension-card-head">
+                        <div class="extension-card-title">
+                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                              d="M12 7v5l3 2M21 12a9 9 0 1 1-9-9 9 9 0 0 1 9 9Z"
+                              stroke="currentColor"
+                              stroke-width="1.7"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                          <span>Extension History</span>
+                        </div>
+                      </div>
+
+                      <p class="extension-card-summary">{{ loanExtensionHeadline() }}</p>
+
+                      <ol class="extension-timeline">
+                        @for (event of loanExtensionEvents(); track event.step) {
+                          <li class="extension-timeline-item">
+                            <span class="extension-timeline-marker">{{ event.step }}</span>
+                            <div class="extension-timeline-body">
+                              <div class="extension-timeline-dates">
+                                <span class="extension-from">{{ event.fromLabel }}</span>
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                  <path
+                                    d="M5 12h14m-6-6 6 6-6 6"
+                                    stroke="currentColor"
+                                    stroke-width="1.7"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                  />
+                                </svg>
+                                <span class="extension-to">{{ event.toLabel }}</span>
+                                @if (event.addedDaysLabel) {
+                                  <span class="extension-added">{{ event.addedDaysLabel }}</span>
+                                }
+                              </div>
+                              @if (event.extendedAtLabel) {
+                                <span class="extension-timeline-meta">{{ event.extendedAtLabel }}</span>
+                              }
+                            </div>
+                          </li>
+                        }
+                      </ol>
+                    </div>
+                  }
+
+                  @if (isEditMode()) {
+                    <div class="form-actions">
+                      <button
+                        appButton
+                        type="button"
+                        [disabled]="!hasMainChanges() || isSavingLoan()"
+                        (click)="saveLoanChanges()"
+                      >
+                        {{ isSavingLoan() ? 'Saving...' : 'Save Changes' }}
+                      </button>
+                    </div>
+                  }
+                </section>
+
+                <section class="details-card">
+                  <div class="card-heading">
+                    <h2>Items</h2>
+                  </div>
+
+                  @if (isReturnMode()) {
+                    <div class="return-banner">
+                      <div>
+                        <span>Return</span>
+                        <strong>Choose item statuses, then return selected items or everything.</strong>
+                      </div>
+                      <div class="return-banner-actions">
+                        <button
+                          appButton
+                          type="button"
+                          [disabled]="
+                            !hasSelectedReturnItems() ||
+                            isReturningSelectedItems() ||
+                            isReturningAll()
+                          "
+                          (click)="requestReturnSelectedItems()"
+                        >
+                          {{
+                            isReturningSelectedItems()
+                              ? 'Returning Selected...'
+                              : 'Return Selected'
+                          }}
+                        </button>
+                      </div>
+                    </div>
+                  }
+
+                  @if (loanItems().length === 0) {
+                    <div class="empty-state">No items found for this loan.</div>
+                  } @else {
+                    <div class="items-table-scroll">
+                      <div class="items-table">
+                        <div class="items-head">
+                          <div>Asset</div>
+                          <div>Barcode</div>
+                          <div>Status</div>
+                          <div>Returned At</div>
+                        </div>
+
+                        <div class="items-body">
+                          @for (item of loanItems(); track item.loanItemId) {
+                            <div
+                              class="items-row"
+                              [class.items-row-clickable]="!isReturnMode() && !!assetDetailLink(item)"
+                              (click)="onItemRowClick(item, $event)"
+                            >
+                              <div class="asset-cell">
+                                <strong>{{ item.assetName }}</strong>
+                              </div>
+                              <div>{{ item.barcode }}</div>
+                              <div>
+                                @if (isReturnMode() && canUpdateItemStatus(item)) {
+                                  <div class="item-action-editor">
+                                    <div class="item-action-stack">
+                                      <app-select
+                                        class="item-status-select"
+                                        [options]="itemStatusSelectOptions"
+                                        placeholder="Select result"
+                                        ariaLabel="Change loan item status"
+                                        menuPlacement="up"
+                                        [disabled]="isReturningAll() || isReturningSelectedItems()"
+                                        [ngModel]="itemStatusDraftFor(item.loanItemId)"
+                                        (ngModelChange)="setItemStatusDraft(item.loanItemId, $event)"
+                                      />
+                                    </div>
+                                  </div>
+                                } @else {
+                                  <span class="item-status {{ itemStatusTone(item.itemStatus) }}">
+                                    {{ itemStatusLabel(item.itemStatus) }}
+                                  </span>
+                                }
+                              </div>
+                              <div>{{ formatDateTime(item.returnDate) }}</div>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </section>
+              </div>
+
+              <aside class="details-side">
+                <section class="details-card">
+                  <h3 class="side-title">Timeline</h3>
+
+                  <div class="meta-list">
+                    <div class="meta-row">
+                      <span>Created</span>
+                      <strong>{{ createdAtLabel() }}</strong>
+                    </div>
+                    <div class="meta-row">
+                      <span>Updated</span>
+                      <strong>{{ updatedAtLabel() }}</strong>
+                    </div>
+                    <div class="meta-row">
+                      <span>Loan Period</span>
+                      <strong>{{ loanPeriod() }}</strong>
+                    </div>
+                    <div class="meta-row">
+                      <span>Duration</span>
+                      <strong>{{ durationLabel() }}</strong>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="details-card">
+                  <h3 class="side-title">Counts</h3>
+
+                  <div class="meta-list">
+                    <div class="meta-row">
+                      <span>Total Items</span>
+                      <strong>{{ loanItems().length }}</strong>
+                    </div>
+                    <div class="meta-row">
+                      <span>Still On Loan</span>
+                      <strong>{{ loanedItemCount() }}</strong>
+                    </div>
+                    <div class="meta-row">
+                      <span>Returned</span>
+                      <strong>{{ returnedItemCount() }}</strong>
+                    </div>
+                  </div>
+                </section>
+
+                @if (canManageSharing()) {
+                  <section class="details-card">
+                    <h3 class="side-title">Public Share Link</h3>
+                    <app-loan-share-controls [loanId]="currentLoan.assetLoanId" />
+                  </section>
+                }
+              </aside>
+            </div>
+          }
+        }
+      </section>
+    </main>
+  </div>
+</div>
+
+<app-confirm-delete-modal
+  [open]="isReturnConfirmationOpen()"
+  [title]="returnConfirmationTitle()"
+  [message]="returnConfirmationMessage()"
+  [detailLines]="returnConfirmationDetailLines()"
+  cancelLabel="Cancel"
+  [confirmLabel]="returnConfirmationTitle()"
+  [busyLabel]="returnConfirmationBusyLabel()"
+  [isBusy]="isReturnConfirmationBusy()"
+  variant="warning"
+  (cancel)="closeReturnConfirmation()"
+  (confirm)="confirmReturnAction()"
+/>
+
+<app-date-form
+  [open]="isExtendLoanModalOpen()"
+  title="Extend Loan"
+  description="Choose a new end date for this loan."
+  [value]="extendLoanDateDraft()"
+  [minDate]="loan()?.endLoanDate ?? null"
+  confirmLabel="Extend Loan"
+  [isBusy]="isSavingLoan()"
+  (cancel)="closeExtendLoanModal()"
+  (confirm)="confirmExtendLoan($event)"
+/>

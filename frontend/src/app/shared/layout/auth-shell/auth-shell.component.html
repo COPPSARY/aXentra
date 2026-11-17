@@ -1,0 +1,53 @@
+<div class="shell">
+  <div class="shell-main">
+    <span class="shell-brand">aXentra</span>
+
+    <div class="shell-form">
+      <ng-content />
+    </div>
+
+    <span class="shell-foot">© aXentra</span>
+  </div>
+
+  <aside class="shell-aside" aria-hidden="true">
+    <div class="aside-inner">
+      <p class="aside-claim">Every asset, accounted for.</p>
+
+      <div class="mock">
+        <div class="mock-head">
+          <span>Inventory</span>
+          <span class="mock-total">{{ total }} assets</span>
+        </div>
+
+        <div class="mock-bar">
+          @for (s of statuses; track s.label) {
+            <span class="mock-seg" [style.width]="width(s.count)" [style.background]="s.color"></span>
+          }
+        </div>
+
+        <ul class="mock-legend">
+          @for (s of statuses; track s.label) {
+            <li>
+              <span class="dot" [style.background]="s.color"></span>
+              <span class="legend-label">{{ s.label }}</span>
+              <span class="legend-count">{{ s.count }}</span>
+            </li>
+          }
+        </ul>
+
+        <div class="mock-sub">Loans to follow up</div>
+        <ul class="mock-loans">
+          @for (l of loans; track l.asset) {
+            <li>
+              <span class="loan-main">
+                <span class="loan-asset">{{ l.asset }}</span>
+                <span class="loan-who">{{ l.who }}</span>
+              </span>
+              <span class="loan-due" [class.late]="l.late">{{ l.due }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+  </aside>
+</div>
