@@ -2,8 +2,31 @@
   display: block;
 }
 
+.public-header {
+  border-bottom: 1px solid var(--gray-150, #e5e9f0);
+  background: #fff;
+}
+
+.public-header-inner {
+  display: flex;
+  max-width: 760px;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.public-wordmark {
+  color: var(--text-primary, #111827);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
 @media print {
   :host {
-    display: none !important;
+    display: none;
   }
 }

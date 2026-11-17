@@ -4,11 +4,12 @@ import { AssetRecord } from '../models/asset-view.models';
 import { AssetLabelItem } from '../models/asset-label.models';
 import { AssetLabelPreviewComponent } from './asset-label-preview.component';
 import { PrintAssetLabelDialogComponent } from './print-asset-label-dialog.component';
+import { AppButtonDirective } from '../../../shared/components/app-button/app-button.directive';
 
 @Component({
   selector: 'app-asset-label-card',
   standalone: true,
-  imports: [AssetLabelPreviewComponent, PrintAssetLabelDialogComponent],
+  imports: [AppButtonDirective, AssetLabelPreviewComponent, PrintAssetLabelDialogComponent],
   templateUrl: './asset-label-card.component.html',
   styleUrl: './asset-label-card.component.css',
 })

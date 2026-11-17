@@ -12,16 +12,11 @@ import type { PublicLoanView } from '../../models/public-loan.models';
 /**
  * PublicLoanContentComponent renders the Loaded_State of the Public_Loan_Page.
  *
- * It presents the privacy-safe `PublicLoanView`: the loan reference, effective
- * status, borrower name, and start/end dates are always shown. Optional fields
- * (return date, remark, last-updated timestamp) are rendered only when present
- * on the view. The item list is rendered when items exist; otherwise a
- * no-items empty-state message is shown. Present optional fields continue to
- * render regardless of whether items exist.
- *
- * A "Print" button triggers `window.print()`. It carries the `print:hidden`
- * utility so it is excluded from the printed output; the loan content still
- * renders even if printing is unavailable because the button is additive.
+ * It presents the privacy-safe `PublicLoanView`: reference, status (one dot),
+ * borrower, period and due note, then facts, items, extensions and remark.
+ * Optional fields render only when present. On screen it is a compact status
+ * page; the acknowledgement + signature block is print-only, so printing (the
+ * Print action lives in the public header) yields the A4 handover copy.
  *
  * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11,
  * 7.1, 7.2, 7.3, 7.4, 7.5, 8.2, 9.1, 9.2, 9.3, 9.4
@@ -61,8 +56,4 @@ export class PublicLoanContentComponent implements AfterViewInit {
     container.replaceChildren(qrCode);
   }
 
-  /** Triggers the browser's print dialog for a print-friendly rendering. */
-  print(): void {
-    window.print();
-  }
 }

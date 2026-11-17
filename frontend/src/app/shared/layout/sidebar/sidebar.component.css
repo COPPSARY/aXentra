@@ -312,3 +312,160 @@
 .nav-subitem-active .nav-subitem-count {
   color: var(--text-muted);
 }
+
+/* =====================================================================
+   Collapsible rail. Width follows --sidebar-width (240px / 68px, set on
+   <html> by SidebarStateService). Icons keep their x position; labels and
+   section titles fade, so nothing jumps while the width animates.
+   ===================================================================== */
+.sidebar {
+  width: var(--sidebar-width);
+  overflow: hidden;
+}
+
+:host-context(html.sidebar-ready) .sidebar {
+  transition: width var(--sidebar-motion);
+}
+
+.sidebar-nav {
+  overflow-x: hidden;
+}
+
+/* Header: logo left, toggle right. Collapsed: only the toggle, centred. */
+.sidebar-head {
+  display: flex;
+  height: 64px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 12px 0 20px;
+}
+
+:host-context(html.sidebar-ready) .sidebar-head {
+  transition: padding var(--sidebar-motion);
+}
+
+.sidebar-brand {
+  display: flex;
+  min-width: 0;
+  max-width: 160px;
+  flex: 1 1 auto;
+  align-items: center;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.sidebar-brand-text {
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.sidebar-toggle {
+  display: inline-flex;
+  height: 32px;
+  width: 32px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--app-motion-fast) var(--app-motion-ease),
+    border-color var(--app-motion-fast) var(--app-motion-ease),
+    color var(--app-motion-fast) var(--app-motion-ease);
+}
+
+.sidebar-toggle svg {
+  height: 18px;
+  width: 18px;
+}
+
+.sidebar-toggle:hover {
+  border-color: var(--border);
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.sidebar-toggle:focus-visible {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 1px;
+}
+
+/* Labels: never wrap, fade out when collapsed. */
+.nav-label {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+:host-context(html.sidebar-ready) .nav-label,
+:host-context(html.sidebar-ready) .sidebar-brand,
+:host-context(html.sidebar-ready) .nav-section-title {
+  transition:
+    opacity 160ms ease-out,
+    max-width var(--sidebar-motion);
+}
+
+.nav-section-title {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Location switcher: overlay expands the sidebar when collapsed. */
+.sidebar-switcher {
+  position: relative;
+}
+
+.sidebar-switcher-expand {
+  position: absolute;
+  inset: 12px 12px 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  cursor: pointer;
+}
+
+.sidebar-switcher-expand:focus-visible {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 1px;
+}
+
+/* ---- Collapsed state ---- */
+.sidebar-is-collapsed .sidebar-head {
+  padding: 0 18px;
+}
+
+.sidebar-is-collapsed .sidebar-brand {
+  max-width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-is-collapsed .nav-label {
+  opacity: 0;
+}
+
+.sidebar-is-collapsed .nav-section-title {
+  opacity: 0;
+}
+
+.sidebar-is-collapsed .nav-section-title::after {
+  content: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host-context(html.sidebar-ready) .sidebar,
+  :host-context(html.sidebar-ready) .sidebar-head,
+  :host-context(html.sidebar-ready) .nav-label,
+  :host-context(html.sidebar-ready) .sidebar-brand,
+  :host-context(html.sidebar-ready) .nav-section-title {
+    transition: none;
+  }
+}

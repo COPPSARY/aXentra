@@ -8,6 +8,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { catchError, finalize, forkJoin, map, of, switchMap } from 'rxjs';
@@ -30,6 +31,7 @@ import {
   FilesApiService,
 } from '../../../files/services/files-api.service';
 import {
+  ActivityLogItem,
   AssetAlbumItem,
   AssetProduct,
   AssetRecord,
@@ -37,6 +39,7 @@ import {
   AssetStatus,
   AssetTypeField,
 } from '../../models/asset-view.models';
+import { ActivityApiService } from '../../services/activity-api.service';
 import { AssetLocationScopeService } from '../../services/asset-location-scope.service';
 import { AssetLoansApiService } from '../../services/asset-loans-api.service';
 import { AssetsApiService } from '../../services/assets-api.service';
@@ -61,11 +64,32 @@ interface DetailItem {
   value: string;
 }
 
-interface SpecDetailItem extends DetailItem {}
-
-interface LoanDetailItem extends DetailItem {
-  highlight?: boolean;
+interface SpecDetailItem extends DetailItem {
+  isEmpty: boolean;
 }
+
+type WarrantyTone = 'ok' | 'warn' | 'danger' | 'none';
+
+interface WarrantyState {
+  date: string;
+  note: string;
+  tone: WarrantyTone;
+}
+
+
+interface HistoryEntry {
+  id: number;
+  actor: string;
+  summary: string;
+  detail: string;
+  occurredAt: string;
+  relative: string;
+  exact: string;
+}
+
+const ACTIVITY_PAGE_SIZE = 10;
+const WARRANTY_WARNING_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 interface FileDetailItem {
   fileId: string | number;
@@ -78,6 +102,7 @@ interface FileDetailItem {
 
 interface AssetLoanContractItem {
   borrower: string;
+  dueDate: string | null;
   extensionSummary: string;
   itemStatus: AssetLoanItemStatus;
   loanId: number;
@@ -126,6 +151,7 @@ export class AssetDetailsComponent implements OnInit, OnDestroy {
   }
 
   private readonly authService = inject(AuthService);
+  private readonly activityApiService = inject(ActivityApiService);
   private readonly assetLocationScope = inject(AssetLocationScopeService);
   private readonly assetLoansApiService = inject(AssetLoansApiService);
   private readonly assetsApiService = inject(AssetsApiService);
@@ -172,7 +198,13 @@ export class AssetDetailsComponent implements OnInit, OnDestroy {
   readonly users = signal<AuthUser[]>([]);
   readonly linkedFile = signal<AppFileRecord | null>(null);
   readonly loanContracts = signal<AssetLoanContractItem[]>([]);
-  readonly showAdditionalDetails = signal(false);
+  readonly activities = signal<ActivityLogItem[]>([]);
+  readonly activitiesTotal = signal(0);
+  readonly activitiesPage = signal(1);
+  readonly isActivitiesLoading = signal(false);
+  readonly activitiesError = signal('');
+  /** True when the role lacks activityLog:read; the History section is hidden. */
+  readonly activitiesForbidden = signal(false);
   readonly isBarcodeModalOpen = signal(false);
   readonly barcodePreviewError = signal('');
   readonly barcodeCopied = signal(false);
@@ -339,122 +371,87 @@ export class AssetDetailsComponent implements OnInit, OnDestroy {
   readonly isCurrentlyLoaned = computed(
     () => this.asset()?.status === 'Loaned',
   );
-  readonly loanedBy = computed(() => {
-    const asset = this.asset();
-    if (!asset || asset.status !== 'Loaned') {
-      return '-';
-    }
-
-    return this.displayAssetUser(
-      asset,
-      ['updatedByName', 'updatedByUsername'],
-      asset.updatedBy,
-    );
-  });
-  readonly overviewItems = computed<DetailItem[]>(() => {
-    const asset = this.asset();
-    if (!asset) {
-      return [];
-    }
-
-    return [
-      { label: 'Serial Number', value: asset.serialNumber || '-' },
-      { label: 'Barcode', value: asset.barcode || '-' },
-      { label: 'MAC Address', value: asset.ipAddress || '-' },
-      {
-        label: 'Loanable',
-        value:
-          asset.loanable === null || asset.loanable === undefined
-            ? '-'
-            : asset.loanable
-              ? 'Yes'
-              : 'No',
-      },
-      { label: 'Product / Model', value: this.productName() },
-      { label: 'Manufacturer', value: this.manufacturerName() },
-      { label: 'Product Cost', value: this.productCost() },
-      { label: 'Location', value: this.locationName() },
-      { label: 'Description', value: this.descriptionText() },
-    ];
-  });
   readonly descriptionText = computed(() => {
     const asset = this.asset();
     if (!asset?.description) {
-      return '-';
+      return '';
     }
 
-    return stripLoanProfileRemark(asset.description) || '-';
+    return stripLoanProfileRemark(asset.description) || '';
   });
   readonly remarkText = computed(() => {
     const asset = this.asset();
     if (!asset?.remark) {
-      return '-';
+      return '';
     }
 
-    return stripLoanProfileRemark(asset.remark) || '-';
+    return stripLoanProfileRemark(asset.remark) || '';
   });
-  readonly lifecycleItems = computed<DetailItem[]>(() => {
-    const asset = this.asset();
-    if (!asset) {
-      return [];
+  readonly createdAtLabel = computed(() =>
+    this.formatDateTime(this.asset()?.createdAt ?? null),
+  );
+  readonly updatedAtLabel = computed(() =>
+    this.formatDateTime(this.asset()?.updatedAt ?? null),
+  );
+  /** Warranty date plus a plain-language state, so "expired" never relies on colour alone. */
+  readonly warrantyState = computed<WarrantyState>(() => {
+    const expiry = this.parseDateOnly(this.asset()?.warrantyExpiryDate);
+    if (!expiry) {
+      return { date: 'Not recorded', note: '', tone: 'none' };
     }
 
-    return [
-      {
-        label: 'Warranty Expiry',
-        value: this.formatDate(asset.warrantyExpiryDate),
-      },
-      { label: 'Created At', value: this.formatDateTime(asset.createdAt) },
-      { label: 'Created By', value: this.createdBy() },
-      { label: 'Updated At', value: this.formatDateTime(asset.updatedAt) },
-      { label: 'Updated By', value: this.updatedBy() },
-    ];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days = Math.round((expiry.getTime() - today.getTime()) / DAY_MS);
+    const date = this.formatDate(this.asset()?.warrantyExpiryDate ?? null);
+
+    if (days < 0) {
+      return { date, note: `Expired ${this.describeDayCount(-days)} ago`, tone: 'danger' };
+    }
+    if (days === 0) {
+      return { date, note: 'Expires today', tone: 'warn' };
+    }
+    if (days <= WARRANTY_WARNING_DAYS) {
+      return { date, note: `Expires in ${this.describeDayCount(days)}`, tone: 'warn' };
+    }
+    return { date, note: `${this.describeDayCount(days)} left`, tone: 'ok' };
   });
-  readonly currentLoanItems = computed<LoanDetailItem[]>(() => {
+  /** The open loan this asset belongs to, if any (newest first). */
+  readonly activeLoan = computed<AssetLoanContractItem | null>(
+    () =>
+      this.loanContracts().find(
+        (loan) =>
+          (loan.status === 'Active' || loan.status === 'Overdue') &&
+          !loan.returnDate,
+      ) ?? null,
+  );
+  readonly canLoanOut = computed(() => {
     const asset = this.asset();
-    if (!asset || asset.status !== 'Loaned') {
-      return [];
-    }
-
-    return [
-      { label: 'Loaned To', value: this.assignedOwner(), highlight: true },
-      { label: 'Loaned By', value: this.loanedBy() },
-      { label: 'Loan Recorded By', value: this.updatedBy() },
-      { label: 'Loaned At', value: this.formatDateTime(asset.updatedAt) },
-      { label: 'Current Status', value: asset.status },
-      { label: 'Asset Created By', value: this.createdBy() },
-    ];
-  });
-  readonly recordItems = computed<DetailItem[]>(() => {
-    const asset = this.asset();
-    if (!asset) {
-      return [];
-    }
-
-    return [
-      { label: 'Asset ID', value: String(asset.assetId) },
-      { label: 'Asset Type', value: this.assetTypeName() },
-      {
-        label: 'Product ID',
-        value: asset.productId ? String(asset.productId) : '-',
-      },
-      {
-        label: 'Assigned User ID',
-        value: asset.assignedUserId ? String(asset.assignedUserId) : '-',
-      },
-    ];
+    return Boolean(
+      asset && asset.status === 'In Storage' && asset.loanable !== false,
+    );
   });
   readonly specItems = computed<SpecDetailItem[]>(() =>
-    this.fields().map((field) => ({
-      label: field.fieldLabel,
-      value: this.displaySpecValue(field),
-    })),
+    this.fields().map((field) => {
+      const value = this.displaySpecValue(field);
+      return {
+        label: this.humanizeLabel(field.fieldLabel),
+        value: value === '-' ? 'Not set' : value,
+        isEmpty: value === '-',
+      };
+    }),
   );
   readonly hardwareSpecItems = computed<SpecDetailItem[]>(() =>
     this.specItems().filter((item) => !this.isSoftwareSpec(item.label)),
   );
   readonly softwareLicenseSpecItems = computed<SpecDetailItem[]>(() =>
     this.specItems().filter((item) => this.isSoftwareSpec(item.label)),
+  );
+  readonly historyEntries = computed<HistoryEntry[]>(() =>
+    this.activities().map((activity) => this.toHistoryEntry(activity)),
+  );
+  readonly hasMoreActivities = computed(
+    () => this.activities().length < this.activitiesTotal(),
   );
   readonly assetFiles = computed<FileDetailItem[]>(() => {
     const asset = this.asset();
@@ -575,8 +572,28 @@ export class AssetDetailsComponent implements OnInit, OnDestroy {
     void this.router.navigateByUrl('/auth');
   }
 
-  toggleAdditionalDetails(): void {
-    this.showAdditionalDetails.update((value) => !value);
+  editAssetLink(asset: AssetRecord): (string | number)[] {
+    return ['/assets/types', asset.assetTypeId, 'assets', asset.assetId, 'edit'];
+  }
+
+  formatDueDate(value: string): string {
+    return this.formatDate(value);
+  }
+
+  loadMoreActivities(): void {
+    const asset = this.asset();
+    if (!asset || this.isActivitiesLoading()) {
+      return;
+    }
+
+    this.loadActivities(asset.assetId, this.activitiesPage() + 1);
+  }
+
+  retryActivities(): void {
+    const asset = this.asset();
+    if (asset) {
+      this.loadActivities(asset.assetId, 1);
+    }
   }
 
   previewAssetFile(file: FileDetailItem): void {
@@ -841,6 +858,7 @@ export class AssetDetailsComponent implements OnInit, OnDestroy {
         this.specs.set(specs);
         this.queueBarcodeRender();
         this.loadLoanContracts(asset);
+        this.loadActivities(asset.assetId, 1);
         this.loadRelatedDetails(asset);
       },
       error: () => {
@@ -1029,7 +1047,8 @@ export class AssetDetailsComponent implements OnInit, OnDestroy {
   }
 
   private isSoftwareSpec(label: string): boolean {
-    return /(software|license|licence|subscription|os|operating|key|version)/i.test(
+    // Word boundaries so labels like "Cost" or "Hostname" don't match "os".
+    return /\b(software|licen[cs]e|subscription|os|operating|key|version)\b/i.test(
       label,
     );
   }
@@ -1308,6 +1327,7 @@ export class AssetDetailsComponent implements OnInit, OnDestroy {
                     borrower:
                       borrower?.fullName ||
                       `Profile #${loan.borrowerProfileId}`,
+                    dueDate: loan.endLoanDate || null,
                     extensionSummary: extensionInfo
                       ? `Extended from ${this.formatDate(extensionInfo.previousEndLoanDate)}`
                       : '',
@@ -1385,12 +1405,157 @@ export class AssetDetailsComponent implements OnInit, OnDestroy {
     return `${monthDayYearFormatter.format(start)} - ${monthDayYearFormatter.format(end)}`;
   }
 
+  private loadActivities(assetId: number, page: number): void {
+    if (this.activitiesForbidden()) {
+      return;
+    }
+
+    this.isActivitiesLoading.set(true);
+    this.activitiesError.set('');
+
+    this.activityApiService
+      .listEntityActivities({
+        entityType: 'asset',
+        entityId: assetId,
+        page,
+        limit: ACTIVITY_PAGE_SIZE,
+      })
+      .pipe(
+        finalize(() => {
+          this.isActivitiesLoading.set(false);
+        }),
+      )
+      .subscribe({
+        next: (response) => {
+          const items = response.activities ?? [];
+          this.activities.update((current) =>
+            page === 1 ? items : [...current, ...items],
+          );
+          this.activitiesTotal.set(response.totalItems ?? items.length);
+          this.activitiesPage.set(page);
+        },
+        error: (error: unknown) => {
+          if (
+            error instanceof HttpErrorResponse &&
+            (error.status === 401 || error.status === 403)
+          ) {
+            this.activitiesForbidden.set(true);
+            return;
+          }
+
+          this.activitiesError.set('Unable to load history.');
+        },
+      });
+  }
+
+  private toHistoryEntry(activity: ActivityLogItem): HistoryEntry {
+    const metadata = activity.metadata ?? {};
+    const changedFields = Array.isArray(metadata['changedFields'])
+      ? (metadata['changedFields'] as unknown[])
+          .filter((field): field is string => typeof field === 'string')
+          .map((field) => this.humanizeLabel(field).toLowerCase())
+      : [];
+    const previousStatus =
+      typeof metadata['previousStatus'] === 'string'
+        ? metadata['previousStatus']
+        : '';
+
+    let summary: string;
+    let detail = '';
+    switch (activity.action) {
+      case 'created':
+        summary = 'Created the asset';
+        break;
+      case 'deleted':
+        summary = 'Deleted the asset';
+        break;
+      case 'updated':
+        if (previousStatus && activity.status) {
+          summary = `Changed status from ${previousStatus} to ${activity.status}`;
+        } else {
+          summary = 'Updated details';
+        }
+        if (changedFields.length > 0) {
+          detail = changedFields.join(', ');
+        }
+        break;
+      case 'assigned':
+        summary = 'Loaned out';
+        break;
+      case 'returned':
+        summary = 'Returned';
+        break;
+      case 'marked_overdue':
+        summary = 'Loan marked overdue';
+        break;
+      default:
+        summary = this.humanizeLabel(activity.action);
+    }
+
+    return {
+      id: activity.activityLogId,
+      actor: activity.actorName?.trim() || 'System',
+      summary,
+      detail,
+      occurredAt: activity.occurredAt,
+      relative: this.formatRelativeTime(activity.occurredAt),
+      exact: this.formatDateTime(activity.occurredAt),
+    };
+  }
+
+  /** `RAM_16` → "RAM 16", `warranty_expiry_date` → "Warranty expiry date"; clean labels pass through. */
+  private humanizeLabel(value: string): string {
+    const normalized = value.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!normalized) {
+      return value;
+    }
+
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }
+
+  private describeDayCount(days: number): string {
+    if (days >= 60) {
+      const months = Math.round(days / 30);
+      return `${months} months`;
+    }
+
+    return days === 1 ? '1 day' : `${days} days`;
+  }
+
+  private formatRelativeTime(value: string | null): string {
+    if (!value) {
+      return '-';
+    }
+
+    const time = new Date(value).getTime();
+    if (Number.isNaN(time)) {
+      return '-';
+    }
+
+    const seconds = Math.round((Date.now() - time) / 1000);
+    const formatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+    if (seconds < 60) {
+      return 'just now';
+    }
+    if (seconds < 3600) {
+      return formatter.format(-Math.floor(seconds / 60), 'minute');
+    }
+    if (seconds < 86400) {
+      return formatter.format(-Math.floor(seconds / 3600), 'hour');
+    }
+    if (seconds < 86400 * 30) {
+      return formatter.format(-Math.floor(seconds / 86400), 'day');
+    }
+
+    return this.formatDate(value);
+  }
+
   private parseDateOnly(value: string | null | undefined): Date | null {
     if (!value) {
       return null;
     }
 
-    const date = new Date(`${value}T00:00:00`);
+    const date = new Date(`${value.slice(0, 10)}T00:00:00`);
     if (Number.isNaN(date.getTime())) {
       return null;
     }

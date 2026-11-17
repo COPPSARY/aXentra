@@ -51,7 +51,7 @@
       </div>
 
       <footer>
-        <button
+        <button appButton="secondary"
           class="delete-modal-cancel"
           type="button"
           [disabled]="isBusy"
@@ -59,7 +59,7 @@
         >
           {{ cancelLabel }}
         </button>
-        <button
+        <button appButton
           class="delete-modal-confirm"
           [class.delete-modal-confirm-warning]="variant === 'warning'"
           type="button"

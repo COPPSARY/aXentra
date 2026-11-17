@@ -14,6 +14,7 @@ import {
   AssetStatus,
   AssetViewMode,
 } from '../../models/asset-view.models';
+import { AppButtonDirective } from '../../../../shared/components/app-button/app-button.directive';
 
 export interface AssetGridActionMenuEvent {
   assetId: number;
@@ -22,7 +23,7 @@ export interface AssetGridActionMenuEvent {
 
 @Component({
   selector: 'app-asset-grid-card',
-  imports: [RouterLink],
+  imports: [AppButtonDirective, RouterLink],
   templateUrl: './asset-grid-card.component.html',
   styleUrl: './asset-grid-card.component.css',
 })

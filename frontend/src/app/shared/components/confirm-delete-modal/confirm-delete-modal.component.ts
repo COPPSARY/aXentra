@@ -1,6 +1,8 @@
 import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
+import { AppButtonDirective } from '../app-button/app-button.directive';
 
 @Component({
+  imports: [AppButtonDirective],
   selector: 'app-confirm-delete-modal',
   templateUrl: './confirm-delete-modal.component.html',
   styleUrl: './confirm-delete-modal.component.css',

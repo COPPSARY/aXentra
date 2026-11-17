@@ -5,7 +5,7 @@
   <app-sidebar />
   <app-mobile-tabbar />
 
-  <div class="lg:pl-[240px]">
+  <div class="app-shell-offset">
     <app-topbar
       [displayName]="displayName()"
       [role]="role()"
@@ -34,8 +34,7 @@
           </div>
 
           <div class="asset-page-actions">
-            <button
-              class="print-selection-trigger"
+            <button appButton="secondary" size="sm"
               type="button"
               [class.print-selection-trigger-active]="isPrintSelectionMode()"
               [attr.aria-pressed]="isPrintSelectionMode()"
@@ -57,8 +56,7 @@
               {{ isPrintSelectionMode() ? "Selecting labels" : "Print labels" }}
             </button>
 
-            <a
-              class="app-button app-button--primary"
+            <a appButton
               [routerLink]="['/assets/types', currentAssetTypeId(), 'new']"
             >
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -88,8 +86,7 @@
 
           <div class="asset-type-utilities">
             <div class="filter-trigger-wrap">
-              <button
-                class="filter-trigger"
+              <button appButton="ghost" iconOnly
                 type="button"
                 [class.filter-trigger-active]="
                   showFilterPanel() || hasActiveFilters()
@@ -268,16 +265,14 @@
                   }
 
                   <div class="filter-panel-footer">
-                    <button
-                      class="filter-panel-clear"
+                    <button appButton="secondary"
                       type="button"
                       [disabled]="!hasActiveFilters()"
                       (click)="clearAllFilters()"
                     >
                       Clear Filters
                     </button>
-                    <button
-                      class="filter-panel-done"
+                    <button appButton
                       type="button"
                       (click)="closeFilterPanel()"
                     >
@@ -397,8 +392,7 @@
                   }}
                 </span>
               }
-              <button
-                class="active-filters-clear"
+              <button appButton="ghost" size="sm"
                 type="button"
                 (click)="clearAllFilters()"
               >
@@ -476,16 +470,14 @@
                 </span>
               </div>
               <div class="label-selection-actions">
-                <button
+                <button appButton="secondary"
                   type="button"
-                  class="selection-cancel"
                   (click)="cancelPrintSelectionMode()"
                 >
                   Cancel
                 </button>
-                <button
+                <button appButton="ghost" size="sm"
                   type="button"
-                  class="selection-clear"
                   (click)="toggleAllAssetsForPrint()"
                 >
                   {{
@@ -494,9 +486,8 @@
                       : "Select all " + assets().length
                   }}
                 </button>
-                <button
+                <button appButton
                   type="button"
-                  class="selection-print"
                   [disabled]="selectedLabelAssets().length === 0"
                   (click)="openBulkPrint()"
                 >
@@ -577,8 +568,7 @@
               } @else if (loadError()) {
                 <div class="table-state table-state-error" role="alert">
                   <p>{{ loadError() }}</p>
-                  <button
-                    class="secondary-action"
+                  <button appButton="secondary"
                     type="button"
                     (click)="retryAssets()"
                   >
@@ -589,8 +579,7 @@
                 <div class="table-state asset-empty-state">
                   @if (hasActiveFilters() || selectedStatus()) {
                     <p>No assets match the current filters.</p>
-                    <button
-                      class="secondary-action"
+                    <button appButton="secondary"
                       type="button"
                       (click)="clearAllFilters()"
                     >
@@ -599,8 +588,7 @@
                   } @else {
                     <p>No assets have been added to this asset type yet.</p>
                     @if (isAdmin()) {
-                      <a
-                        class="primary-action"
+                      <a appButton
                         [routerLink]="[
                           '/assets/types',
                           currentAssetTypeId(),
@@ -757,8 +745,7 @@
                         class="row-action-cell"
                         (click)="$event.stopPropagation()"
                       >
-                        <button
-                          class="row-action"
+                        <button appButton="ghost" size="sm" iconOnly
                           type="button"
                           aria-label="Open asset actions"
                           aria-haspopup="menu"
@@ -821,8 +808,7 @@
             <p class="drawer-eyebrow">Update asset</p>
             <h2 class="app-ellipsis">{{ asset.assetName }}</h2>
           </div>
-          <button
-            class="drawer-close"
+          <button appButton="ghost" iconOnly
             type="button"
             aria-label="Close edit drawer"
             (click)="closeEditDrawer()"
@@ -973,8 +959,8 @@
                     />
                     <div class="flex gap-2">
                       @if (canGenerateEditBarcode()) {
-                        <button
-                          class="barcode-scan inline-flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[8px] border bg-white"
+                        <button appButton="secondary" size="sm"
+                          class="inline-flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[8px] border bg-white"
                           type="button"
                           aria-label="Scan asset"
                           title="Scan asset"
@@ -996,8 +982,8 @@
                             />
                           </svg>
                         </button>
-                        <button
-                          class="barcode-generate inline-flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[8px] border border-(--gray-300) bg-white text-(--gray-700)"
+                        <button appButton="secondary" size="sm"
+                          class="inline-flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[8px] border border-(--gray-300) bg-white text-(--gray-700)"
                           type="button"
                           aria-label="Generate barcode"
                           title="Generate barcode"
@@ -1020,8 +1006,8 @@
                           </svg>
                         </button>
                       } @else if (editForm.barcode) {
-                        <button
-                          class="barcode-generate barcode-copy inline-flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[8px] border border-(--gray-300) bg-white text-(--gray-700)"
+                        <button appButton="secondary" size="sm"
+                          class="barcode-copy inline-flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[8px] border border-(--gray-300) bg-white text-(--gray-700)"
                           type="button"
                           [attr.aria-label]="
                             editBarcodeCopied()
@@ -1181,8 +1167,7 @@
                       @if (canManageSpecField(field)) {
                         <span class="spec-field-actions">
                           @if (editingFieldId() === field.assetTypeFieldId) {
-                            <button
-                              class="spec-field-action"
+                            <button appButton="secondary" size="sm"
                               type="button"
                               [attr.aria-label]="
                                 'Cancel editing ' + field.fieldLabel
@@ -1204,8 +1189,8 @@
                               </svg>
                               Cancel
                             </button>
-                            <button
-                              class="spec-field-action spec-field-action-save"
+                            <button appButton="secondary" size="sm"
+                              class="spec-field-action-save"
                               type="button"
                               [attr.aria-label]="'Save ' + field.fieldLabel"
                               [disabled]="isAddingField()"
@@ -1227,8 +1212,7 @@
                               {{ isAddingField() ? "Saving..." : "Save" }}
                             </button>
                           } @else {
-                            <button
-                              class="spec-field-action"
+                            <button appButton="secondary" size="sm"
                               type="button"
                               [attr.aria-label]="'Edit ' + field.fieldLabel"
                               [disabled]="isAddingField()"
@@ -1255,8 +1239,8 @@
                               </svg>
                               Edit
                             </button>
-                            <button
-                              class="spec-field-action spec-field-action-danger"
+                            <button appButton="secondary" size="sm"
+                              class="spec-field-action-danger"
                               type="button"
                               [attr.aria-label]="'Delete ' + field.fieldLabel"
                               [disabled]="
@@ -1436,8 +1420,8 @@
                                     $index <
                                     newSpecFieldForm.optionValues.length - 1
                                   ) {
-                                    <button
-                                      class="inline-flex min-h-[42px] min-w-[42px] items-center justify-center rounded-[10px] border border-(--gray-150) bg-white text-(--gray-600) transition-[border-color,background-color,color] duration-150 hover:border-(--status-error-border) hover:bg-[#fff5f5] hover:text-(--status-error-text) focus:border-(--status-error-border) focus:bg-[#fff5f5] focus:text-(--status-error-text) focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                                    <button appButton="ghost" iconOnly
+                                     
                                       type="button"
                                       [disabled]="isAddingField()"
                                       [attr.aria-label]="
@@ -1483,8 +1467,8 @@
                     editingFieldId() !== null || showFieldBuilder()
                   "
                 >
-                  <button
-                    class="secondary-action inline-flex items-center gap-2"
+                  <button appButton="secondary"
+                    class="inline-flex items-center gap-2"
                     type="button"
                     [attr.aria-expanded]="showFieldBuilder()"
                     (click)="toggleFieldBuilder()"
@@ -1583,8 +1567,8 @@
                                 $index <
                                 newSpecFieldForm.optionValues.length - 1
                               ) {
-                                <button
-                                  class="inline-flex min-h-[42px] min-w-[42px] items-center justify-center rounded-[10px] border border-(--gray-150) bg-white text-(--gray-600) transition-[border-color,background-color,color] duration-150 hover:border-(--status-error-border) hover:bg-[#fff5f5] hover:text-(--status-error-text) focus:border-(--status-error-border) focus:bg-[#fff5f5] focus:text-(--status-error-text) focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                                <button appButton="ghost" iconOnly
+                                 
                                   type="button"
                                   [disabled]="isAddingField()"
                                   [attr.aria-label]="
@@ -1619,16 +1603,14 @@
                     }
 
                     <div class="field-builder-actions">
-                      <button
-                        class="secondary-action"
+                      <button appButton="secondary"
                         type="button"
                         [disabled]="isAddingField()"
                         (click)="toggleFieldBuilder()"
                       >
                         Cancel
                       </button>
-                      <button
-                        class="save-action"
+                      <button appButton
                         type="button"
                         [disabled]="isAddingField()"
                         (click)="saveSpecFieldDefinition()"
@@ -1653,16 +1635,14 @@
           }
 
           <footer class="drawer-footer">
-            <button
-              class="secondary-action"
+            <button appButton="secondary"
               type="button"
               [disabled]="isSaving()"
               (click)="closeEditDrawer()"
             >
               Cancel
             </button>
-            <button
-              class="save-action"
+            <button appButton
               type="submit"
               [disabled]="!canSaveEdit()"
             >
@@ -1710,15 +1690,13 @@
         </header>
         <p>You have unsaved changes. Are you sure you want to discard them?</p>
         <footer>
-          <button
-            class="secondary-action"
+          <button appButton="secondary"
             type="button"
             (click)="keepEditing()"
           >
             Keep editing
           </button>
-          <button
-            class="discard-action"
+          <button appButton="secondary"
             type="button"
             (click)="discardEditChanges()"
           >

@@ -2,7 +2,7 @@
   <app-sidebar />
   <app-mobile-tabbar />
 
-  <div class="lg:pl-60">
+  <div class="app-shell-offset">
     <app-topbar
       [displayName]="displayName()"
       [role]="role()"
@@ -28,8 +28,7 @@
               class="assets-primary-actions flex flex-wrap items-center gap-4"
             >
               <div class="assets-guided-action">
-                <button
-                  class="assets-new-action"
+                <button appButton
                   type="button"
                   (click)="startCreateFlow()"
                 >
@@ -50,8 +49,7 @@
               </div>
 
               <div class="assets-guided-action">
-                <button
-                  class="assets-scan-action"
+                <button appButton="secondary"
                   type="button"
                   [disabled]="isFindingBarcode()"
                   (click)="openBarcodeScan()"

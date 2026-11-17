@@ -29,6 +29,7 @@ import {
   AssetsApiService,
 } from '../../services/assets-api.service';
 import { CreateAssetComponent } from '../create-asset/create-asset.component';
+import { AppButtonDirective } from '../../../../shared/components/app-button/app-button.directive';
 
 const ASSET_STATUSES: AssetStatus[] = [
   'In Storage',
@@ -86,7 +87,7 @@ interface ScannedAssetResult {
 }
 
 @Component({
-  imports: [
+  imports: [AppButtonDirective, 
     AppHelpTooltipComponent,
     AppLoadingComponent,
     AssetCategoryCardComponent,

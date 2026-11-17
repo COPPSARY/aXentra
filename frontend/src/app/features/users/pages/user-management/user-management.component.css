@@ -238,28 +238,6 @@
   color: var(--text-muted);
 }
 
-.row-action {
-  display: flex;
-  height: 36px;
-  width: 36px;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-pill);
-  color: var(--text-muted);
-}
-
-.row-action:hover,
-.row-action:focus-visible {
-  background: var(--gray-100);
-  color: var(--text-secondary);
-  outline: none;
-}
-
-.row-action svg {
-  height: 20px;
-  width: 20px;
-}
-
 .row-action-cell {
   position: relative;
   justify-self: center;

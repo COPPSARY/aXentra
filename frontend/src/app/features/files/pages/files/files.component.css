@@ -333,29 +333,6 @@
   font-weight: var(--weight-semibold);
 }
 
-.files-upload-preview-remove {
-  min-height: 34px;
-  border: 1px solid var(--gray-300);
-  border-radius: var(--radius-control);
-  background: #fff;
-  padding: 0 12px;
-  color: var(--text-secondary);
-  font-size: var(--type-body-size);
-  font-weight: var(--weight-semibold);
-  transition:
-    border-color var(--app-motion-fast) var(--app-motion-ease),
-    color var(--app-motion-fast) var(--app-motion-ease),
-    background-color var(--app-motion-fast) var(--app-motion-ease);
-}
-
-.files-upload-preview-remove:hover,
-.files-upload-preview-remove:focus-visible {
-  border-color: var(--gray-300);
-  background: var(--gray-50);
-  color: var(--gray-900);
-  outline: none;
-}
-
 .files-upload-preview-footer {
   display: flex;
   justify-content: flex-end;
@@ -524,7 +501,6 @@
   padding: 14px 20px 18px;
 }
 
-
 @keyframes files-modal-fade-in {
   from {
     opacity: 0;
@@ -545,47 +521,6 @@
     opacity: 1;
     transform: translateY(0) scale(1);
   }
-}
-
-.files-modal-cancel,
-.files-modal-save {
-  min-height: 38px;
-  min-width: 96px;
-  border-radius: var(--radius-control);
-  font-size: var(--type-body-size);
-  font-weight: var(--weight-semibold);
-}
-
-.files-modal-cancel {
-  border: 1px solid var(--gray-300);
-  background: #fff;
-  color: var(--text-secondary);
-}
-
-.files-modal-cancel:hover,
-.files-modal-cancel:focus-visible {
-  background: var(--gray-100);
-  color: var(--text-secondary);
-  outline: none;
-}
-
-.files-modal-save {
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: #fff;
-}
-
-.files-modal-save:hover,
-.files-modal-save:focus-visible {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  outline: none;
-}
-
-.files-modal-cancel:disabled,
-.files-modal-save:disabled {
-  cursor: not-allowed;
-  opacity: 0.65;
 }
 
 .files-assignment-empty,
@@ -934,19 +869,8 @@
     align-items: start;
   }
 
-  .files-upload-preview-remove {
-    grid-column: 1 / -1;
-    width: 100%;
-    justify-self: stretch;
-  }
-
   .files-upload-preview-footer {
     flex-direction: column;
-  }
-
-  .files-modal-cancel,
-  .files-modal-save {
-    width: 100%;
   }
 }
 

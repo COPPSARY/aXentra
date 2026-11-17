@@ -2,7 +2,7 @@
   <app-sidebar />
   <app-mobile-tabbar />
 
-  <div class="lg:pl-[240px]">
+  <div class="app-shell-offset">
     <app-topbar
       [displayName]="displayName()"
       [role]="role()"
@@ -40,15 +40,23 @@
                     }
 
                     <div class="title-row">
-                      <h1>{{ loanNo() }}</h1>
+                      <h1 class="tabular">{{ loanNo() }}</h1>
                       <span class="status-pill {{ statusTone(effectiveStatus()) }}">
                         <span></span>
                         {{ statusLabel(effectiveStatus()) }}
                       </span>
                     </div>
 
-                    <p class="hero-subtitle">
-                      {{ borrowerName() }} / {{ loanPeriod() }} / {{ durationLabel() }}
+                    <p class="identity-line">
+                      @if (borrowerProfileLink(); as profileLink) {
+                        <a class="identity-link" [routerLink]="profileLink">{{ borrowerName() }}</a>
+                      } @else {
+                        <span class="identity-strong">{{ borrowerName() }}</span>
+                      }
+                      <span class="tabular">{{ loanPeriod() }}</span>
+                      @if (dueNote(); as note) {
+                        <span>{{ note }}</span>
+                      }
                     </p>
                   </div>
                 </div>
@@ -83,8 +91,7 @@
 
                   @if (!isEditMode() && !isReturnMode()) {
                     <div class="loan-action-menu-anchor">
-                      <button
-                        class="loan-action-trigger"
+                      <button appButton="ghost" iconOnly
                         type="button"
                         aria-label="Open loan actions"
                         aria-haspopup="menu"
@@ -108,7 +115,7 @@
                             role="menuitem"
                             (click)="handleLoanActionMenu('edit')"
                           >
-                            Edit Loan
+                            Edit loan
                           </button>
                           @if (canExtendLoan()) {
                             <button
@@ -116,7 +123,7 @@
                               role="menuitem"
                               (click)="handleLoanActionMenu('extend')"
                             >
-                              Extend Loan
+                              Extend loan
                             </button>
                           }
                           @if (canCancelLoan()) {
@@ -126,18 +133,18 @@
                               [disabled]="isCancellingLoan()"
                               (click)="handleLoanActionMenu('cancel')"
                             >
-                              {{ isCancellingLoan() ? 'Cancelling...' : 'Cancel Loan' }}
+                              {{ isCancellingLoan() ? 'Cancelling...' : 'Cancel loan' }}
                             </button>
                           }
                           @if (canDeleteLoan()) {
                             <button
                               type="button"
                               role="menuitem"
-                              class="loan-action-menu-danger"
+                              class="loan-action-menu-danger loan-action-menu-separated"
                               [disabled]="isDeletingLoan()"
                               (click)="handleLoanActionMenu('delete')"
                             >
-                              {{ isDeletingLoan() ? 'Deleting...' : 'Delete Loan' }}
+                              {{ isDeletingLoan() ? 'Deleting...' : 'Delete loan' }}
                             </button>
                           }
                         </div>
@@ -146,154 +153,20 @@
                   }
                 </div>
               </div>
+
             </header>
 
             <div class="details-layout app-motion-enter app-motion-delay-1">
               <div class="details-main">
-                <section class="details-card">
+                <!-- Items first: they are what the loan is about. -->
+                <section class="details-card" aria-labelledby="items-title">
                   <div class="card-heading">
-                    <h2>Overview</h2>
-                  </div>
-
-                  <div class="overview-grid">
-                    <div class="overview-item">
-                      <span>Borrower</span>
-                      <strong>{{ borrowerName() }}</strong>
-                    </div>
-                    <div class="overview-item">
-                      <span>Lender</span>
-                      <strong>{{ lenderName() }}</strong>
-                    </div>
-                    <div class="overview-item">
-                      <span>Created By</span>
-                      <strong>{{ lenderName() }}</strong>
-                    </div>
-                    <div class="overview-item">
-                      <span>Borrow Date</span>
-                      <strong>{{ formatDate(currentLoan.startLoanDate) }}</strong>
-                    </div>
-                    <div class="overview-item">
-                      <span>Loan Status</span>
-                      <strong>{{ statusLabel(effectiveStatus()) }}</strong>
-                    </div>
-                    <div class="overview-item">
-                      <span>Created At</span>
-                      <strong>{{ createdAtLabel() }}</strong>
-                    </div>
-                    <div class="overview-item">
-                      <span>Returned At</span>
-                      <strong>{{ returnDateLabel() }}</strong>
-                    </div>
-                  </div>
-
-                  @if (isEditMode()) {
-                    <div class="form-grid">
-                      <label class="field">
-                        <span>End Date</span>
-                        <app-date-field
-                          title="End Date"
-                          placeholder="Select date"
-                          [minDate]="currentLoan.startLoanDate"
-                          [ngModel]="endLoanDateDraft()"
-                          (ngModelChange)="setEndLoanDateDraft($event || '')"
-                        />
-                      </label>
-
-                      <label class="field field-remark">
-                        <span>Remark</span>
-                        <textarea
-                          rows="4"
-                          [ngModel]="remarkDraft()"
-                          (ngModelChange)="setRemarkDraft($event)"
-                          placeholder="Add a short note"
-                        ></textarea>
-                      </label>
-                    </div>
-                  } @else {
-                    <div class="readonly-fields">
-                      <div class="readonly-item">
-                        <span>End Date</span>
-                        <strong>{{ formatDate(currentLoan.endLoanDate) }}</strong>
-                      </div>
-
-                      <div class="readonly-item readonly-item-remark">
-                        <span>Remark</span>
-                        @if (remarkText() === '-') {
-                          <p class="readonly-empty">No remark added</p>
-                        } @else {
-                          <p class="readonly-note">{{ remarkText() }}</p>
-                        }
-                      </div>
-                    </div>
-                  }
-
-                  @if (loanExtensionCount() > 0) {
-                    <div class="extension-card">
-                      <div class="extension-card-head">
-                        <div class="extension-card-title">
-                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path
-                              d="M12 7v5l3 2M21 12a9 9 0 1 1-9-9 9 9 0 0 1 9 9Z"
-                              stroke="currentColor"
-                              stroke-width="1.7"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            />
-                          </svg>
-                          <span>Extension History</span>
-                        </div>
-                      </div>
-
-                      <p class="extension-card-summary">{{ loanExtensionHeadline() }}</p>
-
-                      <ol class="extension-timeline">
-                        @for (event of loanExtensionEvents(); track event.step) {
-                          <li class="extension-timeline-item">
-                            <span class="extension-timeline-marker">{{ event.step }}</span>
-                            <div class="extension-timeline-body">
-                              <div class="extension-timeline-dates">
-                                <span class="extension-from">{{ event.fromLabel }}</span>
-                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                  <path
-                                    d="M5 12h14m-6-6 6 6-6 6"
-                                    stroke="currentColor"
-                                    stroke-width="1.7"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                  />
-                                </svg>
-                                <span class="extension-to">{{ event.toLabel }}</span>
-                                @if (event.addedDaysLabel) {
-                                  <span class="extension-added">{{ event.addedDaysLabel }}</span>
-                                }
-                              </div>
-                              @if (event.extendedAtLabel) {
-                                <span class="extension-timeline-meta">{{ event.extendedAtLabel }}</span>
-                              }
-                            </div>
-                          </li>
-                        }
-                      </ol>
-                    </div>
-                  }
-
-                  @if (isEditMode()) {
-                    <div class="form-actions">
-                      <button
-                        appButton
-                        type="button"
-                        [disabled]="!hasMainChanges() || isSavingLoan()"
-                        (click)="saveLoanChanges()"
-                      >
-                        {{ isSavingLoan() ? 'Saving...' : 'Save Changes' }}
-                      </button>
-                    </div>
-                  }
-                </section>
-
-                <section class="details-card">
-                  <div class="card-heading">
-                    <h2>Items</h2>
+                    <h2 id="items-title">Items</h2>
+                    @if (loanItems().length > 0) {
+                      <span class="card-count tabular">
+                        {{ itemStatusCounts().Returned }} of {{ loanItems().length }} returned
+                      </span>
+                    }
                   </div>
 
                   @if (isReturnMode()) {
@@ -330,9 +203,8 @@
                       <div class="items-table">
                         <div class="items-head">
                           <div>Asset</div>
-                          <div>Barcode</div>
                           <div>Status</div>
-                          <div>Returned At</div>
+                          <div>Returned</div>
                         </div>
 
                         <div class="items-body">
@@ -343,9 +215,15 @@
                               (click)="onItemRowClick(item, $event)"
                             >
                               <div class="asset-cell">
-                                <strong>{{ item.assetName }}</strong>
+                                @if (!isReturnMode() && assetDetailLink(item); as link) {
+                                  <a class="asset-link" [routerLink]="link">{{ item.assetName }}</a>
+                                } @else {
+                                  <strong>{{ item.assetName }}</strong>
+                                }
+                                @if (item.barcode && item.barcode !== '-') {
+                                  <span class="asset-barcode">{{ item.barcode }}</span>
+                                }
                               </div>
-                              <div>{{ item.barcode }}</div>
                               <div>
                                 @if (isReturnMode() && canUpdateItemStatus(item)) {
                                   <div class="item-action-editor">
@@ -368,7 +246,9 @@
                                   </span>
                                 }
                               </div>
-                              <div>{{ formatDateTime(item.returnDate) }}</div>
+                              <div class="tabular" [class.is-muted]="!item.returnDate">
+                                {{ item.returnDate ? formatDateTime(item.returnDate) : '—' }}
+                              </div>
                             </div>
                           }
                         </div>
@@ -376,57 +256,260 @@
                     </div>
                   }
                 </section>
+
+                <section class="details-card" aria-labelledby="details-title">
+                  <div class="card-heading">
+                    <h2 id="details-title">Details</h2>
+                  </div>
+
+                  <dl class="overview-grid">
+                    <div class="overview-item">
+                      <dt>Borrow date</dt>
+                      <dd class="tabular">{{ formatDate(currentLoan.startLoanDate) }}</dd>
+                    </div>
+                    @if (!isEditMode()) {
+                      <div class="overview-item">
+                        <dt>Due date</dt>
+                        <dd class="tabular">{{ formatDate(currentLoan.endLoanDate) }}</dd>
+                      </div>
+                    }
+                    @if (currentLoan.returnDate) {
+                      <div class="overview-item">
+                        <dt>Returned on</dt>
+                        <dd class="tabular">{{ returnDateLabel() }}</dd>
+                      </div>
+                    }
+                    <div class="overview-item">
+                      <dt>Duration</dt>
+                      <dd>{{ durationLabel() }}</dd>
+                    </div>
+                    <div class="overview-item">
+                      <dt>Issued by</dt>
+                      <dd>{{ lenderName() }}</dd>
+                    </div>
+                  </dl>
+
+                  @if (isEditMode()) {
+                    <div class="form-grid">
+                      <label class="field">
+                        <span>End Date</span>
+                        <app-date-field
+                          title="End Date"
+                          placeholder="Select date"
+                          [minDate]="currentLoan.startLoanDate"
+                          [ngModel]="endLoanDateDraft()"
+                          (ngModelChange)="setEndLoanDateDraft($event || '')"
+                        />
+                      </label>
+
+                      <label class="field field-remark">
+                        <span>Remark</span>
+                        <textarea
+                          rows="4"
+                          [ngModel]="remarkDraft()"
+                          (ngModelChange)="setRemarkDraft($event)"
+                          placeholder="Add a short note"
+                        ></textarea>
+                      </label>
+                    </div>
+                  } @else if (remarkText() !== '-') {
+                    <div class="remark-block">
+                      <span>Remark</span>
+                      <p class="readonly-note">{{ remarkText() }}</p>
+                    </div>
+                  }
+
+                  @if (loanExtensionCount() > 0) {
+                    <div class="extension-block">
+                      <p class="extension-block-title">
+                        Extensions
+                        <span class="extension-block-summary">{{ loanExtensionHeadline() }}</span>
+                      </p>
+                      <ol class="extension-list">
+                        @for (event of loanExtensionEvents(); track event.step) {
+                          <li>
+                            <span class="tabular">{{ event.fromLabel }} → {{ event.toLabel }}</span>
+                            @if (event.addedDaysLabel) {
+                              <span class="extension-added">{{ event.addedDaysLabel }}</span>
+                            }
+                            @if (event.extendedAtLabel) {
+                              <span class="extension-when">{{ event.extendedAtLabel }}</span>
+                            }
+                          </li>
+                        }
+                      </ol>
+                    </div>
+                  }
+
+                  @if (isEditMode()) {
+                    <div class="form-actions">
+                      <button
+                        appButton
+                        type="button"
+                        [disabled]="!hasMainChanges() || isSavingLoan()"
+                        (click)="saveLoanChanges()"
+                      >
+                        {{ isSavingLoan() ? 'Saving...' : 'Save Changes' }}
+                      </button>
+                    </div>
+                  }
+                </section>
+
+                @if (!activitiesForbidden() && !isEditMode()) {
+                  <section class="details-card" aria-labelledby="history-title">
+                    <div class="card-heading">
+                      <h2 id="history-title">History</h2>
+                    </div>
+
+                    @if (isActivitiesLoading() && activities().length === 0) {
+                      <div class="skeleton-list" aria-label="Loading history">
+                        <span></span><span></span><span></span>
+                      </div>
+                    } @else if (activitiesError() && activities().length === 0) {
+                      <p class="empty-state">
+                        {{ activitiesError() }}
+                        <button appButton="ghost" size="sm" type="button" (click)="retryActivities()">
+                          Retry
+                        </button>
+                      </p>
+                    } @else if (historyEntries().length === 0) {
+                      <p class="empty-state">No recorded changes yet.</p>
+                    } @else {
+                      <ol class="history-list">
+                        @for (entry of historyEntries(); track entry.id) {
+                          <li class="history-item">
+                            <span class="history-dot" aria-hidden="true"></span>
+                            <div class="min-w-0">
+                              <p class="history-summary">{{ entry.summary }}</p>
+                              @if (entry.detail) {
+                                <p class="history-detail">{{ entry.detail }}</p>
+                              }
+                              <p class="history-meta">
+                                {{ entry.actor }} ·
+                                <time [attr.datetime]="entry.occurredAt" [title]="entry.exact">{{
+                                  entry.relative
+                                }}</time>
+                              </p>
+                            </div>
+                          </li>
+                        }
+                      </ol>
+
+                      @if (hasMoreActivities()) {
+                        <button appButton="ghost" size="sm"
+                          type="button"
+                          [disabled]="isActivitiesLoading()"
+                          (click)="loadMoreActivities()"
+                        >
+                          {{ isActivitiesLoading() ? 'Loading...' : 'Show older' }}
+                        </button>
+                      }
+                    }
+                  </section>
+                }
               </div>
 
               <aside class="details-side">
-                <section class="details-card">
-                  <h3 class="side-title">Timeline</h3>
+                <section class="details-card side-borrower" aria-labelledby="borrower-title">
+                  <h3 class="side-title" id="borrower-title"><svg lucideUser class="side-title-icon" aria-hidden="true"></svg>Borrower</h3>
 
-                  <div class="meta-list">
-                    <div class="meta-row">
-                      <span>Created</span>
-                      <strong>{{ createdAtLabel() }}</strong>
-                    </div>
-                    <div class="meta-row">
-                      <span>Updated</span>
-                      <strong>{{ updatedAtLabel() }}</strong>
-                    </div>
-                    <div class="meta-row">
-                      <span>Loan Period</span>
-                      <strong>{{ loanPeriod() }}</strong>
-                    </div>
-                    <div class="meta-row">
-                      <span>Duration</span>
-                      <strong>{{ durationLabel() }}</strong>
+                  <div class="borrower-row">
+                    <span class="borrower-avatar" aria-hidden="true">{{ borrowerInitials() }}</span>
+                    <div class="min-w-0">
+                      @if (borrowerProfileLink(); as profileLink) {
+                        <a class="borrower-name app-ellipsis" [routerLink]="profileLink">{{
+                          borrowerName()
+                        }}</a>
+                      } @else {
+                        <strong class="borrower-name app-ellipsis">{{ borrowerName() }}</strong>
+                      }
+                      @if (borrowerDepartment()) {
+                        <p class="borrower-sub">{{ borrowerDepartment() }}</p>
+                      } @else if (!borrower()) {
+                        <p class="borrower-sub">Profile unavailable</p>
+                      }
                     </div>
                   </div>
+
+                  @if (borrowerPhone() || borrowerEmail()) {
+                    <dl class="contact-list">
+                      @if (borrowerPhone()) {
+                        <div>
+                          <dt>Phone</dt>
+                          <dd>
+                            <a class="contact-link tabular" [href]="'tel:' + borrowerPhone()">{{
+                              borrowerPhone()
+                            }}</a>
+                          </dd>
+                        </div>
+                      }
+                      @if (borrowerEmail()) {
+                        <div>
+                          <dt>Email</dt>
+                          <dd>
+                            <a class="contact-link app-ellipsis" [href]="'mailto:' + borrowerEmail()">{{
+                              borrowerEmail()
+                            }}</a>
+                          </dd>
+                        </div>
+                      }
+                    </dl>
+                  }
                 </section>
 
-                <section class="details-card">
-                  <h3 class="side-title">Counts</h3>
-
-                  <div class="meta-list">
-                    <div class="meta-row">
-                      <span>Total Items</span>
-                      <strong>{{ loanItems().length }}</strong>
-                    </div>
-                    <div class="meta-row">
-                      <span>Still On Loan</span>
-                      <strong>{{ loanedItemCount() }}</strong>
-                    </div>
-                    <div class="meta-row">
-                      <span>Returned</span>
-                      <strong>{{ returnedItemCount() }}</strong>
-                    </div>
-                  </div>
+                <section class="details-card" aria-labelledby="progress-title">
+                  <h3 class="side-title" id="progress-title"><svg lucideClipboardCheck class="side-title-icon" aria-hidden="true"></svg>Return progress</h3>
+                  @if (loanItems().length === 0) {
+                    <p class="empty-state progress-empty">No items.</p>
+                  } @else {
+                    <p class="progress-figure tabular">
+                      <strong>{{ settledItemCount() }}</strong>
+                      <span>/ {{ loanItems().length }} settled</span>
+                    </p>
+                    <span
+                      class="loan-progress-meter"
+                      role="meter"
+                      aria-label="Items settled"
+                      [attr.aria-valuenow]="settledItemCount()"
+                      aria-valuemin="0"
+                      [attr.aria-valuemax]="loanItems().length"
+                    >
+                      <span [style.width.%]="(settledItemCount() / loanItems().length) * 100"></span>
+                    </span>
+                    <p class="progress-breakdown">{{ itemBreakdown() }}</p>
+                  }
                 </section>
 
                 @if (canManageSharing()) {
                   <section class="details-card">
-                    <h3 class="side-title">Public Share Link</h3>
+                    <h3 class="side-title"><svg lucideLink class="side-title-icon" aria-hidden="true"></svg>Share link</h3>
                     <app-loan-share-controls [loanId]="currentLoan.assetLoanId" />
                   </section>
                 }
+
+                <section class="details-card" aria-labelledby="record-title">
+                  <h3 class="side-title" id="record-title"><svg lucideInfo class="side-title-icon" aria-hidden="true"></svg>Record</h3>
+                  <dl class="record-list">
+                    <div>
+                      <dt>Loan no.</dt>
+                      <dd class="tabular">{{ loanNo() }}</dd>
+                    </div>
+                    <div>
+                      <dt>Created</dt>
+                      <dd>{{ createdAtLabel() }}</dd>
+                    </div>
+                    <div>
+                      <dt>Last updated</dt>
+                      <dd>{{ updatedAtLabel() }}</dd>
+                    </div>
+                    @if (currentLoan.version) {
+                      <div>
+                        <dt>Revision</dt>
+                        <dd class="tabular">{{ currentLoan.version }}</dd>
+                      </div>
+                    }
+                  </dl>
+                </section>
               </aside>
             </div>
           }

@@ -8,8 +8,10 @@ import {
   Output,
   inject,
 } from '@angular/core';
+import { AppButtonDirective } from '../../../shared/components/app-button/app-button.directive';
 
 @Component({
+  imports: [AppButtonDirective],
   selector: 'app-barcode-scan-result-modal',
   standalone: true,
   templateUrl: './barcode-scan-result-modal.component.html',

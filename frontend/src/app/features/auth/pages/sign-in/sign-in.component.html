@@ -69,7 +69,7 @@
         <a class="auth-link" href="/reset-password">Forgot password?</a>
       </div>
 
-      <button class="app-button app-button--primary auth-submit" type="submit" [disabled]="isSubmitting">
+      <button appButton class="auth-submit" type="submit" [disabled]="isSubmitting">
         {{ isSubmitting ? "Signing in..." : "Sign in" }}
       </button>
     </form>

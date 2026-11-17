@@ -27,6 +27,7 @@ import {
   AssetsApiService,
 } from '../../../features/assets/services/assets-api.service';
 import { GlobalSearchComponent } from './global-search.component';
+import { AppButtonDirective } from '../../components/app-button/app-button.directive';
 
 interface ScannedAssetResult {
   assetId: number;
@@ -51,7 +52,7 @@ const MOBILE_MORE_DESTINATION_TITLES: Record<string, string> = {
 
 @Component({
   selector: 'app-topbar',
-  imports: [
+  imports: [AppButtonDirective, 
     RouterLink,
     BarcodeScanResultModalComponent,
     BarcodeScannerDialogComponent,

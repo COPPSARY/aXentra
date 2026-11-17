@@ -2,7 +2,7 @@
   <app-sidebar />
   <app-mobile-tabbar />
 
-  <div class="lg:pl-60">
+  <div class="app-shell-offset">
     <app-topbar
       [displayName]="displayName()"
       [role]="role()"
@@ -241,8 +241,7 @@
                         class="row-action-cell"
                         (click)="$event.stopPropagation()"
                       >
-                        <button
-                          class="row-action"
+                        <button appButton="ghost" size="sm" iconOnly
                           type="button"
                           aria-label="Open profile actions"
                           aria-haspopup="menu"

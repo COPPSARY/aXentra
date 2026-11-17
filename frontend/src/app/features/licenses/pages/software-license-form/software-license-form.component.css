@@ -384,35 +384,6 @@
   font-weight: var(--weight-semibold);
 }
 
-.option-remove-button {
-  display: inline-flex;
-  min-height: 42px;
-  min-width: 42px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--gray-150);
-  border-radius: var(--radius-control);
-  background: #fff;
-  color: var(--gray-600);
-  transition:
-    border-color var(--app-motion-fast) var(--app-motion-ease),
-    background-color var(--app-motion-fast) var(--app-motion-ease),
-    color var(--app-motion-fast) var(--app-motion-ease);
-}
-
-.option-remove-button:hover,
-.option-remove-button:focus-visible {
-  border-color: var(--gray-300);
-  background: var(--gray-100);
-  color: var(--text-secondary);
-  outline: none;
-}
-
-.option-remove-button svg {
-  height: 16px;
-  width: 16px;
-}
-
 @keyframes album-item-in {
   from {
     opacity: 0;
@@ -583,10 +554,5 @@
 
   .album-upload-item {
     grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .album-upload-item .option-remove-button {
-    grid-column: 1 / -1;
-    justify-self: end;
   }
 }

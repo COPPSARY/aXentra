@@ -1,107 +1,87 @@
-<section data-testid="loan-share-controls">
-  <div class="flex flex-col gap-1">
-    <p class="text-base leading-6 text-gray-500">
-      Generate a read-only link to share this loan with an external recipient.
-    </p>
-  </div>
-
+<section class="share" data-testid="loan-share-controls">
   <!-- Loading the current share status -->
   @if (isLoading()) {
-    <div
-      class="mt-4 flex items-center gap-2 text-base text-gray-500"
-      data-testid="loan-share-loading"
-    >
-      <span
-        class="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-[#1f3d7a]"
-        aria-hidden="true"
-      ></span>
-      Loading share status…
-    </div>
+    <p class="share-status" data-testid="loan-share-loading">
+      <span class="share-spinner" aria-hidden="true"></span>
+      Checking link…
+    </p>
   }
 
   <!-- Sharing enabled -->
   @else if (share().status === 'enabled') {
-    <div class="mt-4 flex flex-col gap-3" data-testid="loan-share-enabled">
-      <div class="flex min-w-0 flex-col gap-1">
-        <label
-          class="text-sm font-semibold tracking-wide text-gray-500 uppercase"
-          [attr.for]="'loan-share-url-' + loanId"
+    <div class="share-enabled" data-testid="loan-share-enabled">
+      <label class="sr-only" [attr.for]="'loan-share-url-' + loanId">Share URL</label>
+      <div class="share-url">
+        <input
+          [id]="'loan-share-url-' + loanId"
+          type="text"
+          readonly
+          [value]="shareUrlValue()"
+          class="share-url-input"
+          data-testid="loan-share-url"
+          aria-label="Share URL"
+          (focus)="$any($event.target).select()"
+        />
+        <button appButton="ghost" size="sm" iconOnly
+          type="button"
+          (click)="copy()"
+          [disabled]="isBusy()"
+          data-testid="loan-share-copy"
+          aria-label="Copy share link"
+          title="Copy link"
         >
-          Share URL
-        </label>
-        <span class="flex min-w-0">
-          <span class="relative min-w-0 flex-1">
-            <input
-              [id]="'loan-share-url-' + loanId"
-              type="text"
-              readonly
-              [value]="shareUrlValue()"
-              class="min-h-11 w-full rounded-l-md border border-r-0 border-gray-200 bg-gray-50 py-2 pr-12 pl-3 text-base text-gray-900 focus:z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1f3d7a]"
-              data-testid="loan-share-url"
-              aria-label="Share URL"
-            />
-            <a
-              [href]="shareUrlValue()"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-[#1f3d7a] transition-colors hover:bg-[#e8eef8] focus:z-20 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1f3d7a]"
-              data-testid="loan-share-open"
-              aria-label="Open public share link in a new tab"
-              title="Open public share link"
-            >
-              <svg lucideExternalLink class="h-4 w-4" aria-hidden="true"></svg>
-            </a>
-          </span>
-          <button
-            type="button"
-            (click)="copy()"
-            [disabled]="isBusy()"
-            class="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-r-md border border-[#1f3d7a] bg-[#1f3d7a] px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#193367] focus:z-20 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1f3d7a] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:text-base"
-            data-testid="loan-share-copy"
-            aria-label="Copy share link"
-            title="Copy share link"
-          >
-            <svg lucideCopy class="h-4 w-4" aria-hidden="true"></svg>
-            <span>Copy</span>
-          </button>
-        </span>
+          <svg lucideCopy aria-hidden="true"></svg>
+        </button>
+        <a appButton="ghost" size="sm" iconOnly
+          [href]="shareUrlValue()"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="loan-share-open"
+          aria-label="Open public share link in a new tab"
+          title="Open link"
+        >
+          <svg lucideExternalLink aria-hidden="true"></svg>
+        </a>
       </div>
 
-      <div class="flex flex-wrap gap-2">
-        <button
+      <p class="share-hint">Anyone with this link can view the loan. Read-only.</p>
+
+      <div class="share-text-actions">
+        <button appButton="ghost" size="sm"
           type="button"
           (click)="regenerate()"
           [disabled]="isBusy()"
-          class="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[#c7d2e6] bg-[#eef2fb] px-4 py-2 text-base font-semibold text-[#1f3d7a] transition-colors hover:bg-[#e0e8f7] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1f3d7a] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           data-testid="loan-share-regenerate"
         >
+          <svg lucideRefreshCw aria-hidden="true"></svg>
           Regenerate
         </button>
-
-        <button
+        <button appButton="ghost" size="sm"
           type="button"
+          class="share-text-button-quiet"
           (click)="disable()"
           [disabled]="isBusy()"
-          class="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-base font-semibold text-red-700 transition-colors hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           data-testid="loan-share-disable"
         >
-          Disable sharing
+          Turn off
         </button>
       </div>
     </div>
   }
 
-  <!-- No active share link: offer to generate one -->
+  <!-- No active share link: offer to create one -->
   @else {
-    <div class="mt-4" data-testid="loan-share-none">
-      <button
+    <div class="share-none" data-testid="loan-share-none">
+      <p class="share-status">Not shared</p>
+      <p class="share-hint">Create a read-only link for someone outside the system.</p>
+      <button appButton="secondary" size="sm"
         type="button"
         (click)="generate()"
         [disabled]="isBusy()"
-        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[#1f3d7a] bg-[#1f3d7a] px-4 py-2 text-base font-semibold text-white transition-colors hover:bg-[#193367] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1f3d7a] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         data-testid="loan-share-generate"
       >
-        Generate share link
+        <svg lucideLink aria-hidden="true"></svg>
+        {{ isBusy() ? 'Creating…' : 'Create link' }}
       </button>
     </div>
   }

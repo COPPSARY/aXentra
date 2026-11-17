@@ -13,7 +13,7 @@ import {
  * Validates: Requirements 2.3
  *
  * For any variant input string, the directive SHALL resolve to exactly one of
- * the four defined variants (primary/secondary/inverted/outlined), and any
+ * the defined variants (primary/secondary/inverted/outlined/ghost/danger), and any
  * empty or unrecognized input SHALL resolve to `primary`.
  */
 describe('AppButtonDirective variant resolution (property)', () => {
@@ -22,10 +22,12 @@ describe('AppButtonDirective variant resolution (property)', () => {
     'secondary',
     'inverted',
     'outlined',
+    'ghost',
+    'danger',
   ];
 
   /**
-   * Reads the four mutually-exclusive HostBinding class getters and returns the
+   * Reads the mutually-exclusive HostBinding variant class getters and returns the
    * single variant they resolve to. Fails the assertion if anything other than
    * exactly one variant class is active.
    */
@@ -35,13 +37,15 @@ describe('AppButtonDirective variant resolution (property)', () => {
     if (directive.isSecondary) active.push('secondary');
     if (directive.isInverted) active.push('inverted');
     if (directive.isOutlined) active.push('outlined');
+    if (directive.isGhost) active.push('ghost');
+    if (directive.isDanger) active.push('danger');
 
     // Exactly one variant class must resolve for any input.
     expect(active.length).toBe(1);
     return active[0];
   }
 
-  // A generator biased toward the meaningful inputs ('' and the four valid
+  // A generator biased toward the meaningful inputs ('' and the valid
   // variants) while still covering arbitrary/unrecognized strings.
   const variantArb = fc.oneof(
     fc.constant('' as const),
@@ -49,7 +53,7 @@ describe('AppButtonDirective variant resolution (property)', () => {
     fc.string(),
     // Near-miss strings (wrong case / surrounding whitespace) that must NOT be
     // treated as valid variants.
-    fc.constantFrom('Primary', 'SECONDARY', ' outlined', 'inverted ', 'ghost'),
+    fc.constantFrom('Primary', 'SECONDARY', ' outlined', 'inverted ', 'Ghost', 'danger '),
   );
 
   // Feature: ui-consistency, Property 6: Button variant resolution defaults to primary

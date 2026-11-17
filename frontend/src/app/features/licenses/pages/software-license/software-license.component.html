@@ -2,7 +2,7 @@
   <app-sidebar />
   <app-mobile-tabbar />
 
-  <div class="lg:pl-60">
+  <div class="app-shell-offset">
     <app-topbar
       [displayName]="displayName()"
       [role]="role()"
@@ -78,7 +78,6 @@
             <div class="table-scroll">
               <div class="table-head">
                 <span>Software</span>
-                <span>License Key</span>
                 <span>Expiry</span>
                 <span>Seats</span>
                 <span>Status</span>
@@ -115,13 +114,7 @@
                       (keydown.space)="$event.preventDefault(); openLicenseDetail(item)"
                     >
                       <div class="licenses-table-name">
-                        <span
-                          class="license-item-leading"
-                          aria-hidden="true"
-                          [style.background]="licenseBadgeBackground(item)"
-                        >
-                          {{ getLicenseInitial(item) }}
-                        </span>
+                        <app-software-logo [name]="item.softwareName" />
 
                         <div class="min-w-0">
                           <h3
@@ -133,72 +126,39 @@
                         </div>
                       </div>
 
-                      <div class="licenses-table-key-cell">
-                        <span
-                          class="licenses-table-value licenses-table-key"
-                          [title]="licenseKeyTooltip(item)"
-                        >
-                          {{ item.licenseKey || "No key" }}
+                      <div class="licenses-table-expiry">
+                        <span class="licenses-table-value">
+                          {{
+                            item.expiryDate ? formatExpiryDate(item.expiryDate) : "Lifetime"
+                          }}
                         </span>
-
-                        @if (item.licenseKey) {
-                          <button
-                            class="license-key-copy"
-                            type="button"
-                            [attr.aria-label]="
-                              copiedLicenseId() === item.softwareLicenseId
-                                ? 'License key copied'
-                                : 'Copy license key'
-                            "
-                            [title]="
-                              copiedLicenseId() === item.softwareLicenseId
-                                ? 'Copied'
-                                : 'Copy key'
-                            "
-                            (click)="$event.stopPropagation(); copyLicenseKey(item)"
-                          >
-                            @if (copiedLicenseId() === item.softwareLicenseId) {
-                              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                                <path
-                                  d="m5.5 10 3 3 6-6"
-                                  stroke="currentColor"
-                                  stroke-width="2"
-                                  stroke-linecap="round"
-                                  stroke-linejoin="round"
-                                />
-                              </svg>
-                            } @else {
-                              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                                <rect
-                                  x="7"
-                                  y="4"
-                                  width="9"
-                                  height="11"
-                                  rx="2"
-                                  stroke="currentColor"
-                                  stroke-width="1.7"
-                                />
-                                <path
-                                  d="M4.5 12V6.5A2.5 2.5 0 0 1 7 4h4"
-                                  stroke="currentColor"
-                                  stroke-width="1.7"
-                                  stroke-linecap="round"
-                                />
-                              </svg>
-                            }
-                          </button>
+                        @if (expiryNote(item); as note) {
+                          <small class="expiry-note expiry-note-{{ note.tone }}">
+                            {{ note.text }}
+                          </small>
                         }
                       </div>
 
-                      <span class="licenses-table-value">
-                        {{
-                          item.expiryDate ? formatExpiryDate(item.expiryDate) : "Lifetime"
-                        }}
-                      </span>
-
-                      <span class="licenses-table-value licenses-table-number">
-                        {{ seatsLabel(item) }}
-                      </span>
+                      <div class="licenses-table-seats">
+                        <span class="licenses-table-value licenses-table-number">
+                          {{ seatsLabel(item) }}
+                        </span>
+                        @if (seatUsage(item); as usage) {
+                          <span
+                            class="seat-meter"
+                            [class.seat-meter-full]="usage.used >= usage.total"
+                            role="meter"
+                            aria-label="Seats used"
+                            [attr.aria-valuenow]="usage.used"
+                            aria-valuemin="0"
+                            [attr.aria-valuemax]="usage.total"
+                          >
+                            <span
+                              [style.width.%]="usage.total ? (usage.used / usage.total) * 100 : 0"
+                            ></span>
+                          </span>
+                        }
+                      </div>
 
                       <span
                         class="status-pill license-status-pill"
@@ -209,8 +169,7 @@
                       </span>
 
                       <div class="license-action-cell" (click)="$event.stopPropagation()">
-                        <button
-                          class="row-action"
+                        <button appButton="ghost" size="sm" iconOnly
                           type="button"
                           aria-label="Open software license actions"
                           aria-haspopup="menu"

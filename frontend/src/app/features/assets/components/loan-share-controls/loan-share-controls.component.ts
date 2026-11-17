@@ -1,12 +1,18 @@
 import { Component, Input, OnInit, computed, signal } from '@angular/core';
 import { inject } from '@angular/core';
-import { LucideCopy, LucideExternalLink } from '@lucide/angular';
+import {
+  LucideCopy,
+  LucideExternalLink,
+  LucideLink,
+  LucideRefreshCw,
+} from '@lucide/angular';
 import { finalize } from 'rxjs';
 
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
 import type { ShareResponse, ShareState } from '../../models/loan-share.models';
 import { LoanShareApiService } from '../../services/loan-share-api.service';
 import { buildShareUrl } from '../../utils/share-url.util';
+import { AppButtonDirective } from '../../../../shared/components/app-button/app-button.directive';
 
 /**
  * LoanShareControlsComponent renders the Admin_Share_Controls on the internal
@@ -40,7 +46,7 @@ import { buildShareUrl } from '../../utils/share-url.util';
 @Component({
   selector: 'app-loan-share-controls',
   standalone: true,
-  imports: [LucideCopy, LucideExternalLink],
+  imports: [AppButtonDirective, LucideCopy, LucideExternalLink, LucideLink, LucideRefreshCw],
   templateUrl: './loan-share-controls.component.html',
   styleUrl: './loan-share-controls.component.css',
 })

@@ -43,9 +43,6 @@
   font-size: var(--type-subtitle-size);
   overflow-wrap: anywhere;
 }
-
-.copy-action,
-.print-action,
 .generate-action {
   display: inline-flex;
   min-height: 44px;
@@ -57,21 +54,6 @@
   font-size: var(--type-body-size);
   font-weight: var(--weight-semibold);
 }
-
-.copy-action {
-  border: 1px solid var(--gray-300);
-  background: #fff;
-  color: var(--gray-700);
-}
-
-.copy-action:hover,
-.copy-action:focus-visible {
-  border-color: var(--accent);
-  color: var(--brand-600);
-}
-
-.copy-action svg,
-.print-action svg { width: 18px; height: 18px; }
 
 .copy-error {
   max-width: 220px;
@@ -101,11 +83,6 @@
 }
 
 .card-actions p { margin: 0; }
-
-.print-action { background: var(--accent); color: #fff; }
-.tag-row .print-action { flex: 0 0 auto; }
-.print-action:hover,
-.print-action:focus-visible { background: var(--brand-600); outline: 3px solid var(--gray-200); }
 
 .generate-action {
   flex: 0 0 auto;

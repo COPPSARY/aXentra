@@ -10,7 +10,9 @@ import { AssetLoanRepository } from "../repositories/assetLoanRepository.js";
 import { AssetLoanItemRepository } from "../repositories/assetLoanItemRepository.js";
 import { AssetLoanExtensionHistoryRepository } from "../repositories/assetLoanExtensionHistoryRepository.js";
 import { AssetRepository } from "../repositories/assetRepository.js";
+import { LocationRepository } from "../repositories/locationRepository.js";
 import { ProfileRepository } from "../repositories/profileRepository.js";
+import { UserRepository } from "../repositories/userRepository.js";
 import { ActivityLogService } from "./activityLogService.js";
 import { AssetValidation } from "../utils/assetValidation.js";
 import { generateRandomToken } from "../utils/crypto.js";
@@ -263,17 +265,31 @@ export class AssetLoanService {
         .filter((assetId) => Number.isInteger(assetId) && assetId > 0)
     )];
 
-    const [borrower, assets] = await Promise.all([
+    // Branch and issuer are display names only; lookups that fail just omit them.
+    const [borrower, assets, location, lender] = await Promise.all([
       loan.borrowerProfileId ? ProfileRepository.findById(loan.borrowerProfileId) : null,
       assetIds.length ? AssetRepository.findByIds(assetIds) : [],
+      loan.locationId
+        ? LocationRepository.findById(loan.locationId).catch(() => null)
+        : null,
+      loan.lenderUserId
+        ? UserRepository.findUserById(loan.lenderUserId).catch(() => null)
+        : null,
     ]);
     const assetsById = new Map(assets.map((asset) => [asset.assetId, asset]));
     const overdue = AssetLoanService.isOverdue(loan);
+    const issuedBy = lender
+      ? [lender.firstName, lender.lastName].filter(Boolean).join(" ").trim() ||
+        lender.username ||
+        null
+      : null;
 
     return {
       reference: formatLoanReference(loan.assetLoanId),
       status: overdue ? "Overdue" : loan.status,
       borrowerName: borrower?.fullName ?? "",
+      locationName: location?.name?.trim() || null,
+      issuedBy,
       startDate: loan.startLoanDate,
       endDate: loan.endLoanDate,
       returnDate: loan.returnDate ?? null,

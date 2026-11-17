@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, map, of, switchMap } from 'rxjs';
 
 import { AuthUser, UserProfile } from '../../../../core/auth/auth.models';
@@ -81,6 +81,7 @@ export class CreateAssetLoanComponent implements OnInit {
   private readonly assetLoansApiService = inject(AssetLoansApiService);
   private readonly assetsApiService = inject(AssetsApiService);
   private readonly locationContext = inject(LocationContextService);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly snackbar = inject(SnackbarService);
 
@@ -588,6 +589,29 @@ export class CreateAssetLoanComponent implements OnInit {
       });
   }
 
+  /** Preselects `?assetId=` (from the asset detail "Loan out" action) using the same checks as a scan. */
+  private preselectAssetFromQuery(): void {
+    const assetId = Number(this.route.snapshot.queryParamMap.get('assetId'));
+    if (!Number.isInteger(assetId) || assetId <= 0) {
+      return;
+    }
+
+    this.assetsApiService.getAssetSpecs(assetId).subscribe({
+      next: ({ asset }) => {
+        if (asset.status !== 'In Storage' || asset.loanable === false) {
+          this.snackbar.error(`"${asset.assetName}" is not available for loan.`);
+          return;
+        }
+
+        this.syncSelectedAssetType(asset.assetTypeId);
+        this.addAsset(asset);
+      },
+      error: () => {
+        this.snackbar.error('Unable to load the selected asset.');
+      },
+    });
+  }
+
   private loadInitialData(): void {
     this.isLoading.set(true);
     this.loadError.set('');
@@ -616,6 +640,7 @@ export class CreateAssetLoanComponent implements OnInit {
           );
           this.assetTypes.set(assetTypes);
           this.lenderUsers.set(this.resolveLenderUsers(users));
+          this.preselectAssetFromQuery();
         },
         error: (error: unknown) => {
           this.borrowerProfiles.set([]);

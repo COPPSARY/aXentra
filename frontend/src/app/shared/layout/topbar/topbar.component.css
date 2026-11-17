@@ -144,41 +144,6 @@
   min-width: 0;
 }
 
-.topbar-scan-button {
-  display: inline-flex;
-  min-height: 40px;
-  width: 40px;
-  flex: 0 0 40px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  color: var(--text-secondary);
-  transition:
-    background-color var(--app-motion-fast) var(--app-motion-ease),
-    border-color var(--app-motion-fast) var(--app-motion-ease),
-    color var(--app-motion-fast) var(--app-motion-ease);
-}
-
-.topbar-scan-button svg {
-  height: 18px;
-  width: 18px;
-}
-
-.topbar-scan-button:hover,
-.topbar-scan-button:focus-visible {
-  border-color: var(--gray-400);
-  background: var(--surface-sunken);
-  color: var(--text-primary);
-  outline: none;
-}
-
-.topbar-scan-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.62;
-}
-
 .identity-avatar-location {
   display: flex;
   height: 20px;
@@ -392,8 +357,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .identity-block,
-  .menu-item,
-  .topbar-scan-button {
+  .menu-item{
     transition: none;
   }
 }

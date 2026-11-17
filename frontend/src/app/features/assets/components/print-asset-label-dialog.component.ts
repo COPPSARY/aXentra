@@ -18,13 +18,14 @@ import {
 } from '../models/asset-label.models';
 import { buildAssetLabelPrintDocument } from '../utils/asset-label.utils';
 import { AssetLabelPreviewComponent } from './asset-label-preview.component';
+import { AppButtonDirective } from '../../../shared/components/app-button/app-button.directive';
 
 const LABEL_PREFERENCE_KEY = 'axentra.asset-label.print-template.v2';
 
 @Component({
   selector: 'app-print-asset-label-dialog',
   standalone: true,
-  imports: [AssetLabelPreviewComponent, FormsModule],
+  imports: [AppButtonDirective, AssetLabelPreviewComponent, FormsModule],
   templateUrl: './print-asset-label-dialog.component.html',
   styleUrl: './print-asset-label-dialog.component.css',
 })

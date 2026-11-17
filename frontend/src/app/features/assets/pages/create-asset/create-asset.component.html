@@ -3,7 +3,7 @@
     <app-sidebar />
     <app-mobile-tabbar />
 
-    <div class="lg:pl-[240px]">
+    <div class="app-shell-offset">
       <app-topbar
         [displayName]="displayName()"
         [role]="role()"
@@ -99,8 +99,7 @@
                       (ngModelChange)="handleAssetTypeChange($event)"
                     />
                   </div>
-                  <button
-                    class="product-add-button"
+                  <button appButton="secondary" size="sm"
                     type="button"
                     [attr.aria-expanded]="isAssetTypeFormOpen()"
                     [disabled]="isCreatingAssetType()"
@@ -131,22 +130,19 @@
                         placeholder="Laptop"
                       />
                     </label>
- 
                     @if (assetTypeFormError()) {
                       <small class="field-error">{{ assetTypeFormError() }}</small>
                     }
 
                     <div class="product-inline-actions">
-                      <button
-                        class="secondary-action"
+                      <button appButton="secondary"
                         type="button"
                         [disabled]="isCreatingAssetType()"
                         (click)="closeAssetTypeForm()"
                       >
                         Cancel
                       </button>
-                      <button
-                        class="save-action"
+                      <button appButton
                         type="button"
                         [disabled]="isCreatingAssetType()"
                         (click)="createAssetType()"
@@ -311,8 +307,7 @@
                         (ngModelChange)="handleProductChange()"
                       />
                     </div>
-                    <button
-                      class="product-add-button"
+                    <button appButton="secondary" size="sm"
                       type="button"
                       [attr.aria-expanded]="isProductFormOpen()"
                       [disabled]="assetTypeId() <= 0 || isCreatingProduct()"
@@ -376,16 +371,14 @@
                       }
 
                       <div class="product-inline-actions">
-                        <button
-                          class="secondary-action"
+                        <button appButton="secondary"
                           type="button"
                           [disabled]="isCreatingProduct()"
                           (click)="closeProductForm()"
                         >
                           Cancel
                         </button>
-                        <button
-                          class="save-action"
+                        <button appButton
                           type="button"
                           [disabled]="isCreatingProduct()"
                           (click)="createProduct()"
@@ -508,8 +501,8 @@
                       (ngModelChange)="handleBarcodeChange($event)"
                     />
                     <div class="barcode-input-actions">
-                      <button
-                        class="barcode-scan barcode-icon-button"
+                      <button appButton="secondary" size="sm"
+                        class="barcode-icon-button"
                         type="button"
                         aria-label="Scan asset"
                         title="Scan asset"
@@ -541,8 +534,8 @@
                     <p>Asset label preview</p>
                     <span>CODE128</span>
                   </div>
-                  <button
-                    class="secondary-action barcode-preview-action"
+                  <button appButton="secondary"
+                    class="barcode-preview-action"
                     type="button"
                     (click)="generateBarcode()"
                   >
@@ -706,8 +699,7 @@
                         }}
                       </strong>
                     </span>
-                    <button
-                      class="linked-file-view"
+                    <button appButton="secondary" size="sm"
                       type="button"
                       (click)="previewLinkedFile(linkedFileId)"
                     >
@@ -781,8 +773,7 @@
                         <span class="app-ellipsis linked-file-name">
                           {{ file.name }}
                         </span>
-                        <button
-                          class="option-remove-button"
+                        <button appButton="ghost" size="sm" iconOnly
                           type="button"
                           [attr.aria-label]="'Remove ' + file.name"
                           (click)="removePendingLinkedFile($index)"
@@ -918,8 +909,8 @@
                     class="spec-builder-toggle"
                     [class.hidden]="showSpecFieldBuilder()"
                   >
-                    <button
-                      class="secondary-action inline-flex items-center gap-2"
+                    <button appButton="secondary"
+                      class="inline-flex items-center gap-2"
                       type="button"
                       [attr.aria-expanded]="showSpecFieldBuilder()"
                       [disabled]="isAddingSpecField()"
@@ -1026,8 +1017,7 @@
                                 @if (
                                   $index < newSpecFieldForm.optionValues.length - 1
                                 ) {
-                                  <button
-                                    class="option-remove-button"
+                                  <button appButton="ghost" size="sm" iconOnly
                                     type="button"
                                     [disabled]="isAddingSpecField()"
                                     [attr.aria-label]="
@@ -1062,16 +1052,14 @@
                       }
 
                       <div class="field-builder-actions">
-                        <button
-                          class="secondary-action"
+                        <button appButton="secondary"
                           type="button"
                           [disabled]="isAddingSpecField()"
                           (click)="toggleSpecFieldBuilder()"
                         >
                           Cancel
                         </button>
-                        <button
-                          class="save-action"
+                        <button appButton
                           type="button"
                           [disabled]="isAddingSpecField()"
                           (click)="saveNewSpecField()"
@@ -1122,15 +1110,14 @@
           }
 
           <div class="summary-actions">
-            <button
-              class="secondary-action"
+            <button appButton="secondary"
               type="button"
               [disabled]="isSaving()"
               (click)="resetForm()"
             >
               {{ isEditMode() ? "Revert" : "Reset" }}
             </button>
-            <button class="save-action" type="submit" [disabled]="isSaving()">
+            <button appButton type="submit" [disabled]="isSaving()">
               {{
                 isSaving()
                   ? isEditMode()

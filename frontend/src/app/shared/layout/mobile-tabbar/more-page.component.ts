@@ -1,5 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { MobileMoreListComponent } from './mobile-more-list.component';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { SidebarComponent } from '../sidebar/sidebar.component';
@@ -10,8 +10,8 @@ import { MobileTabbarComponent } from './mobile-tabbar.component';
 @Component({
   selector: 'app-more-page',
   imports: [
+    MobileMoreListComponent,
     MobileTabbarComponent,
-    RouterLink,
     SidebarComponent,
     TopbarComponent,
   ],

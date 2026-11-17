@@ -409,31 +409,6 @@
   justify-self: center;
 }
 
-.row-action {
-  display: inline-flex;
-  height: 36px;
-  width: 36px;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-pill);
-  color: var(--gray-500);
-  transition:
-    background-color var(--app-motion-fast) var(--app-motion-ease),
-    color var(--app-motion-fast) var(--app-motion-ease);
-}
-
-.row-action:hover,
-.row-action:focus-visible {
-  background: var(--gray-100);
-  color: var(--gray-700);
-  outline: none;
-}
-
-.row-action svg {
-  height: 18px;
-  width: 18px;
-}
-
 .row-action-menu {
   position: absolute;
   right: 0;
@@ -517,7 +492,6 @@
   .pagination button,
   .loan-search input,
   .loan-search-clear,
-  .row-action,
   .row-action-menu button {
     transition: none;
   }

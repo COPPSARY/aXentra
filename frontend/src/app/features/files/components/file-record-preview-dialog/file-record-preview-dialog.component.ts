@@ -18,6 +18,7 @@ import {
   AppFileRecord,
   FilesApiService,
 } from '../../services/files-api.service';
+import { AppButtonDirective } from '../../../../shared/components/app-button/app-button.directive';
 
 type FilePreviewItem = {
   id: string;
@@ -29,6 +30,7 @@ type FilePreviewItem = {
 };
 
 @Component({
+  imports: [AppButtonDirective],
   selector: 'app-file-record-preview-dialog',
   templateUrl: './file-record-preview-dialog.component.html',
   styleUrl: './file-record-preview-dialog.component.css',

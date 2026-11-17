@@ -1,5 +1,5 @@
-<div class="flex min-h-screen flex-col bg-slate-50">
-  <app-public-loan-header />
+<div class="flex min-h-screen flex-col bg-(--background)">
+  <app-public-loan-header [showPrint]="state().kind === 'loaded'" />
 
   <main class="flex-1">
     @if (state(); as s) {

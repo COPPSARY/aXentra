@@ -17,6 +17,7 @@ import {
 } from '@zxing/browser';
 import { DecodeHintType } from '@zxing/library';
 import { parseAssetLabelScan } from '../../utils/asset-label.utils';
+import { AppButtonDirective } from '../../../../shared/components/app-button/app-button.directive';
 
 type BarcodeDetectorLike = {
   detect(source: HTMLVideoElement): Promise<Array<{ rawValue?: string }>>;
@@ -29,7 +30,7 @@ type BarcodeDetectorConstructor = new (options?: {
 @Component({
   selector: 'app-barcode-scanner-dialog',
   standalone: true,
-  imports: [FormsModule],
+  imports: [AppButtonDirective, FormsModule],
   templateUrl: './barcode-scanner-dialog.component.html',
   styleUrl: './barcode-scanner-dialog.component.css',
 })
