@@ -22,9 +22,56 @@ import { SidebarComponent } from '../../../../shared/layout/sidebar/sidebar.comp
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
 import { TopbarComponent } from '../../../../shared/layout/topbar/topbar.component';
 import { AppButtonDirective } from '../../../../shared/components/app-button/app-button.directive';
+import { ActivityApiService } from '../../../assets/services/activity-api.service';
+import { ActivityLogItem } from '../../../assets/models/asset-view.models';
 
 const OPTIMISTIC_LOCK_MESSAGE =
   'This record was updated by someone else. Please refresh and try again.';
+const ACTIVITY_PAGE_SIZE = 10;
+const VISIBLE_LOCATION_COUNT = 2;
+
+const ACTION_LABELS: Record<string, string> = {
+  created: 'Created',
+  updated: 'Updated',
+  deleted: 'Deleted',
+  assigned: 'Loaned out',
+  unassigned: 'Unassigned',
+  returned: 'Returned',
+  cancelled: 'Cancelled',
+  shared: 'Shared',
+  uploaded: 'Uploaded',
+  marked_overdue: 'Marked overdue',
+  login: 'Signed in',
+  logout: 'Signed out',
+  password_reset_requested: 'Requested a password reset',
+  password_reset: 'Reset password',
+};
+
+const ENTITY_LABELS: Record<string, string> = {
+  asset: 'Asset',
+  asset_loan: 'Loan',
+  asset_type: 'Asset type',
+  asset_type_field: 'Custom field',
+  asset_spec_value: 'Asset spec',
+  product: 'Product',
+  profile: 'Borrower profile',
+  location: 'Location',
+  user: 'User',
+  file: 'File',
+  software_license: 'License',
+  auth: 'Account',
+};
+
+interface ActivityEntry {
+  id: number;
+  summary: string;
+  target: string;
+  detail: string;
+  meta: string;
+  occurredAt: string;
+  relative: string;
+  exact: string;
+}
 
 @Component({
   selector: 'app-profile',
@@ -40,6 +87,7 @@ const OPTIMISTIC_LOCK_MESSAGE =
 })
 export class ProfileComponent implements OnInit {
   private readonly authService = inject(AuthService);
+  private readonly activityApi = inject(ActivityApiService);
   private readonly locationContext = inject(LocationContextService);
   private readonly router = inject(Router);
   private readonly snackbar = inject(SnackbarService);
@@ -55,6 +103,7 @@ export class ProfileComponent implements OnInit {
     return user?.fullName || user?.name || fullName || user?.username || '';
   });
   readonly role = computed(() => this.user()?.role || '');
+  readonly roleLabel = computed(() => this.humanizeLabel(this.role()) || 'No role');
   readonly canEditProfile = computed(() => {
     const normalizedRole = this.role().toLowerCase();
     return (
@@ -74,15 +123,15 @@ export class ProfileComponent implements OnInit {
   );
 
   readonly locations = signal<AppLocation[]>([]);
-  readonly assignedLocations = computed(() => {
+  readonly locationNames = computed<string[]>(() => {
     const user = this.user();
     if (!user) {
-      return '-';
+      return [];
     }
 
     const normalizedRole = (user.role ?? '').toLowerCase();
     if (normalizedRole === 'super_admin' || normalizedRole === 'superadmin') {
-      return 'All locations';
+      return ['All locations'];
     }
 
     const userLocations = user.userLocations;
@@ -93,38 +142,72 @@ export class ProfileComponent implements OnInit {
         .map((name) => name.trim());
 
       if (names.length > 0) {
-        return names.join(', ');
+        return names;
       }
     }
 
     const locationMap = new Map(
       this.locations().map((location) => [location.locationId, location.name]),
     );
-    const names = (user.allowedLocationIds ?? []).map(
+    return (user.allowedLocationIds ?? []).map(
       (locationId) => locationMap.get(locationId) ?? `Location ${locationId}`,
     );
-
-    return names.length > 0 ? names.join(', ') : 'No locations assigned';
   });
-  readonly joinedDate = computed(() =>
-    this.formatDateTime(this.user()?.createdAt ?? null),
+  readonly visibleLocations = computed(() =>
+    this.locationNames().slice(0, VISIBLE_LOCATION_COUNT).join(', '),
   );
-  readonly updatedDate = computed(() =>
-    this.formatDateTime(this.user()?.updatedAt ?? null),
+  readonly hiddenLocationCount = computed(() =>
+    Math.max(0, this.locationNames().length - VISIBLE_LOCATION_COUNT),
+  );
+  readonly allLocations = computed(() => this.locationNames().join(', '));
+
+  readonly memberSince = computed(() => this.formatDate(this.user()?.createdAt));
+  readonly memberSinceExact = computed(() =>
+    this.formatDateTime(this.user()?.createdAt),
+  );
+  readonly updatedRelative = computed(() =>
+    this.formatRelativeTime(this.user()?.updatedAt),
+  );
+  readonly updatedExact = computed(() =>
+    this.formatDateTime(this.user()?.updatedAt),
+  );
+
+  readonly activities = signal<ActivityLogItem[]>([]);
+  readonly activitiesTotal = signal(0);
+  readonly activitiesPage = signal(1);
+  readonly isActivitiesLoading = signal(false);
+  readonly activitiesError = signal('');
+  readonly activitiesForbidden = signal(false);
+  readonly activityEntries = computed<ActivityEntry[]>(() =>
+    this.activities().map((activity) => this.toActivityEntry(activity)),
+  );
+  readonly hasMoreActivities = computed(
+    () => this.activities().length < this.activitiesTotal(),
   );
 
   isUploading = false;
   isSavingProfile = false;
   profileError = '';
+  emailError = '';
   isEditMode = false;
   editableFirstName = '';
   editableLastName = '';
   editableEmail = '';
 
+  private loadedActivitiesFor: number | null = null;
+
   constructor() {
     effect(() => {
       this.user();
       this.syncEditableFields();
+    });
+
+    effect(() => {
+      const actorId = Number(this.user()?.userId);
+      if (Number.isInteger(actorId) && actorId > 0 && actorId !== this.loadedActivitiesFor) {
+        this.loadedActivitiesFor = actorId;
+        this.loadActivities(1);
+      }
     });
   }
 
@@ -133,25 +216,6 @@ export class ProfileComponent implements OnInit {
       next: (locations) => this.locations.set(locations),
       error: () => this.locations.set([]),
     });
-  }
-
-  private formatDateTime(value: string | null | undefined): string {
-    if (!value) {
-      return '-';
-    }
-
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return '-';
-    }
-
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(date);
   }
 
   selectAvatar(event: Event): void {
@@ -182,17 +246,18 @@ export class ProfileComponent implements OnInit {
       )
       .subscribe({
         next: () => {
-          this.snackbar.success('Avatar updated.');
+          this.snackbar.success('Photo updated.');
           this.syncEditableFields();
         },
         error: () => {
-          this.snackbar.error('Unable to upload avatar.');
+          this.snackbar.error('Unable to upload photo.');
         },
       });
   }
 
   updateEditableEmail(value: string): void {
     this.editableEmail = value;
+    this.emailError = '';
     this.profileError = '';
   }
 
@@ -246,12 +311,12 @@ export class ProfileComponent implements OnInit {
     );
     const currentEmail = (currentUser.email ?? '').trim();
     if (!trimmedEmail) {
-      this.profileError = 'Email is required.';
+      this.emailError = 'Email is required.';
       return;
     }
 
     if (!this.isValidEmail(trimmedEmail)) {
-      this.profileError = 'Please enter a valid email address.';
+      this.emailError = 'Enter a valid email address, like name@company.com.';
       return;
     }
 
@@ -319,9 +384,77 @@ export class ProfileComponent implements OnInit {
       });
   }
 
+  loadMoreActivities(): void {
+    if (!this.isActivitiesLoading()) {
+      this.loadActivities(this.activitiesPage() + 1);
+    }
+  }
+
+  retryActivities(): void {
+    this.loadActivities(1);
+  }
+
   logout(): void {
     this.authService.logout();
     void this.router.navigateByUrl('/auth');
+  }
+
+  private loadActivities(page: number): void {
+    const actorUserId = Number(this.user()?.userId);
+    if (this.activitiesForbidden() || !Number.isInteger(actorUserId) || actorUserId <= 0) {
+      return;
+    }
+
+    this.isActivitiesLoading.set(true);
+    this.activitiesError.set('');
+
+    this.activityApi
+      .listActorActivities({ actorUserId, page, limit: ACTIVITY_PAGE_SIZE })
+      .pipe(finalize(() => this.isActivitiesLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          const items = response.activities ?? [];
+          this.activities.update((current) =>
+            page === 1 ? items : [...current, ...items],
+          );
+          this.activitiesTotal.set(response.totalItems ?? items.length);
+          this.activitiesPage.set(page);
+        },
+        error: (error: unknown) => {
+          if (
+            error instanceof HttpErrorResponse &&
+            (error.status === 401 || error.status === 403)
+          ) {
+            this.activitiesForbidden.set(true);
+            return;
+          }
+
+          this.activitiesError.set('Unable to load your activity.');
+        },
+      });
+  }
+
+  private toActivityEntry(activity: ActivityLogItem): ActivityEntry {
+    const metadata = activity.metadata ?? {};
+    const changedFields = Array.isArray(metadata['changedFields'])
+      ? (metadata['changedFields'] as unknown[])
+          .filter((field): field is string => typeof field === 'string')
+          .map((field) => this.humanizeLabel(field).toLowerCase())
+      : [];
+    const entity = ENTITY_LABELS[activity.entityType] ?? this.humanizeLabel(activity.entityType);
+    const verb = ACTION_LABELS[activity.action] ?? this.humanizeLabel(activity.action);
+    const isAccountEvent = activity.entityType === 'auth';
+
+    return {
+      id: activity.activityLogId,
+      summary: isAccountEvent ? verb : `${verb} ${entity.toLowerCase()}`,
+      target: isAccountEvent ? '' : activity.entityLabel?.trim() ?? '',
+      detail: activity.action === 'updated' ? changedFields.join(', ') : '',
+      meta: [entity, activity.locationName?.trim()].filter(Boolean).join(' · '),
+      occurredAt: activity.occurredAt,
+      relative: this.formatRelativeTime(activity.occurredAt),
+      exact: this.formatDateTime(activity.occurredAt),
+    };
   }
 
   private syncEditableFields(): void {
@@ -329,6 +462,71 @@ export class ProfileComponent implements OnInit {
     this.editableLastName = this.user()?.lastName ?? '';
     this.editableEmail = this.user()?.email ?? '';
     this.profileError = '';
+    this.emailError = '';
+  }
+
+  private toDate(value: string | null | undefined): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  private formatDate(value: string | null | undefined): string {
+    const date = this.toDate(value);
+    return date
+      ? new Intl.DateTimeFormat('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        }).format(date)
+      : '-';
+  }
+
+  private formatDateTime(value: string | null | undefined): string {
+    const date = this.toDate(value);
+    return date
+      ? new Intl.DateTimeFormat('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        }).format(date)
+      : '';
+  }
+
+  private formatRelativeTime(value: string | null | undefined): string {
+    const date = this.toDate(value);
+    if (!date) {
+      return '-';
+    }
+
+    const seconds = Math.round((Date.now() - date.getTime()) / 1000);
+    const formatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+    if (seconds < 60) {
+      return 'just now';
+    }
+    if (seconds < 3600) {
+      return formatter.format(-Math.floor(seconds / 60), 'minute');
+    }
+    if (seconds < 86400) {
+      return formatter.format(-Math.floor(seconds / 3600), 'hour');
+    }
+    if (seconds < 86400 * 30) {
+      return formatter.format(-Math.floor(seconds / 86400), 'day');
+    }
+
+    return this.formatDate(value);
+  }
+
+  private humanizeLabel(value: string): string {
+    const normalized = value.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return normalized
+      ? normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase()
+      : '';
   }
 
   private normalizeOptionalText(
