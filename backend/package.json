@@ -2,11 +2,11 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "IT Asset Inventory Backend - Node + Express + Supabase",
-  "main": "src/app.js",
+  "main": "dist/server.js",
   "type": "module",
   "scripts": {
-    "start": "tsx src/server.js",
-    "dev": "tsx watch src/server.js",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
     "t": "npm run test",
     "tu": "npm run test:unit",
     "ti": "npm run test:integration",
@@ -17,7 +17,8 @@
     "test:integration": "vitest run test/integration",
     "test:routes": "vitest run test/integration/routes",
     "test:auth": "vitest run test/integration/routes/auth.routes.test.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json && node -e \"require('node:fs').cpSync('src/docs/swagger', 'dist/docs/swagger', { recursive: true })\""
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^12.1.0",

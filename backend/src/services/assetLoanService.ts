@@ -220,12 +220,12 @@ export class AssetLoanService {
 
     const filters: AssetLoanListFilters = {};
     if (query.status) {
-      if (!(ASSET_LOAN_STATUS_VALUES as readonly string[]).includes(query.status)) {
+      if (!(ASSET_LOAN_STATUS_VALUES as readonly unknown[]).includes(query.status)) {
         throw new BadRequestError(
           `status must be one of: ${ASSET_LOAN_STATUS_VALUES.join(", ")}`
         );
       }
-      filters.status = query.status;
+      filters.status = query.status as AssetLoanStatus;
     }
     if (query.borrowerProfileId !== undefined) {
       filters.borrowerProfileId = AssetValidation.toPositiveInteger(

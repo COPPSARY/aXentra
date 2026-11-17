@@ -1,8 +1,9 @@
 import { AuthService } from "../services/authService.js";
 import { config } from "../config/index.js";
+import type { CookieOptions, Request } from "express";
 import { wrapAsync } from "../utils/wrapAsync.js";
 
-const getRefreshTokenFromRequest = (req) => {
+const getRefreshTokenFromRequest = (req: Request): string | null => {
   const cookieToken = req.cookies?.[config.auth.refreshCookieName];
   if (cookieToken) return cookieToken;
 
@@ -13,7 +14,7 @@ const getRefreshTokenFromRequest = (req) => {
   return null;
 };
 
-const getAccessTokenFromRequest = (req) => {
+const getAccessTokenFromRequest = (req: Request): string | null => {
   const authHeader = req.headers?.authorization || "";
   if (!authHeader.startsWith("Bearer ")) {
     return null;
@@ -23,7 +24,7 @@ const getAccessTokenFromRequest = (req) => {
   return token || null;
 };
 
-const refreshCookieOptions = (expiresAt) => ({
+const refreshCookieOptions = (expiresAt: Date): CookieOptions => ({
   httpOnly: true,
   secure: config.auth.refreshCookieSecure,
   sameSite: config.auth.refreshCookieSameSite,
@@ -31,7 +32,7 @@ const refreshCookieOptions = (expiresAt) => ({
   expires: expiresAt,
 });
 
-const clearRefreshCookieOptions = () => ({
+const clearRefreshCookieOptions = (): CookieOptions => ({
   httpOnly: true,
   secure: config.auth.refreshCookieSecure,
   sameSite: config.auth.refreshCookieSameSite,

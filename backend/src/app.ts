@@ -138,8 +138,12 @@ if (config.env !== "production") {
       explorer: true,
       customSiteTitle: "IT Asset Inventory API Docs",
       swaggerOptions: {
-        operationsSorter: (a, b) => {
-          const methodOrder = {
+        // Swagger UI passes Immutable.js maps describing each operation.
+        operationsSorter: (
+          a: { get(key: "method" | "path"): string },
+          b: { get(key: "method" | "path"): string }
+        ) => {
+          const methodOrder: Record<string, number> = {
             get: 0,
             post: 1,
             patch: 2,

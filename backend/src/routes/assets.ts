@@ -1,4 +1,5 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
+import { getUploadedFiles } from "../middleware/requestContext.js";
 import { validate } from "../middleware/validate.js";
 import { assetUpload } from "../middleware/upload.js";
 import { authorize } from "../middleware/rbac.js";
@@ -11,12 +12,14 @@ import * as assetController from "../controllers/assetController.js";
 import * as assetSpecValueController from "../controllers/assetSpecValueController.js";
 
 const router = Router();
-const validateAssetUpdate = (req, res, next) =>
-  validate(
-    req.files?.albumImages?.length || req.files?.displayImage?.length
+const validateAssetUpdate: RequestHandler = (req, res, next) => {
+  const files = getUploadedFiles(req);
+  return validate(
+    files.albumImages?.length || files.displayImage?.length
       ? updateAssetSchema.min(1)
       : updateAssetSchema
   )(req, res, next);
+};
 
 router.get("/", authorize("assets", "read"), assetController.listAssets);
 router.post(

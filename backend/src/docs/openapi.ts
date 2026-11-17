@@ -8,7 +8,10 @@ const __dirname = path.dirname(__filename);
 
 const OPENAPI_FILE = path.join(__dirname, "swagger", "openapi.yaml");
 
-let openApiSpec;
+/** The bundled OpenAPI document served at /api/docs. */
+export type OpenApiDocument = Awaited<ReturnType<typeof SwaggerParser.bundle>>;
+
+let openApiSpec: OpenApiDocument;
 
 try {
   openApiSpec = await SwaggerParser.bundle(OPENAPI_FILE);

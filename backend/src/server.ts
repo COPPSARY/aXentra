@@ -1,3 +1,4 @@
+import type { Server } from "node:http";
 import app from "./app.js";
 import { config, assertProductionConfig } from "./config/index.js";
 import {
@@ -8,11 +9,11 @@ import { logger } from "./utils/logger.js";
 
 const FORCE_SHUTDOWN_TIMEOUT_MS = 10000;
 
-let server = null;
+let server: Server | null = null;
 let isShuttingDown = false;
-let forceShutdownTimer = null;
+let forceShutdownTimer: NodeJS.Timeout | null = null;
 
-const describeErrorLike = (value) => {
+const describeErrorLike = (value: unknown): unknown => {
   if (value instanceof Error) {
     return {
       name: value.name,
@@ -31,12 +32,16 @@ const clearForceShutdownTimer = () => {
   }
 };
 
-const exitProcess = (exitCode) => {
+const exitProcess = (exitCode: number): never => {
   clearForceShutdownTimer();
   process.exit(exitCode);
 };
 
-const shutdownServer = async (trigger, exitCode, meta = null) => {
+const shutdownServer = async (
+  trigger: string,
+  exitCode: number,
+  meta: Record<string, unknown> | null = null
+) => {
   if (isShuttingDown) {
     return;
   }

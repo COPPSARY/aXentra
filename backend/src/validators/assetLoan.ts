@@ -35,15 +35,19 @@ export interface VersionInput {
   version: number;
 }
 
-/** Query of `GET /api/loans` after validation. */
+/**
+ * Query of `GET /api/loans`. The route does not apply
+ * `listAssetLoansQuerySchema`, so values arrive as raw strings and the
+ * service validates each one itself.
+ */
 export interface ListAssetLoansQuery {
-  page?: number;
-  limit?: number;
-  status?: string;
-  borrowerProfileId?: number;
-  lenderUserId?: number;
-  assetId?: number;
-  locationId?: number;
+  page?: unknown;
+  limit?: unknown;
+  status?: unknown;
+  borrowerProfileId?: unknown;
+  lenderUserId?: unknown;
+  assetId?: unknown;
+  locationId?: unknown;
 }
 
 const positiveInt = Joi.number().integer().positive();
