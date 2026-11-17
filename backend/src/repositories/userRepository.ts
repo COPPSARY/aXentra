@@ -1,11 +1,13 @@
 import { supabase } from "../config/supabase.js";
+import type { LocationScope } from "../types/auth.js";
+import type { Role } from "../config/rbac.js";
 import { User, UserLocation } from "../models/index.js";
 import { getPaginationRange } from "../utils/pagination.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
-import { unwrapRepositoryError } from "./repositoryHelpers.js";
+import { unwrapRepositoryError, type RowUpdates } from "./repositoryHelpers.js";
 
 export class UserRepository {
-  static async findUserById(userId) {
+  static async findUserById(userId: number) {
     const { data, error } = await supabase
       .from("users")
       .select("*")
@@ -16,7 +18,7 @@ export class UserRepository {
     return User.fromRow(data);
   }
 
-  static async findLocationIdsByUserId(userId) {
+  static async findLocationIdsByUserId(userId: number) {
     const { data, error } = await supabase
       .from("user_locations")
       .select("location_id")
@@ -29,7 +31,7 @@ export class UserRepository {
 
   // Batch variant of findLocationIdsByUserId: one query for many users.
   // Returns a Map<userId, number[]> so callers avoid an N+1 round-trip per user.
-  static async findLocationIdsByUserIds(userIds) {
+  static async findLocationIdsByUserIds(userIds: readonly number[]) {
     const normalizedIds = [...new Set(
       (userIds || []).map((id) => Number(id)).filter(Number.isInteger)
     )];
@@ -46,7 +48,7 @@ export class UserRepository {
 
     unwrapRepositoryError(error, "Failed to fetch user location assignments");
 
-    const byUserId = new Map(normalizedIds.map((id) => [id, []]));
+    const byUserId = new Map<number, number[]>(normalizedIds.map((id) => [id, []]));
     for (const row of data || []) {
       const userId = Number(row.user_id);
       const locationId = Number(row.location_id);
@@ -56,13 +58,13 @@ export class UserRepository {
       if (!byUserId.has(userId)) {
         byUserId.set(userId, []);
       }
-      byUserId.get(userId).push(locationId);
+      byUserId.get(userId)!.push(locationId);
     }
 
     return byUserId;
   }
 
-  static async findUserByUsername(username) {
+  static async findUserByUsername(username: string) {
     const { data, error } = await supabase
       .from("users")
       .select("*")
@@ -73,7 +75,7 @@ export class UserRepository {
     return User.fromRow(data);
   }
 
-  static async findUserByEmail(email) {
+  static async findUserByEmail(email: string | null) {
     const { data, error } = await supabase
       .from("users")
       .select("*")
@@ -84,7 +86,7 @@ export class UserRepository {
     return User.fromRow(data);
   }
 
-  static async findUsersByIds(userIds = []) {
+  static async findUsersByIds(userIds: readonly number[] = []) {
     const normalizedIds = [...new Set(
       (userIds || []).map((id) => Number(id)).filter(Number.isInteger)
     )];
@@ -106,6 +108,10 @@ export class UserRepository {
     page = 1,
     limit = 10,
     locationId = null,
+  }: {
+    page?: number;
+    limit?: number;
+    locationId?: number | null;
   } = {}) {
     const { from, to } = getPaginationRange(page, limit);
 
@@ -153,7 +159,7 @@ export class UserRepository {
     };
   }
 
-  static async findUserIdsByLocationId(locationId) {
+  static async findUserIdsByLocationId(locationId: number) {
     const { data, error } = await supabase
       .from("user_locations")
       .select("user_id")
@@ -163,7 +169,7 @@ export class UserRepository {
     return [...new Set((data || []).map((row) => Number(row.user_id)).filter(Number.isInteger))];
   }
 
-  static async listAdmins({ locationScope = null } = {}) {
+  static async listAdmins({ locationScope = null }: { locationScope?: LocationScope } = {}) {
     if (Array.isArray(locationScope)) {
       const normalizedLocationIds = [...new Set(
         locationScope.map((locationId) => Number(locationId)).filter(Number.isInteger)
@@ -207,7 +213,7 @@ export class UserRepository {
     return (data || []).map(User.fromRow);
   }
 
-  static async listByLocationScope(locationScope = null) {
+  static async listByLocationScope(locationScope: LocationScope = null) {
     if (Array.isArray(locationScope)) {
       const normalizedLocationIds = [...new Set(
         locationScope.map((locationId) => Number(locationId)).filter(Number.isInteger)
@@ -254,6 +260,16 @@ export class UserRepository {
     role = "admin",
     createdBy = null,
     updatedBy = null,
+  }: {
+    username: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email: string | null;
+    password: string;
+    avatarPic?: string | null;
+    role?: Role;
+    createdBy?: number | null;
+    updatedBy?: number | null;
   }) {
     const { data, error } = await supabase
       .from("users")
@@ -282,6 +298,11 @@ export class UserRepository {
     locationIds,
     createdBy = null,
     updatedBy = null,
+  }: {
+    userId: number;
+    locationIds: readonly number[];
+    createdBy?: number | null;
+    updatedBy?: number | null;
   }) {
     const normalizedLocationIds = [...new Set(
       (locationIds || [])
@@ -316,7 +337,15 @@ export class UserRepository {
     return (data || []).map((row) => Number(row.location_id)).filter(Number.isInteger);
   }
 
-  static async updateUserAvatar({ userId, avatarPic, updatedBy = null }) {
+  static async updateUserAvatar({
+    userId,
+    avatarPic,
+    updatedBy = null,
+  }: {
+    userId: number;
+    avatarPic: string | null;
+    updatedBy?: number | null;
+  }) {
     const { data, error } = await supabase
       .from("users")
       .update({
@@ -333,7 +362,7 @@ export class UserRepository {
     return User.fromRow(data);
   }
 
-  static async saveUser(user) {
+  static async saveUser(user: User) {
     const { data, error } = await supabase
       .from("users")
       .update(User.toPasswordUpdateRow(user))
@@ -345,7 +374,7 @@ export class UserRepository {
     return User.fromRow(data);
   }
 
-  static async updateUser(userId, updates, expectedVersion) {
+  static async updateUser(userId: number, updates: RowUpdates, expectedVersion: number) {
     const { data, error } = await supabase
       .from("users")
       .update({
@@ -366,7 +395,7 @@ export class UserRepository {
     return User.fromRow(data);
   }
 
-  static async deleteUser(userId) {
+  static async deleteUser(userId: number) {
     const { data, error } = await supabase
       .from("users")
       .delete()

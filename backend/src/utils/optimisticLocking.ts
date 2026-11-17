@@ -9,8 +9,9 @@ export const parseExpectedVersion = (value: unknown, fieldName = "version"): num
   return parsed;
 };
 
-export const throwOptimisticLockConflict = (resourceName: string): never => {
+// A function declaration (not an arrow) so callers get control-flow narrowing after it.
+export function throwOptimisticLockConflict(resourceName: string): never {
   throw new ConflictError(
     `${resourceName} was modified by another user. Please refresh and try again.`
   );
-};
+}

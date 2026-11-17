@@ -1,14 +1,19 @@
 import { supabase } from "../config/supabase.js";
-import { Location } from "../models/index.js";
+import type { LocationScope } from "../types/auth.js";
+import { Location, type LocationProps } from "../models/index.js";
 import { getPaginationRange } from "../utils/pagination.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
-import { applyLocationScope, unwrapRepositoryError } from "./repositoryHelpers.js";
+import {
+  applyLocationScope,
+  unwrapRepositoryError,
+  type RowUpdates,
+} from "./repositoryHelpers.js";
 
 const SELECT_COLUMNS =
   "location_id, name, description, address, created_by, updated_by, created_at, updated_at, version";
 
 export class LocationRepository {
-  static async list(locationScope = null) {
+  static async list(locationScope: LocationScope = null) {
     let query = supabase
       .from("locations")
       .select(SELECT_COLUMNS)
@@ -22,7 +27,15 @@ export class LocationRepository {
     return (data || []).map(Location.fromRow);
   }
 
-  static async listPaginated({ page = 1, limit = 10, locationScope = null } = {}) {
+  static async listPaginated({
+    page = 1,
+    limit = 10,
+    locationScope = null,
+  }: {
+    page?: number;
+    limit?: number;
+    locationScope?: LocationScope;
+  } = {}) {
     const { from, to } = getPaginationRange(page, limit);
 
     let query = supabase
@@ -42,7 +55,7 @@ export class LocationRepository {
     };
   }
 
-  static async findById(locationId, locationScope = null) {
+  static async findById(locationId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("locations")
       .select(SELECT_COLUMNS)
@@ -56,7 +69,7 @@ export class LocationRepository {
     return Location.fromRow(data);
   }
 
-  static async findByName(name) {
+  static async findByName(name: string) {
     const { data, error } = await supabase
       .from("locations")
       .select(SELECT_COLUMNS)
@@ -67,7 +80,7 @@ export class LocationRepository {
     return Location.fromRow(data);
   }
 
-  static async create(payload, createdBy) {
+  static async create(payload: LocationProps, createdBy: number | null) {
     const location = new Location(payload);
 
     const { data, error } = await supabase
@@ -80,7 +93,12 @@ export class LocationRepository {
     return Location.fromRow(data);
   }
 
-  static async update(locationId, updates, expectedVersion, locationScope = null) {
+  static async update(
+    locationId: number,
+    updates: RowUpdates,
+    expectedVersion: number,
+    locationScope: LocationScope = null
+  ) {
     let query = supabase
       .from("locations")
       .update({
@@ -104,7 +122,7 @@ export class LocationRepository {
     return Location.fromRow(data);
   }
 
-  static async deleteById(locationId, locationScope = null) {
+  static async deleteById(locationId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("locations")
       .delete()

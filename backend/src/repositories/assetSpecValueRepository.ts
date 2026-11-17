@@ -1,10 +1,10 @@
 import { supabase } from "../config/supabase.js";
-import { AssetSpecValue } from "../models/index.js";
+import { AssetSpecValue, type AssetSpecValueRow } from "../models/index.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
-import { unwrapRepositoryError } from "./repositoryHelpers.js";
+import { unwrapRepositoryError, type RowUpdates } from "./repositoryHelpers.js";
 
 export class AssetSpecValueRepository {
-  static async listByAssetIdsAndFieldIds(assetIds, fieldIds) {
+  static async listByAssetIdsAndFieldIds(assetIds: readonly number[], fieldIds: readonly number[]) {
     if (!assetIds.length || !fieldIds.length) {
       return [];
     }
@@ -21,17 +21,18 @@ export class AssetSpecValueRepository {
     return (data || []).map(AssetSpecValue.fromRow);
   }
 
-  static async listByFieldId(fieldId) {
+  static async listByFieldId(fieldId: number) {
     const { data, error } = await supabase
       .from("asset_spec_value")
       .select("asset_id, value_text, value_number, value_date, value_boolean")
       .eq("field_id", fieldId)
 
     unwrapRepositoryError(error, "Failed to fetch asset specification values by field");
-    return (data || []).map(AssetSpecValue.fromRow);
+    // Only the value columns are selected; the other model fields come back undefined.
+    return (data || []).map((row) => AssetSpecValue.fromRow(row as AssetSpecValueRow));
   }
 
-  static async listByAssetId(assetId) {
+  static async listByAssetId(assetId: number) {
     const { data, error } = await supabase
       .from("asset_spec_value")
       .select("*")
@@ -42,7 +43,7 @@ export class AssetSpecValueRepository {
     return (data || []).map(AssetSpecValue.fromRow);
   }
 
-  static async findById(assetSpecValueId) {
+  static async findById(assetSpecValueId: number) {
     const { data, error } = await supabase
       .from("asset_spec_value")
       .select("*")
@@ -53,7 +54,7 @@ export class AssetSpecValueRepository {
     return AssetSpecValue.fromRow(data);
   }
 
-  static async findByAssetAndField({ assetId, fieldId }) {
+  static async findByAssetAndField({ assetId, fieldId }: { assetId: number; fieldId: number }) {
     const { data, error } = await supabase
       .from("asset_spec_value")
       .select("*")
@@ -65,7 +66,21 @@ export class AssetSpecValueRepository {
     return AssetSpecValue.fromRow(data);
   }
 
-  static async create({ assetId, createdBy, spec }) {
+  static async create({
+    assetId,
+    createdBy,
+    spec,
+  }: {
+    assetId: number;
+    createdBy: number | null;
+    spec: {
+      fieldId: number;
+      valueText?: string | null;
+      valueNumber?: number | null;
+      valueDate?: string | null;
+      valueBoolean?: boolean | null;
+    };
+  }) {
     const row = AssetSpecValue.toInsertRow(
       new AssetSpecValue({
         assetId,
@@ -88,7 +103,7 @@ export class AssetSpecValueRepository {
     return AssetSpecValue.fromRow(data);
   }
 
-  static async update(assetSpecValueId, updates, expectedVersion) {
+  static async update(assetSpecValueId: number, updates: RowUpdates, expectedVersion: number) {
     const { data, error } = await supabase
       .from("asset_spec_value")
       .update({
@@ -109,7 +124,7 @@ export class AssetSpecValueRepository {
     return AssetSpecValue.fromRow(data);
   }
 
-  static async deleteById(assetSpecValueId) {
+  static async deleteById(assetSpecValueId: number) {
     const { data, error } = await supabase
       .from("asset_spec_value")
       .delete()

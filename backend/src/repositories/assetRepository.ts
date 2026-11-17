@@ -1,11 +1,27 @@
 import { supabase } from "../config/supabase.js";
+import type { LocationScope } from "../types/auth.js";
 import { Asset } from "../models/index.js";
+import type { AssetStatus } from "../utils/constants.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
 import { getPaginationRange } from "../utils/pagination.js";
-import { applyLocationScope, unwrapRepositoryError } from "./repositoryHelpers.js";
+import {
+  applyLocationScope,
+  unwrapRepositoryError,
+  type FilterQuery,
+  type RowUpdates,
+} from "./repositoryHelpers.js";
+
+/** Asset columns that are unique, and so can be looked up one row at a time. */
+type UniqueAssetColumn = "asset_tag" | "asset_name" | "serial_number";
+
+/** Counts keyed by a column value, for example `{ "In Storage": 3 }`. */
+type CountMap = Record<string, number>;
 
 export class AssetRepository {
-  static applyAssetIdFilter(query, assetIds = null) {
+  static applyAssetIdFilter<Q extends FilterQuery<Q>>(
+    query: Q,
+    assetIds: readonly number[] | null = null
+  ): Q {
     if (!Array.isArray(assetIds)) {
       return query;
     }
@@ -21,7 +37,10 @@ export class AssetRepository {
   // countByStatusForAssetType so the status summary narrows with the rows.
   // An empty array means "filter requested but nothing matches", so it emits the
   // same -1 sentinel as applyAssetIdFilter rather than silently matching all.
-  static applyProductIdFilter(query, productIds = null) {
+  static applyProductIdFilter<Q extends FilterQuery<Q>>(
+    query: Q,
+    productIds: readonly number[] | null = null
+  ): Q {
     if (!Array.isArray(productIds)) {
       return query;
     }
@@ -37,7 +56,7 @@ export class AssetRepository {
     return query.in("product_id", productIds);
   }
 
-  static async list(locationScope = null) {
+  static async list(locationScope: LocationScope = null) {
     let query = supabase
       .from("asset")
       .select("*")
@@ -55,6 +74,10 @@ export class AssetRepository {
     page = 1,
     limit = 10,
     locationScope = null,
+  }: {
+    page?: number;
+    limit?: number;
+    locationScope?: LocationScope;
   } = {}) {
     const { from, to } = getPaginationRange(page, limit);
 
@@ -75,7 +98,7 @@ export class AssetRepository {
     };
   }
 
-  static async findById(assetId, locationScope = null) {
+  static async findById(assetId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("asset")
       .select("*")
@@ -89,7 +112,11 @@ export class AssetRepository {
     return Asset.fromRow(data);
   }
 
-  static async findByUniqueField(field, value, locationScope = null) {
+  static async findByUniqueField(
+    field: UniqueAssetColumn,
+    value: string | null,
+    locationScope: LocationScope = null
+  ) {
     let query = supabase
       .from("asset")
       .select("*")
@@ -103,19 +130,22 @@ export class AssetRepository {
     return Asset.fromRow(data);
   }
 
-  static async findByAssetTag(assetTag, locationScope = null) {
+  static async findByAssetTag(assetTag: string | null, locationScope: LocationScope = null) {
     return AssetRepository.findByUniqueField("asset_tag", assetTag, locationScope);
   }
 
-  static async findByAssetName(assetName, locationScope = null) {
+  static async findByAssetName(assetName: string, locationScope: LocationScope = null) {
     return AssetRepository.findByUniqueField("asset_name", assetName, locationScope);
   }
 
-  static async findBySerialNumber(serialNumber, locationScope = null) {
+  static async findBySerialNumber(
+    serialNumber: string | null,
+    locationScope: LocationScope = null
+  ) {
     return AssetRepository.findByUniqueField("serial_number", serialNumber, locationScope);
   }
 
-  static async findByIds(assetIds, locationScope = null) {
+  static async findByIds(assetIds: readonly number[], locationScope: LocationScope = null) {
     let query = supabase
       .from("asset")
       .select("*")
@@ -137,6 +167,14 @@ export class AssetRepository {
     locationScope = null,
     assetIds = null,
     productIds = null,
+  }: {
+    assetTypeId: number;
+    status?: AssetStatus | null;
+    page?: number;
+    limit?: number;
+    locationScope?: LocationScope;
+    assetIds?: readonly number[] | null;
+    productIds?: readonly number[] | null;
   }) {
     const { from, to } = getPaginationRange(page, limit);
 
@@ -162,10 +200,10 @@ export class AssetRepository {
   }
 
   static async countByStatusForAssetType(
-    assetTypeId,
-    locationScope = null,
-    assetIds = null,
-    productIds = null
+    assetTypeId: number,
+    locationScope: LocationScope = null,
+    assetIds: readonly number[] | null = null,
+    productIds: readonly number[] | null = null
   ) {
     let query = supabase
       .from("asset")
@@ -179,7 +217,7 @@ export class AssetRepository {
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch asset status counts by asset type");
 
-    const counts = {};
+    const counts: CountMap = {};
     for (const row of data || []) {
       const statusKey = row.status;
       counts[statusKey] = (counts[statusKey] || 0) + 1;
@@ -188,7 +226,7 @@ export class AssetRepository {
     return counts;
   }
 
-  static async countByAssetTypeAndStatus(locationScope = null) {
+  static async countByAssetTypeAndStatus(locationScope: LocationScope = null) {
     let query = supabase
       .from("asset")
       .select("asset_type_id, status");
@@ -198,7 +236,7 @@ export class AssetRepository {
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch asset status counts by asset type");
 
-    const countsByType = {};
+    const countsByType: Record<string, CountMap> = {};
     for (const row of data || []) {
       const assetTypeKey = String(row.asset_type_id);
       if (!countsByType[assetTypeKey]) {
@@ -212,7 +250,10 @@ export class AssetRepository {
     return countsByType;
   }
 
-  static async countByAssetTypeIdsAndStatus(assetTypeIds = [], locationScope = null) {
+  static async countByAssetTypeIdsAndStatus(
+    assetTypeIds: readonly number[] = [],
+    locationScope: LocationScope = null
+  ) {
     const normalizedAssetTypeIds = [...new Set(
       (assetTypeIds || [])
         .map((assetTypeId) => Number(assetTypeId))
@@ -233,7 +274,7 @@ export class AssetRepository {
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch asset status counts by asset type ids");
 
-    const countsByType = {};
+    const countsByType: Record<string, CountMap> = {};
     for (const row of data || []) {
       const assetTypeKey = String(row.asset_type_id);
       if (!countsByType[assetTypeKey]) {
@@ -265,6 +306,24 @@ export class AssetRepository {
     displayImage,
     createdBy,
     updatedBy = createdBy,
+  }: {
+    assetName: string;
+    productId: number;
+    assetTypeId: number;
+    locationId: number;
+    description?: string | null;
+    remark?: string | null;
+    macAddress?: string | null;
+    serialNumber?: string | null;
+    assetTag?: string | null;
+    status: AssetStatus;
+    loanable?: boolean;
+    warrantyExpiryDate?: string | null;
+    loanToProfileId?: number | null;
+    fileId?: number | null;
+    displayImage?: string | null;
+    createdBy: number | null;
+    updatedBy?: number | null;
   }) {
     const newAsset = new Asset({
       assetName,
@@ -296,7 +355,12 @@ export class AssetRepository {
     return Asset.fromRow(data);
   }
 
-  static async update(assetId, updates, expectedVersion, locationScope = null) {
+  static async update(
+    assetId: number,
+    updates: RowUpdates,
+    expectedVersion: number,
+    locationScope: LocationScope = null
+  ) {
     let query = supabase
       .from("asset")
       .update({
@@ -320,7 +384,7 @@ export class AssetRepository {
     return Asset.fromRow(data);
   }
 
-  static async deleteById(assetId, locationScope = null) {
+  static async deleteById(assetId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("asset")
       .delete()
@@ -341,6 +405,12 @@ export class AssetRepository {
     fileId,
     updatedBy,
     locationScope = null,
+  }: {
+    assetId: number;
+    expectedVersion: number;
+    fileId: number;
+    updatedBy: number | null;
+    locationScope?: LocationScope;
   }) {
     let query = supabase
       .from("asset")
@@ -366,7 +436,7 @@ export class AssetRepository {
     return Asset.fromRow(data);
   }
 
-  static async findByFileId(fileId, locationScope = null) {
+  static async findByFileId(fileId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("asset")
       .select("*")
@@ -380,7 +450,10 @@ export class AssetRepository {
     return (data || []).map(Asset.fromRow);
   }
 
-  static async countByFileIds(fileIds = [], locationScope = null) {
+  static async countByFileIds(
+    fileIds: readonly number[] = [],
+    locationScope: LocationScope = null
+  ) {
     const normalizedFileIds = [...new Set(
       (fileIds || [])
         .map((fileId) => Number(fileId))
@@ -401,7 +474,7 @@ export class AssetRepository {
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to count assets by file ids");
 
-    const counts = {};
+    const counts: CountMap = {};
     for (const row of data || []) {
       const fileIdKey = String(row.file_id);
       counts[fileIdKey] = (counts[fileIdKey] || 0) + 1;
@@ -415,6 +488,11 @@ export class AssetRepository {
     page = 1,
     limit = 10,
     locationScope = null,
+  }: {
+    fileId: number;
+    page?: number;
+    limit?: number;
+    locationScope?: LocationScope;
   }) {
     const { from, to } = getPaginationRange(page, limit);
 

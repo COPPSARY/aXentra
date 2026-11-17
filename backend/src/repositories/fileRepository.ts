@@ -1,14 +1,23 @@
 import { supabase } from "../config/supabase.js";
+import type { LocationScope } from "../types/auth.js";
 import { FileModel } from "../models/index.js";
 import { getPaginationRange } from "../utils/pagination.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
-import { applyLocationScope, unwrapRepositoryError } from "./repositoryHelpers.js";
+import {
+  applyLocationScope,
+  unwrapRepositoryError,
+  type RowUpdates,
+} from "./repositoryHelpers.js";
 
 export class FileRepository {
   static async listPaginated({
     page = 1,
     limit = 10,
     locationScope = null,
+  }: {
+    page?: number;
+    limit?: number;
+    locationScope?: LocationScope;
   } = {}) {
     const { from, to } = getPaginationRange(page, limit);
 
@@ -29,7 +38,7 @@ export class FileRepository {
     };
   }
 
-  static async create(file) {
+  static async create(file: FileModel) {
     const { data, error } = await supabase
       .from("files")
       .insert(file.toInsertRow())
@@ -40,7 +49,7 @@ export class FileRepository {
     return FileModel.fromRow(data);
   }
 
-  static async findById(fileId, locationScope = null) {
+  static async findById(fileId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("files")
       .select("*")
@@ -54,7 +63,12 @@ export class FileRepository {
     return FileModel.fromRow(data);
   }
 
-  static async update(fileId, updates, expectedVersion, locationScope = null) {
+  static async update(
+    fileId: number,
+    updates: RowUpdates,
+    expectedVersion: number,
+    locationScope: LocationScope = null
+  ) {
     let query = supabase
       .from("files")
       .update({
@@ -78,7 +92,7 @@ export class FileRepository {
     return FileModel.fromRow(data);
   }
 
-  static async delete(fileId, locationScope = null) {
+  static async delete(fileId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("files")
       .delete()

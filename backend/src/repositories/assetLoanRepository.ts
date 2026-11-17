@@ -1,16 +1,34 @@
 import { supabase } from "../config/supabase.js";
-import { AssetLoan } from "../models/index.js";
+import type { LocationScope } from "../types/auth.js";
+import { AssetLoan, type AssetLoanProps } from "../models/index.js";
 import { getPaginationRange } from "../utils/pagination.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
-import { applyLocationScope, unwrapRepositoryError } from "./repositoryHelpers.js";
+import {
+  applyLocationScope,
+  unwrapRepositoryError,
+  type FilterQuery,
+  type RowUpdates,
+} from "./repositoryHelpers.js";
 
 const SELECT_COLUMNS =
   "asset_loan_id, location_id, borrower_profile_id, lender_user_id, start_loan_date, end_loan_date, return_date, remark, status, share_token, share_enabled, created_by, updated_by, created_at, updated_at, version";
 
+/** Optional filters shared by the loan list and its per-status counts. */
+export interface AssetLoanListFilters {
+  status?: string;
+  borrowerProfileId?: number;
+  lenderUserId?: number;
+  /** Restrict to these loans. An empty array matches nothing. */
+  assetLoanIds?: number[];
+}
+
 export class AssetLoanRepository {
   // Shared by listPaginated and countByStatus so a filter added in one place
   // cannot silently drift out of the other.
-  static applyListFilters(query, filters = {}) {
+  static applyListFilters<Q extends FilterQuery<Q>>(
+    query: Q,
+    filters: AssetLoanListFilters = {}
+  ): Q {
     if (filters.status) {
       query = query.eq("status", filters.status);
     }
@@ -39,8 +57,12 @@ export class AssetLoanRepository {
     statuses = [],
     filters = {},
     locationScope = null,
-  } = {}) {
-    const emptyCounts = statuses.reduce(
+  }: {
+    statuses?: readonly string[];
+    filters?: AssetLoanListFilters;
+    locationScope?: LocationScope;
+  } = {}): Promise<Record<string, number> & { all: number }> {
+    const emptyCounts = statuses.reduce<Record<string, number>>(
       (accumulator, status) => ({ ...accumulator, [status]: 0 }),
       {}
     );
@@ -63,7 +85,7 @@ export class AssetLoanRepository {
 
         const { error, count } = await query;
         unwrapRepositoryError(error, "Failed to count asset loans by status");
-        return [status, Number(count) || 0];
+        return [status, Number(count) || 0] as const;
       })
     );
 
@@ -78,6 +100,11 @@ export class AssetLoanRepository {
     limit = 10,
     filters = {},
     locationScope = null,
+  }: {
+    page?: number;
+    limit?: number;
+    filters?: AssetLoanListFilters;
+    locationScope?: LocationScope;
   } = {}) {
     if (Array.isArray(filters.assetLoanIds) && !filters.assetLoanIds.length) {
       return { items: [], totalItems: 0 };
@@ -102,7 +129,7 @@ export class AssetLoanRepository {
     };
   }
 
-  static async findById(assetLoanId, locationScope = null) {
+  static async findById(assetLoanId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("asset_loan")
       .select(SELECT_COLUMNS)
@@ -116,7 +143,7 @@ export class AssetLoanRepository {
     return AssetLoan.fromRow(data);
   }
 
-  static async create(payload) {
+  static async create(payload: AssetLoanProps) {
     const newLoan = new AssetLoan(payload);
     const { data, error } = await supabase
       .from("asset_loan")
@@ -128,7 +155,7 @@ export class AssetLoanRepository {
     return AssetLoan.fromRow(data);
   }
 
-  static async findByShareToken(shareToken) {
+  static async findByShareToken(shareToken: string) {
     const { data, error } = await supabase
       .from("asset_loan")
       .select(SELECT_COLUMNS)
@@ -140,7 +167,12 @@ export class AssetLoanRepository {
     return AssetLoan.fromRow(data);
   }
 
-  static async update(assetLoanId, updates, expectedVersion, locationScope = null) {
+  static async update(
+    assetLoanId: number,
+    updates: RowUpdates,
+    expectedVersion: number,
+    locationScope: LocationScope = null
+  ) {
     let query = supabase
       .from("asset_loan")
       .update({
@@ -164,7 +196,7 @@ export class AssetLoanRepository {
     return AssetLoan.fromRow(data);
   }
 
-  static async deleteById(assetLoanId, locationScope = null) {
+  static async deleteById(assetLoanId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("asset_loan")
       .delete()
@@ -179,7 +211,7 @@ export class AssetLoanRepository {
     return AssetLoan.fromRow(data);
   }
 
-  static async syncOverdueStatuses(today) {
+  static async syncOverdueStatuses(today: string) {
     const { data: markedRows, error: markError } = await supabase
       .from("asset_loan")
       .update({ status: "Overdue" })

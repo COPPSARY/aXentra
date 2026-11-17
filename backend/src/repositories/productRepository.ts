@@ -1,13 +1,18 @@
 import { supabase } from "../config/supabase.js";
+import type { LocationScope } from "../types/auth.js";
 import { Product } from "../models/index.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
-import { applyLocationScope, unwrapRepositoryError } from "./repositoryHelpers.js";
+import {
+  applyLocationScope,
+  unwrapRepositoryError,
+  type RowUpdates,
+} from "./repositoryHelpers.js";
 
 const SELECT_COLUMNS =
   "product_id, asset_type_id, location_id, product_name, manufacturer, cost, created_by, updated_by, created_at, updated_at, version";
 
 export class ProductRepository {
-  static async findById(productId, locationScope = null) {
+  static async findById(productId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("product")
       .select(SELECT_COLUMNS)
@@ -21,7 +26,7 @@ export class ProductRepository {
     return Product.fromRow(data);
   }
 
-  static async listByAssetTypeId(assetTypeId, locationScope = null) {
+  static async listByAssetTypeId(assetTypeId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("product")
       .select(SELECT_COLUMNS)
@@ -43,6 +48,13 @@ export class ProductRepository {
     manufacturer = null,
     cost = null,
     createdBy,
+  }: {
+    assetTypeId: number;
+    locationId: number;
+    productName: string;
+    manufacturer?: string | null;
+    cost?: number | null;
+    createdBy: number | null;
   }) {
     const product = new Product({
       assetTypeId,
@@ -62,7 +74,12 @@ export class ProductRepository {
     return Product.fromRow(data);
   }
 
-  static async update(productId, updates, expectedVersion, locationScope = null) {
+  static async update(
+    productId: number,
+    updates: RowUpdates,
+    expectedVersion: number,
+    locationScope: LocationScope = null
+  ) {
     let query = supabase
       .from("product")
       .update({
@@ -86,7 +103,7 @@ export class ProductRepository {
     return Product.fromRow(data);
   }
 
-  static async deleteById(productId, locationScope = null) {
+  static async deleteById(productId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("product")
       .delete()

@@ -1,12 +1,15 @@
 import { supabase } from "../config/supabase.js";
-import { AssetLoanExtensionHistory } from "../models/index.js";
+import {
+  AssetLoanExtensionHistory,
+  type AssetLoanExtensionHistoryProps,
+} from "../models/index.js";
 import { unwrapRepositoryError } from "./repositoryHelpers.js";
 
 const SELECT_COLUMNS =
   "asset_loan_extension_history_id, asset_loan_id, previous_end_loan_date, new_end_loan_date, created_at, created_by, updated_at, updated_by";
 
 export class AssetLoanExtensionHistoryRepository {
-  static async listByLoanId(assetLoanId) {
+  static async listByLoanId(assetLoanId: number) {
     const { data, error } = await supabase
       .from("asset_loan_extension_history")
       .select(SELECT_COLUMNS)
@@ -18,7 +21,7 @@ export class AssetLoanExtensionHistoryRepository {
     return (data || []).map(AssetLoanExtensionHistory.fromRow);
   }
 
-  static async create(payload) {
+  static async create(payload: AssetLoanExtensionHistoryProps) {
     const row = AssetLoanExtensionHistory.toInsertRow(
       new AssetLoanExtensionHistory(payload)
     );
@@ -32,7 +35,7 @@ export class AssetLoanExtensionHistoryRepository {
     return AssetLoanExtensionHistory.fromRow(data);
   }
 
-  static async deleteById(assetLoanExtensionHistoryId) {
+  static async deleteById(assetLoanExtensionHistoryId: number) {
     const { error } = await supabase
       .from("asset_loan_extension_history")
       .delete()

@@ -14,6 +14,11 @@ export class LicenseLinkAssetRepository {
     page = 1,
     limit = 10,
     activeOnly = true,
+  }: {
+    assetId: number;
+    page?: number;
+    limit?: number;
+    activeOnly?: boolean;
   }) {
     const { from, to } = getPaginationRange(page, limit);
 
@@ -42,6 +47,11 @@ export class LicenseLinkAssetRepository {
     page = 1,
     limit = 10,
     activeOnly = false,
+  }: {
+    softwareLicenseId: number;
+    page?: number;
+    limit?: number;
+    activeOnly?: boolean;
   }) {
     const { from, to } = getPaginationRange(page, limit);
 
@@ -65,7 +75,7 @@ export class LicenseLinkAssetRepository {
     };
   }
 
-  static async findById(licenseLinkAssetId) {
+  static async findById(licenseLinkAssetId: number) {
     const { data, error } = await supabase
       .from("license_link_asset")
       .select("*")
@@ -76,7 +86,13 @@ export class LicenseLinkAssetRepository {
     return LicenseLinkAsset.fromRow(data);
   }
 
-  static async findActiveByAssetAndLicense({ assetId, softwareLicenseId }) {
+  static async findActiveByAssetAndLicense({
+    assetId,
+    softwareLicenseId,
+  }: {
+    assetId: number;
+    softwareLicenseId: number;
+  }) {
     const { data, error } = await supabase
       .from("license_link_asset")
       .select("*")
@@ -89,7 +105,7 @@ export class LicenseLinkAssetRepository {
     return LicenseLinkAsset.fromRow(data);
   }
 
-  static async countActiveBySoftwareLicenseId(softwareLicenseId) {
+  static async countActiveBySoftwareLicenseId(softwareLicenseId: number) {
     const { count, error } = await supabase
       .from("license_link_asset")
       .select("license_link_asset_id", { count: "exact", head: true })
@@ -100,7 +116,7 @@ export class LicenseLinkAssetRepository {
     return Number(count) || 0;
   }
 
-  static async countActiveBySoftwareLicenseIds(softwareLicenseIds = []) {
+  static async countActiveBySoftwareLicenseIds(softwareLicenseIds: readonly number[] = []) {
     const normalizedIds = [...new Set(
       (softwareLicenseIds || [])
         .map((softwareLicenseId) => Number(softwareLicenseId))
@@ -134,7 +150,7 @@ export class LicenseLinkAssetRepository {
       })
     );
 
-    const countsByLicenseId = {};
+    const countsByLicenseId: Record<string, number> = {};
     for (const rows of results) {
       for (const row of rows) {
         const key = String(row.software_license_id);
@@ -145,7 +161,17 @@ export class LicenseLinkAssetRepository {
     return countsByLicenseId;
   }
 
-  static async create({ assetId, softwareLicenseId, createdBy, updatedBy = createdBy }) {
+  static async create({
+    assetId,
+    softwareLicenseId,
+    createdBy,
+    updatedBy = createdBy,
+  }: {
+    assetId: number;
+    softwareLicenseId: number;
+    createdBy: number | null;
+    updatedBy?: number | null;
+  }) {
     const newLink = new LicenseLinkAsset({
       assetId,
       softwareLicenseId,
@@ -163,7 +189,7 @@ export class LicenseLinkAssetRepository {
     return LicenseLinkAsset.fromRow(data);
   }
 
-  static async unassign(licenseLinkAssetId, updatedBy) {
+  static async unassign(licenseLinkAssetId: number, updatedBy: number | null) {
     const { data, error } = await supabase
       .from("license_link_asset")
       .update({

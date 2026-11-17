@@ -1,5 +1,7 @@
 import { supabase } from "../config/supabase.js";
-import { ActivityLog } from "../models/index.js";
+import type { LocationScope } from "../types/auth.js";
+import { ActivityLog, type ActivityLogProps } from "../models/index.js";
+import type { ActivityAction, ActivityEntityType } from "../utils/constants.js";
 import { getPaginationRange } from "../utils/pagination.js";
 import { applyLocationScope, unwrapRepositoryError } from "./repositoryHelpers.js";
 
@@ -9,7 +11,7 @@ const SELECT_COLUMNS =
 // activity_log is append-only: there is no update or delete surface here on
 // purpose, apart from the retention prune used by the scheduled cleanup job.
 export class ActivityLogRepository {
-  static async create(payload) {
+  static async create(payload: ActivityLogProps) {
     const row = ActivityLog.toInsertRow(new ActivityLog(payload));
 
     const { data, error } = await supabase
@@ -22,7 +24,7 @@ export class ActivityLogRepository {
     return ActivityLog.fromRow(data);
   }
 
-  static async createMany(payloads = []) {
+  static async createMany(payloads: ActivityLogProps[] = []) {
     if (!payloads.length) {
       return [];
     }
@@ -48,6 +50,16 @@ export class ActivityLogRepository {
     actorUserId = null,
     since = null,
     excludeEntityTypes = null,
+  }: {
+    page?: number;
+    limit?: number;
+    locationScope?: LocationScope;
+    entityType?: ActivityEntityType | null;
+    entityId?: number | null;
+    action?: ActivityAction | null;
+    actorUserId?: number | null;
+    since?: string | null;
+    excludeEntityTypes?: readonly string[] | null;
   } = {}) {
     const { from, to } = getPaginationRange(page, limit);
 
@@ -92,7 +104,7 @@ export class ActivityLogRepository {
     };
   }
 
-  static async deleteOlderThan(cutoffIsoDate) {
+  static async deleteOlderThan(cutoffIsoDate: string) {
     const { data, error } = await supabase
       .from("activity_log")
       .delete()

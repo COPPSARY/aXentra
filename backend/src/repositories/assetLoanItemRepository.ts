@@ -1,13 +1,19 @@
 import { supabase } from "../config/supabase.js";
-import { AssetLoanItem } from "../models/index.js";
+import type { LocationScope } from "../types/auth.js";
+import { AssetLoanItem, type AssetLoanItemProps } from "../models/index.js";
+import type { AssetLoanItemStatus } from "../utils/constants.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
-import { applyLocationScope, unwrapRepositoryError } from "./repositoryHelpers.js";
+import {
+  applyLocationScope,
+  unwrapRepositoryError,
+  type RowUpdates,
+} from "./repositoryHelpers.js";
 
 const SELECT_COLUMNS =
   "loan_item_id, asset_loan_id, location_id, asset_id, item_status, return_date, created_by, updated_by, created_at, updated_at, version";
 
 export class AssetLoanItemRepository {
-  static async listByLoanId(assetLoanId) {
+  static async listByLoanId(assetLoanId: number) {
     const { data, error } = await supabase
       .from("asset_loan_item")
       .select(SELECT_COLUMNS)
@@ -18,7 +24,7 @@ export class AssetLoanItemRepository {
     return (data || []).map(AssetLoanItem.fromRow);
   }
 
-  static async listByLoanIds(assetLoanIds = []) {
+  static async listByLoanIds(assetLoanIds: readonly number[] = []) {
     const normalizedIds = [...new Set(
       (assetLoanIds || [])
         .map((id) => Number(id))
@@ -39,7 +45,7 @@ export class AssetLoanItemRepository {
     return (data || []).map(AssetLoanItem.fromRow);
   }
 
-  static async findById(loanItemId) {
+  static async findById(loanItemId: number) {
     const { data, error } = await supabase
       .from("asset_loan_item")
       .select(SELECT_COLUMNS)
@@ -50,7 +56,7 @@ export class AssetLoanItemRepository {
     return AssetLoanItem.fromRow(data);
   }
 
-  static async bulkInsert(rows = []) {
+  static async bulkInsert(rows: AssetLoanItemProps[] = []) {
     if (!rows.length) {
       return [];
     }
@@ -68,7 +74,7 @@ export class AssetLoanItemRepository {
     return (data || []).map(AssetLoanItem.fromRow);
   }
 
-  static async update(loanItemId, updates, expectedVersion) {
+  static async update(loanItemId: number, updates: RowUpdates, expectedVersion: number) {
     const { data, error } = await supabase
       .from("asset_loan_item")
       .update({
@@ -89,7 +95,7 @@ export class AssetLoanItemRepository {
     return AssetLoanItem.fromRow(data);
   }
 
-  static async deleteByLoanId(assetLoanId) {
+  static async deleteByLoanId(assetLoanId: number) {
     const { error } = await supabase
       .from("asset_loan_item")
       .delete()
@@ -98,7 +104,7 @@ export class AssetLoanItemRepository {
     unwrapRepositoryError(error, "Failed to delete asset loan items");
   }
 
-  static async countByLoanIdAndStatus(assetLoanId, itemStatus) {
+  static async countByLoanIdAndStatus(assetLoanId: number, itemStatus: AssetLoanItemStatus) {
     const { count, error } = await supabase
       .from("asset_loan_item")
       .select("loan_item_id", { count: "exact", head: true })
@@ -109,7 +115,7 @@ export class AssetLoanItemRepository {
     return Number(count) || 0;
   }
 
-  static async listByAssetId(assetId, locationScope = null) {
+  static async listByAssetId(assetId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("asset_loan_item")
       .select(SELECT_COLUMNS)
@@ -123,7 +129,7 @@ export class AssetLoanItemRepository {
     return (data || []).map(AssetLoanItem.fromRow);
   }
 
-  static async listLoanedByAssetId(assetId) {
+  static async listLoanedByAssetId(assetId: number) {
     const { data, error } = await supabase
       .from("asset_loan_item")
       .select(SELECT_COLUMNS)
@@ -134,7 +140,13 @@ export class AssetLoanItemRepository {
     return (data || []).map(AssetLoanItem.fromRow);
   }
 
-  static async listForTrend({ since, locationScope = null } = {}) {
+  static async listForTrend({
+    since,
+    locationScope = null,
+  }: {
+    since?: string | null;
+    locationScope?: LocationScope;
+  } = {}) {
     let query = supabase
       .from("asset_loan_item")
       .select(
@@ -153,7 +165,10 @@ export class AssetLoanItemRepository {
       assetId: row.asset_id,
       itemStatus: row.item_status,
       returnDate: row.return_date,
-      startLoanDate: row.asset_loan?.start_loan_date ?? null,
+      // A many-to-one embed: PostgREST returns one object, though the inferred type is an array.
+      startLoanDate:
+        (row.asset_loan as unknown as { start_loan_date: string | null } | null)?.start_loan_date ??
+        null,
       assetLoanId: row.asset_loan_id,
       locationId: row.location_id,
     }));

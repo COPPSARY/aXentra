@@ -1,8 +1,13 @@
 import { supabase } from "../config/supabase.js";
-import { SoftwareLicense } from "../models/index.js";
+import type { LocationScope } from "../types/auth.js";
+import { SoftwareLicense, type SoftwareLicenseProps } from "../models/index.js";
 import { getPaginationRange } from "../utils/pagination.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
-import { applyLocationScope, unwrapRepositoryError } from "./repositoryHelpers.js";
+import {
+  applyLocationScope,
+  unwrapRepositoryError,
+  type RowUpdates,
+} from "./repositoryHelpers.js";
 
 export class SoftwareLicenseRepository {
   // Narrow projection used only to compute status tab counts.
@@ -15,7 +20,7 @@ export class SoftwareLicenseRepository {
   //
   // Returns plain camelCase projections rather than model instances, matching
   // the other aggregate helpers (countByFileIds, countActiveBySoftwareLicenseIds).
-  static async listStatusProjection(locationScope = null) {
+  static async listStatusProjection(locationScope: LocationScope = null) {
     let query = supabase
       .from("software_license")
       .select("software_license_id, status, expiry_date");
@@ -31,7 +36,7 @@ export class SoftwareLicenseRepository {
     }));
   }
 
-  static async listAll(locationScope = null) {
+  static async listAll(locationScope: LocationScope = null) {
     let query = supabase
       .from("software_license")
       .select("*")
@@ -49,6 +54,10 @@ export class SoftwareLicenseRepository {
     page = 1,
     limit = 10,
     locationScope = null,
+  }: {
+    page?: number;
+    limit?: number;
+    locationScope?: LocationScope;
   } = {}) {
     const { from, to } = getPaginationRange(page, limit);
 
@@ -69,7 +78,7 @@ export class SoftwareLicenseRepository {
     };
   }
 
-  static async findById(softwareLicenseId, locationScope = null) {
+  static async findById(softwareLicenseId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("software_license")
       .select("*")
@@ -83,7 +92,10 @@ export class SoftwareLicenseRepository {
     return SoftwareLicense.fromRow(data);
   }
 
-  static async findByIds(softwareLicenseIds = [], locationScope = null) {
+  static async findByIds(
+    softwareLicenseIds: readonly number[] = [],
+    locationScope: LocationScope = null
+  ) {
     const normalizedIds = [...new Set(
       (softwareLicenseIds || [])
         .map((softwareLicenseId) => Number(softwareLicenseId))
@@ -106,7 +118,7 @@ export class SoftwareLicenseRepository {
     return (data || []).map(SoftwareLicense.fromRow);
   }
 
-  static async findByFileId(fileId, locationScope = null) {
+  static async findByFileId(fileId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("software_license")
       .select("*")
@@ -120,7 +132,10 @@ export class SoftwareLicenseRepository {
     return (data || []).map(SoftwareLicense.fromRow);
   }
 
-  static async countByFileIds(fileIds = [], locationScope = null) {
+  static async countByFileIds(
+    fileIds: readonly number[] = [],
+    locationScope: LocationScope = null
+  ) {
     const normalizedFileIds = [...new Set(
       (fileIds || [])
         .map((fileId) => Number(fileId))
@@ -141,7 +156,7 @@ export class SoftwareLicenseRepository {
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to count software licenses by file ids");
 
-    const counts = {};
+    const counts: Record<string, number> = {};
     for (const row of data || []) {
       const fileIdKey = String(row.file_id);
       counts[fileIdKey] = (counts[fileIdKey] || 0) + 1;
@@ -150,7 +165,7 @@ export class SoftwareLicenseRepository {
     return counts;
   }
 
-  static async create(payload) {
+  static async create(payload: SoftwareLicenseProps) {
     const newSoftwareLicense = new SoftwareLicense(payload);
 
     const { data, error } = await supabase
@@ -163,7 +178,12 @@ export class SoftwareLicenseRepository {
     return SoftwareLicense.fromRow(data);
   }
 
-  static async update(softwareLicenseId, updates, expectedVersion, locationScope = null) {
+  static async update(
+    softwareLicenseId: number,
+    updates: RowUpdates,
+    expectedVersion: number,
+    locationScope: LocationScope = null
+  ) {
     let query = supabase
       .from("software_license")
       .update({
@@ -187,7 +207,7 @@ export class SoftwareLicenseRepository {
     return SoftwareLicense.fromRow(data);
   }
 
-  static async deleteById(softwareLicenseId, locationScope = null) {
+  static async deleteById(softwareLicenseId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("software_license")
       .delete()

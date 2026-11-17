@@ -1,13 +1,18 @@
 import { supabase } from "../config/supabase.js";
-import { AssetTypeField } from "../models/index.js";
+import type { LocationScope } from "../types/auth.js";
+import { AssetTypeField, type AssetFieldType } from "../models/index.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
-import { applyLocationScope, unwrapRepositoryError } from "./repositoryHelpers.js";
+import {
+  applyLocationScope,
+  unwrapRepositoryError,
+  type RowUpdates,
+} from "./repositoryHelpers.js";
 
 const SELECT_COLUMNS =
   "asset_type_field_id, asset_type_id, location_id, field_key, field_label, field_type, is_required, options_json, sort_order, created_by, updated_by, created_at, updated_at, version";
 
 export class AssetTypeFieldRepository {
-  static async findById(assetTypeFieldId, locationScope = null) {
+  static async findById(assetTypeFieldId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("asset_type_field")
       .select(SELECT_COLUMNS)
@@ -21,7 +26,14 @@ export class AssetTypeFieldRepository {
     return AssetTypeField.fromRow(data);
   }
 
-  static async findByKey({ assetTypeId, locationId, fieldKey }, locationScope = null) {
+  static async findByKey(
+    {
+      assetTypeId,
+      locationId,
+      fieldKey,
+    }: { assetTypeId: number; locationId: number; fieldKey: string },
+    locationScope: LocationScope = null
+  ) {
     let query = supabase
       .from("asset_type_field")
       .select(SELECT_COLUMNS)
@@ -37,7 +49,7 @@ export class AssetTypeFieldRepository {
     return AssetTypeField.fromRow(data);
   }
 
-  static async listByAssetTypeId(assetTypeId, locationScope = null) {
+  static async listByAssetTypeId(assetTypeId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("asset_type_field")
       .select(SELECT_COLUMNS)
@@ -62,6 +74,16 @@ export class AssetTypeFieldRepository {
     options = null,
     sortOrder = 0,
     createdBy,
+  }: {
+    assetTypeId: number;
+    locationId: number;
+    fieldKey: string;
+    fieldLabel: string;
+    fieldType: AssetFieldType;
+    isRequired?: boolean;
+    options?: string[] | null;
+    sortOrder?: number;
+    createdBy: number | null;
   }) {
     const field = new AssetTypeField({
       assetTypeId,
@@ -84,7 +106,12 @@ export class AssetTypeFieldRepository {
     return AssetTypeField.fromRow(data);
   }
 
-  static async update(assetTypeFieldId, updates, expectedVersion, locationScope = null) {
+  static async update(
+    assetTypeFieldId: number,
+    updates: RowUpdates,
+    expectedVersion: number,
+    locationScope: LocationScope = null
+  ) {
     let query = supabase
       .from("asset_type_field")
       .update({
@@ -108,7 +135,7 @@ export class AssetTypeFieldRepository {
     return AssetTypeField.fromRow(data);
   }
 
-  static async deleteById(assetTypeFieldId, locationScope = null) {
+  static async deleteById(assetTypeFieldId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("asset_type_field")
       .delete()

@@ -1,14 +1,19 @@
 import { supabase } from "../config/supabase.js";
-import { Profile } from "../models/index.js";
+import type { LocationScope } from "../types/auth.js";
+import { Profile, type ProfileProps } from "../models/index.js";
 import { getPaginationRange } from "../utils/pagination.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
-import { applyLocationScope, unwrapRepositoryError } from "./repositoryHelpers.js";
+import {
+  applyLocationScope,
+  unwrapRepositoryError,
+  type RowUpdates,
+} from "./repositoryHelpers.js";
 
 const SELECT_COLUMNS =
   "profile_id, location_id, full_name, phone, department, remark, created_by, updated_by, created_at, updated_at, version";
 
 export class ProfileRepository {
-  static async list(locationScope = null) {
+  static async list(locationScope: LocationScope = null) {
     let query = supabase
       .from("profile")
       .select(SELECT_COLUMNS)
@@ -26,6 +31,10 @@ export class ProfileRepository {
     page = 1,
     limit = 10,
     locationScope = null,
+  }: {
+    page?: number;
+    limit?: number;
+    locationScope?: LocationScope;
   } = {}) {
     const { from, to } = getPaginationRange(page, limit);
 
@@ -46,7 +55,7 @@ export class ProfileRepository {
     };
   }
 
-  static async findById(profileId, locationScope = null) {
+  static async findById(profileId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("profile")
       .select(SELECT_COLUMNS)
@@ -60,7 +69,7 @@ export class ProfileRepository {
     return Profile.fromRow(data);
   }
 
-  static async findByIds(profileIds, locationScope = null) {
+  static async findByIds(profileIds: readonly number[], locationScope: LocationScope = null) {
     const normalizedProfileIds = [...new Set(
       (profileIds || [])
         .map((profileId) => Number(profileId))
@@ -84,7 +93,7 @@ export class ProfileRepository {
     return (data || []).map(Profile.fromRow);
   }
 
-  static async create(payload, createdBy) {
+  static async create(payload: ProfileProps, createdBy: number | null) {
     const profile = new Profile(payload);
     const { data, error } = await supabase
       .from("profile")
@@ -96,7 +105,12 @@ export class ProfileRepository {
     return Profile.fromRow(data);
   }
 
-  static async update(profileId, updates, expectedVersion, locationScope = null) {
+  static async update(
+    profileId: number,
+    updates: RowUpdates,
+    expectedVersion: number,
+    locationScope: LocationScope = null
+  ) {
     let query = supabase
       .from("profile")
       .update({
@@ -120,7 +134,7 @@ export class ProfileRepository {
     return Profile.fromRow(data);
   }
 
-  static async deleteById(profileId, locationScope = null) {
+  static async deleteById(profileId: number, locationScope: LocationScope = null) {
     let query = supabase
       .from("profile")
       .delete()

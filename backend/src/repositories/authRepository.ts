@@ -1,15 +1,12 @@
 import { supabase } from "../config/supabase.js";
-import {
-  AuthToken,
-  TOKEN_TYPES,
-} from "../models/index.js";
+import { AuthToken, TOKEN_TYPES, type TokenType } from "../models/index.js";
 import { UserRepository } from "./userRepository.js";
 import { unwrapRepositoryError } from "./repositoryHelpers.js";
 
 const TOKENS_TABLE = "tokens";
 
 export class AuthRepository {
-  static async invalidateActiveAuthTokensByUserId(userId) {
+  static async invalidateActiveAuthTokensByUserId(userId: number) {
     const now = new Date().toISOString();
 
     const { error } = await supabase
@@ -35,6 +32,12 @@ export class AuthRepository {
     expiresAt,
     tokenType = TOKEN_TYPES.RESET,
     createdBy = null,
+  }: {
+    userId: number;
+    token: string;
+    expiresAt: Date;
+    tokenType?: TokenType;
+    createdBy?: number | null;
   }) {
     const { data, error } = await supabase
       .from(TOKENS_TABLE)
@@ -48,7 +51,7 @@ export class AuthRepository {
     return AuthToken.fromRow(data);
   }
 
-  static async findValidAuthTokenByHash(tokenHash) {
+  static async findValidAuthTokenByHash(tokenHash: string) {
     const { data, error } = await supabase
       .from(TOKENS_TABLE)
       .select("*")
@@ -75,7 +78,7 @@ export class AuthRepository {
     return tokenRecord;
   }
 
-  static async saveToken(tokenRecord) {
+  static async saveToken(tokenRecord: AuthToken) {
     const { data, error } = await supabase
       .from(TOKENS_TABLE)
       .update(AuthToken.toUpdateRow(tokenRecord))
@@ -87,7 +90,7 @@ export class AuthRepository {
     return AuthToken.fromRow(data);
   }
 
-  static async findValidRefreshTokenByHash(tokenHash) {
+  static async findValidRefreshTokenByHash(tokenHash: string) {
     const { data, error } = await supabase
       .from(TOKENS_TABLE)
       .select("*")
@@ -114,7 +117,7 @@ export class AuthRepository {
     return tokenRecord;
   }
 
-  static async findUsedRefreshTokenByHash(tokenHash) {
+  static async findUsedRefreshTokenByHash(tokenHash: string) {
     const { data, error } = await supabase
       .from(TOKENS_TABLE)
       .select("*")
@@ -136,7 +139,7 @@ export class AuthRepository {
     return tokenRecord;
   }
 
-  static async invalidateActiveRefreshTokensByUserId(userId) {
+  static async invalidateActiveRefreshTokensByUserId(userId: number) {
     const now = new Date().toISOString();
 
     const { error } = await supabase
@@ -159,6 +162,9 @@ export class AuthRepository {
   static async invalidateOtherActiveAuthTokens({
     userId,
     excludeTokenId,
+  }: {
+    userId: number;
+    excludeTokenId: number;
   }) {
     const now = new Date().toISOString();
 
