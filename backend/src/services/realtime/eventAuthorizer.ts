@@ -1,6 +1,7 @@
 import { normalizeLocationIds } from "../../utils/locationScope.js";
+import type { RealtimeChange, RealtimeUserContext } from "./types.js";
 
-const normalizePositiveInteger = (value) => {
+const normalizePositiveInteger = (value: unknown): number | null => {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
     return null;
@@ -8,7 +9,10 @@ const normalizePositiveInteger = (value) => {
   return parsed;
 };
 
-export const shouldDeliverRealtimeEvent = (user, change) => {
+export const shouldDeliverRealtimeEvent = (
+  user: RealtimeUserContext | null | undefined,
+  change: Pick<RealtimeChange, "userId" | "locationId">
+): boolean => {
   if (!user?.role) {
     return false;
   }

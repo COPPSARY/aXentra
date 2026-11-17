@@ -61,7 +61,7 @@ export class AssetTypeFieldRepository {
 
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch asset type fields");
-    return (data || []).map(AssetTypeField.fromRow);
+    return (data || []).map((row) => AssetTypeField.fromRow(row));
   }
 
   static async create({

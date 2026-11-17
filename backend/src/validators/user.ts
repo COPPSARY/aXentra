@@ -1,6 +1,25 @@
 import Joi from "joi";
 import { strongPasswordSchema } from "./password.js";
 
+import type { Role } from "../config/rbac.js";
+
+/** Body of `POST /api/users` after validation. */
+export interface CreateUserInput {
+  username: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string;
+  password: string;
+  role?: Role;
+  locationIds?: number[];
+  avatarPic?: string | null;
+}
+
+/** Body of `PATCH /api/users/:userId` (and `/me`) after validation. */
+export interface UpdateUserInput extends Partial<CreateUserInput> {
+  version: number;
+}
+
 const lowercaseUsernameSchema = Joi.string()
   .min(3)
   .max(50)

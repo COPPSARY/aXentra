@@ -7,6 +7,9 @@ export const TOKEN_TYPES = Object.freeze({
 
 export type TokenType = (typeof TOKEN_TYPES)[keyof typeof TOKEN_TYPES];
 
+/** A token returned together with the user it belongs to. */
+export type AuthTokenWithUser = AuthToken & { user: User };
+
 const toIsoString = (value: string | Date | null): string | null =>
   value instanceof Date ? value.toISOString() : value;
 

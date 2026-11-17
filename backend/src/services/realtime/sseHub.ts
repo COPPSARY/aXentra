@@ -1,12 +1,30 @@
+import type { Request, Response } from "express";
+import type { RealtimeChange, RealtimeUserContext, SseClient } from "./types.js";
+
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 25000;
 const DEFAULT_RETRY_MS = 3000;
 
 export class SseHub {
+  shouldDeliverEvent: (user: RealtimeUserContext, change: RealtimeChange) => boolean;
+  refreshUserContext:
+    | ((user: RealtimeUserContext) => Promise<RealtimeUserContext>)
+    | null;
+  heartbeatIntervalMs: number;
+  retryMs: number;
+  clients: Map<number, SseClient>;
+  nextClientId: number;
+  heartbeatTimer: NodeJS.Timeout | null;
+
   constructor({
     shouldDeliverEvent,
     refreshUserContext = null,
     heartbeatIntervalMs = DEFAULT_HEARTBEAT_INTERVAL_MS,
     retryMs = DEFAULT_RETRY_MS,
+  }: {
+    shouldDeliverEvent: SseHub["shouldDeliverEvent"];
+    refreshUserContext?: SseHub["refreshUserContext"];
+    heartbeatIntervalMs?: number;
+    retryMs?: number;
   }) {
     if (typeof shouldDeliverEvent !== "function") {
       throw new Error("shouldDeliverEvent is required");
@@ -21,7 +39,7 @@ export class SseHub {
     this.heartbeatTimer = null;
   }
 
-  openStream(req, res, user) {
+  openStream(req: Request, res: Response, user: RealtimeUserContext) {
     res.status(200);
     res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
     res.setHeader("Cache-Control", "private, no-cache, no-transform");
@@ -52,14 +70,14 @@ export class SseHub {
     res.on("close", closeHandler);
   }
 
-  removeClient(clientId) {
+  removeClient(clientId: number) {
     this.clients.delete(clientId);
     if (!this.clients.size) {
       this.stopHeartbeat();
     }
   }
 
-  closeUserStreams(userId) {
+  closeUserStreams(userId: unknown): number {
     const normalizedUserId = Number(userId);
     if (!Number.isInteger(normalizedUserId) || normalizedUserId <= 0) {
       return 0;
@@ -84,7 +102,7 @@ export class SseHub {
     return closedCount;
   }
 
-  async broadcastChange(change) {
+  async broadcastChange(change: RealtimeChange) {
     for (const client of this.clients.values()) {
       await this.refreshClientContextIfNeeded(client, change);
 
@@ -96,7 +114,7 @@ export class SseHub {
     }
   }
 
-  broadcastEvent(eventName, payload) {
+  broadcastEvent(eventName: string, payload: unknown) {
     for (const client of this.clients.values()) {
       this.writeEvent(client.res, eventName, payload);
     }
@@ -129,7 +147,7 @@ export class SseHub {
     this.nextClientId = 1;
   }
 
-  async refreshClientContextIfNeeded(client, change) {
+  async refreshClientContextIfNeeded(client: SseClient, change: RealtimeChange) {
     if (typeof this.refreshUserContext !== "function") {
       return;
     }
@@ -149,7 +167,7 @@ export class SseHub {
     client.user = await this.refreshUserContext(client.user);
   }
 
-  writeEvent(res, eventName, payload) {
+  writeEvent(res: Response, eventName: string, payload: unknown) {
     res.write(`event: ${eventName}\n`);
     res.write(`data: ${JSON.stringify(payload)}\n\n`);
   }

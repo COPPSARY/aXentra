@@ -1,7 +1,7 @@
 import { supabase } from "../config/supabase.js";
 import type { LocationScope } from "../types/auth.js";
 import type { Role } from "../config/rbac.js";
-import { User, UserLocation } from "../models/index.js";
+import { User, UserLocation, type UserRow } from "../models/index.js";
 import { getPaginationRange } from "../utils/pagination.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
 import { unwrapRepositoryError, type RowUpdates } from "./repositoryHelpers.js";
@@ -12,7 +12,7 @@ export class UserRepository {
       .from("users")
       .select("*")
       .eq("user_id", userId)
-      .maybeSingle();
+      .maybeSingle<UserRow>();
 
     unwrapRepositoryError(error, "Failed to fetch user by id");
     return User.fromRow(data);
@@ -69,7 +69,7 @@ export class UserRepository {
       .from("users")
       .select("*")
       .eq("username", username)
-      .maybeSingle();
+      .maybeSingle<UserRow>();
 
     unwrapRepositoryError(error, "Failed to fetch user by username");
     return User.fromRow(data);
@@ -80,7 +80,7 @@ export class UserRepository {
       .from("users")
       .select("*")
       .eq("email", email)
-      .maybeSingle();
+      .maybeSingle<UserRow>();
 
     unwrapRepositoryError(error, "Failed to fetch user by email");
     return User.fromRow(data);
@@ -101,7 +101,7 @@ export class UserRepository {
       .in("user_id", normalizedIds);
 
     unwrapRepositoryError(error, "Failed to fetch users by ids");
-    return (data || []).map(User.fromRow);
+    return (data || []).map((row) => User.fromRow(row));
   }
 
   static async listUsersPaginated({
@@ -141,7 +141,7 @@ export class UserRepository {
 
       unwrapRepositoryError(scopedUsersError, "Failed to fetch users by scoped ids");
       return {
-        items: (scopedUsers || []).map(User.fromRow),
+        items: (scopedUsers || []).map((row) => User.fromRow(row)),
         totalItems: Number(count) || 0,
       };
     }
@@ -154,7 +154,7 @@ export class UserRepository {
 
     unwrapRepositoryError(error, "Failed to fetch paginated users");
     return {
-      items: (data || []).map(User.fromRow),
+      items: (data || []).map((row) => User.fromRow(row)),
       totalItems: Number(count) || 0,
     };
   }
@@ -201,7 +201,7 @@ export class UserRepository {
         .in("user_id", userIds);
 
       unwrapRepositoryError(error, "Failed to fetch admins by scoped ids");
-      return (data || []).map(User.fromRow);
+      return (data || []).map((row) => User.fromRow(row));
     }
 
     const { data, error } = await supabase
@@ -210,7 +210,7 @@ export class UserRepository {
       .eq("role", "admin");
 
     unwrapRepositoryError(error, "Failed to fetch admins");
-    return (data || []).map(User.fromRow);
+    return (data || []).map((row) => User.fromRow(row));
   }
 
   static async listByLocationScope(locationScope: LocationScope = null) {
@@ -247,7 +247,7 @@ export class UserRepository {
       .order("user_id", { ascending: true });
 
     unwrapRepositoryError(error, "Failed to fetch users");
-    return (data || []).map(User.fromRow);
+    return (data || []).map((row) => User.fromRow(row));
   }
 
   static async createUser({
@@ -287,7 +287,7 @@ export class UserRepository {
         updated_by: updatedBy ?? createdBy,
       })
       .select("*")
-      .single();
+      .single<UserRow>();
 
     unwrapRepositoryError(error, "Failed to create user");
     return User.fromRow(data);
@@ -356,7 +356,7 @@ export class UserRepository {
       })
       .eq("user_id", userId)
       .select("*")
-      .single();
+      .single<UserRow>();
 
     unwrapRepositoryError(error, "Failed to update user avatar");
     return User.fromRow(data);
@@ -368,7 +368,7 @@ export class UserRepository {
       .update(User.toPasswordUpdateRow(user))
       .eq("user_id", user.userId)
       .select("*")
-      .single();
+      .single<UserRow>();
 
     unwrapRepositoryError(error, "Failed to save user");
     return User.fromRow(data);
@@ -384,7 +384,7 @@ export class UserRepository {
       .eq("user_id", userId)
       .eq("version", expectedVersion)
       .select("*")
-      .maybeSingle();
+      .maybeSingle<UserRow>();
 
     unwrapRepositoryError(error, "Failed to update user");
 
@@ -401,7 +401,7 @@ export class UserRepository {
       .delete()
       .eq("user_id", userId)
       .select("*")
-      .single();
+      .single<UserRow>();
 
     unwrapRepositoryError(error, "Failed to delete user");
     return User.fromRow(data);

@@ -1,5 +1,5 @@
 import { supabase } from "../config/supabase.js";
-import { LicenseLinkAsset } from "../models/index.js";
+import { LicenseLinkAsset, type LicenseLinkAssetRow } from "../models/index.js";
 import { getPaginationRange } from "../utils/pagination.js";
 import { unwrapRepositoryError } from "./repositoryHelpers.js";
 
@@ -37,7 +37,7 @@ export class LicenseLinkAssetRepository {
     const { data, error, count } = await query;
     unwrapRepositoryError(error, "Failed to fetch asset software license assignments");
     return {
-      items: (data || []).map(LicenseLinkAsset.fromRow),
+      items: (data || []).map((row) => LicenseLinkAsset.fromRow(row)),
       totalItems: Number(count) || 0,
     };
   }
@@ -70,7 +70,7 @@ export class LicenseLinkAssetRepository {
     const { data, error, count } = await query;
     unwrapRepositoryError(error, "Failed to fetch software license assignments");
     return {
-      items: (data || []).map(LicenseLinkAsset.fromRow),
+      items: (data || []).map((row) => LicenseLinkAsset.fromRow(row)),
       totalItems: Number(count) || 0,
     };
   }
@@ -80,7 +80,7 @@ export class LicenseLinkAssetRepository {
       .from("license_link_asset")
       .select("*")
       .eq("license_link_asset_id", licenseLinkAssetId)
-      .maybeSingle();
+      .maybeSingle<LicenseLinkAssetRow>();
 
     unwrapRepositoryError(error, "Failed to fetch software license assignment");
     return LicenseLinkAsset.fromRow(data);
@@ -99,7 +99,7 @@ export class LicenseLinkAssetRepository {
       .eq("asset_id", assetId)
       .eq("software_license_id", softwareLicenseId)
       .is("unassigned_at", null)
-      .maybeSingle();
+      .maybeSingle<LicenseLinkAssetRow>();
 
     unwrapRepositoryError(error, "Failed to fetch active software license assignment");
     return LicenseLinkAsset.fromRow(data);
@@ -183,7 +183,7 @@ export class LicenseLinkAssetRepository {
       .from("license_link_asset")
       .insert(LicenseLinkAsset.toInsertRow(newLink))
       .select("*")
-      .single();
+      .single<LicenseLinkAssetRow>();
 
     unwrapRepositoryError(error, "Failed to assign software license to asset");
     return LicenseLinkAsset.fromRow(data);
@@ -199,7 +199,7 @@ export class LicenseLinkAssetRepository {
       .eq("license_link_asset_id", licenseLinkAssetId)
       .is("unassigned_at", null)
       .select("*")
-      .single();
+      .single<LicenseLinkAssetRow>();
 
     unwrapRepositoryError(error, "Failed to unassign software license from asset");
     return LicenseLinkAsset.fromRow(data);

@@ -1,6 +1,6 @@
 import { supabase } from "../config/supabase.js";
 import type { LocationScope } from "../types/auth.js";
-import { FileModel } from "../models/index.js";
+import { FileModel, type FileModelRow } from "../models/index.js";
 import { getPaginationRange } from "../utils/pagination.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
 import {
@@ -33,7 +33,7 @@ export class FileRepository {
     const { data, error, count } = await query;
     unwrapRepositoryError(error, "Failed to fetch paginated files");
     return {
-      items: (data || []).map(FileModel.fromRow),
+      items: (data || []).map((row) => FileModel.fromRow(row)),
       totalItems: Number(count) || 0,
     };
   }
@@ -43,7 +43,7 @@ export class FileRepository {
       .from("files")
       .insert(file.toInsertRow())
       .select("*")
-      .single();
+      .single<FileModelRow>();
 
     unwrapRepositoryError(error, "Failed to create file metadata");
     return FileModel.fromRow(data);
@@ -54,7 +54,7 @@ export class FileRepository {
       .from("files")
       .select("*")
       .eq("file_id", fileId)
-      .maybeSingle();
+      .maybeSingle<FileModelRow>();
 
     query = applyLocationScope(query, locationScope);
 
@@ -78,7 +78,7 @@ export class FileRepository {
       .eq("file_id", fileId)
       .eq("version", expectedVersion)
       .select("*")
-      .maybeSingle();
+      .maybeSingle<FileModelRow>();
 
     query = applyLocationScope(query, locationScope);
 

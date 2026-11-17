@@ -1,15 +1,15 @@
-import cron from "node-cron";
+import cron, { type ScheduledTask } from "node-cron";
 import { config } from "../config/index.js";
 import { ActivityLogRepository } from "../repositories/activityLogRepository.js";
 import { logger } from "../utils/logger.js";
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
-let activityLogPruneTask = null;
+let activityLogPruneTask: ScheduledTask | null = null;
 
 export const pruneActivityLog = async ({
   retentionDays = config.activityLogRetention.retentionDays,
-} = {}) => {
+}: { retentionDays?: number } = {}) => {
   const cutoff = new Date(Date.now() - retentionDays * DAY_IN_MS).toISOString();
   const deletedCount = await ActivityLogRepository.deleteOlderThan(cutoff);
 

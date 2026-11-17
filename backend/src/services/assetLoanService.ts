@@ -19,8 +19,8 @@ import { generateRandomToken } from "../utils/crypto.js";
 import { parseExpectedVersion } from "../utils/optimisticLocking.js";
 import { requirePermission } from "../utils/rbac.js";
 import {
-  assertActorCanAccessLocation,
   buildLocationScope,
+  requireAccessibleLocationId,
   buildLocationScopeWithOptionalLocationId,
   isSuperAdmin,
 } from "../utils/locationScope.js";
@@ -32,39 +32,84 @@ import {
   ASSET_LOAN_ITEM_STATUS_VALUES,
   ASSET_LOAN_ITEM_TERMINAL_STATUSES,
   ASSET_LOAN_STATUS_VALUES,
+  type AssetLoanItemStatus,
+  type AssetLoanStatus,
+  type AssetStatus,
 } from "../utils/constants.js";
+import type {
+  AssetLoan,
+  AssetLoanExtensionHistory,
+  AssetLoanItem,
+} from "../models/index.js";
+import type { AssetLoanListFilters } from "../repositories/assetLoanRepository.js";
+import type { RowUpdates } from "../repositories/repositoryHelpers.js";
+import type { Actor, LocationScope } from "../types/auth.js";
+import type {
+  CreateAssetLoanInput,
+  ListAssetLoansQuery,
+  UpdateAssetLoanInput,
+  UpdateLoanItemStatusInput,
+  VersionInput,
+} from "../validators/assetLoan.js";
 
-const LOAN_ITEM_TERMINAL_SET = new Set(ASSET_LOAN_ITEM_TERMINAL_STATUSES);
-const OPEN_LOAN_STATUS_SET = new Set(["Active", "Overdue"]);
+/** A loan as returned to clients: items attached and overdue state computed. */
+export type DecoratedAssetLoan = AssetLoan & {
+  shareUrl: string | null;
+  items: AssetLoanItem[];
+  isOverdue: boolean;
+  effectiveStatus: AssetLoanStatus;
+  extensionHistory?: AssetLoanExtensionHistory[];
+};
+
+/** The asset fields a loan changes, as they were before, for rollback. */
+interface AssetSnapshot {
+  assetId: number;
+  previous: {
+    status: AssetStatus;
+    loanable: boolean;
+    loanToProfileId: number | null;
+    version: number;
+  };
+}
+
+const LOAN_ITEM_TERMINAL_SET = new Set<AssetLoanItemStatus>(ASSET_LOAN_ITEM_TERMINAL_STATUSES);
+const OPEN_LOAN_STATUS_SET = new Set<AssetLoanStatus>(["Active", "Overdue"]);
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const publicLoanBaseUrl = `${config.frontendOrigins[0] || config.frontendUrl}`.replace(/\/+$/, "");
-const formatLoanReference = (assetLoanId) => `LN-${String(assetLoanId).padStart(5, "0")}`;
+const formatLoanReference = (assetLoanId: number): string =>
+  `LN-${String(assetLoanId).padStart(5, "0")}`;
 
-const toDate = (value) => {
+/** Local midnight of a date string. `null` for an empty value. */
+function toDate(value: string): Date;
+function toDate(value: string | null | undefined): Date | null;
+function toDate(value: string | null | undefined): Date | null {
   if (!value) return null;
   const d = new Date(value);
   d.setHours(0, 0, 0, 0);
   return d;
-};
+}
 
 export class AssetLoanService {
-  static isOpenLoanStatus(status) {
+  static isOpenLoanStatus(status: AssetLoanStatus): boolean {
     return OPEN_LOAN_STATUS_SET.has(status);
   }
 
-  static isPastDueDate(endLoanDate) {
+  static isPastDueDate(endLoanDate: string | null | undefined): boolean {
     if (!endLoanDate) return false;
     const end = toDate(endLoanDate);
     const today = toDate(todayIso());
     return end < today;
   }
 
-  static deriveStoredOpenLoanStatus(endLoanDate) {
+  static deriveStoredOpenLoanStatus(endLoanDate: string): "Active" | "Overdue" {
     return AssetLoanService.isPastDueDate(endLoanDate) ? "Overdue" : "Active";
   }
 
-  static deriveAssetStateFromItem(itemStatus, borrowerProfileId) {
+  static deriveAssetStateFromItem(
+    itemStatus: AssetLoanItemStatus,
+    borrowerProfileId: number
+  ): { status: AssetStatus; loanable: boolean; loanToProfileId: number | null } {
     switch (itemStatus) {
       case "Loaned":
         return {
@@ -96,17 +141,31 @@ export class AssetLoanService {
     }
   }
 
-  static isOverdue(loan) {
+  static isOverdue(loan: AssetLoan | null | undefined): boolean {
     if (!loan || !AssetLoanService.isOpenLoanStatus(loan.status) || !loan.endLoanDate) {
       return false;
     }
     return loan.status === "Overdue" || AssetLoanService.isPastDueDate(loan.endLoanDate);
   }
 
-  static decorateAssetLoan(loan, items = [], extensionHistory = undefined) {
+  static decorateAssetLoan(
+    loan: AssetLoan,
+    items?: AssetLoanItem[],
+    extensionHistory?: AssetLoanExtensionHistory[]
+  ): DecoratedAssetLoan;
+  static decorateAssetLoan(
+    loan: AssetLoan | null,
+    items?: AssetLoanItem[],
+    extensionHistory?: AssetLoanExtensionHistory[]
+  ): DecoratedAssetLoan | null;
+  static decorateAssetLoan(
+    loan: AssetLoan | null,
+    items: AssetLoanItem[] = [],
+    extensionHistory: AssetLoanExtensionHistory[] | undefined = undefined
+  ): DecoratedAssetLoan | null {
     if (!loan) return null;
     const overdue = AssetLoanService.isOverdue(loan);
-    const decorated = {
+    const decorated: DecoratedAssetLoan = {
       ...loan,
       shareUrl: loan.shareToken
         ? AssetLoanService.buildPublicLoanShareUrl(loan.shareToken)
@@ -121,11 +180,11 @@ export class AssetLoanService {
     return decorated;
   }
 
-  static buildPublicLoanShareUrl(token) {
+  static buildPublicLoanShareUrl(token: string | null): string {
     return `${publicLoanBaseUrl}/public/loan/${token}`;
   }
 
-  static async assertProfileAccessible(actor, profileId) {
+  static async assertProfileAccessible(actor: Actor, profileId: number) {
     const locationScope = buildLocationScope(actor);
     const profile = await findOrThrow(
       () => ProfileRepository.findById(profileId, locationScope),
@@ -134,13 +193,16 @@ export class AssetLoanService {
     return profile;
   }
 
-  static normalizeRemark(value) {
+  static normalizeRemark(value: unknown): string | null | undefined {
     return value === undefined
       ? undefined
       : AssetValidation.normalizeNullableString(value);
   }
 
-  static validateDateRange(startLoanDate, endLoanDate) {
+  static validateDateRange(
+    startLoanDate: string | null | undefined,
+    endLoanDate: string | null | undefined
+  ): void {
     if (!startLoanDate || !endLoanDate) {
       throw new BadRequestError("startLoanDate and endLoanDate are required");
     }
@@ -151,14 +213,14 @@ export class AssetLoanService {
     }
   }
 
-  static async listAssetLoans(actor, query = {}) {
+  static async listAssetLoans(actor: Actor, query: ListAssetLoansQuery = {}) {
     requirePermission(actor, "read", "assetLoan");
     const { page, limit } = parsePaginationQuery(query);
     const locationScope = buildLocationScopeWithOptionalLocationId(actor, query.locationId);
 
-    const filters = {};
+    const filters: AssetLoanListFilters = {};
     if (query.status) {
-      if (!ASSET_LOAN_STATUS_VALUES.includes(query.status)) {
+      if (!(ASSET_LOAN_STATUS_VALUES as readonly string[]).includes(query.status)) {
         throw new BadRequestError(
           `status must be one of: ${ASSET_LOAN_STATUS_VALUES.join(", ")}`
         );
@@ -201,7 +263,7 @@ export class AssetLoanService {
     ]);
 
     const loanIds = paginated.items.map((l) => l.assetLoanId);
-    const itemsByLoanId = new Map();
+    const itemsByLoanId = new Map<number, AssetLoanItem[]>();
     if (loanIds.length) {
       const items = await AssetLoanItemRepository.listByLoanIds(loanIds);
       for (const item of items) {
@@ -225,7 +287,7 @@ export class AssetLoanService {
     return { ...pagination, statusCounts, assetLoans: items };
   }
 
-  static async getAssetLoanById(assetLoanId, actor) {
+  static async getAssetLoanById(assetLoanId: unknown, actor: Actor) {
     requirePermission(actor, "read", "assetLoan");
     const normalizedId = AssetValidation.toPositiveInteger(
       assetLoanId,
@@ -244,7 +306,7 @@ export class AssetLoanService {
     return AssetLoanService.decorateAssetLoan(loan, items, extensionHistory);
   }
 
-  static async getPublicAssetLoanByToken(token) {
+  static async getPublicAssetLoanByToken(token: unknown) {
     const normalizedToken = `${token || ""}`.trim();
     if (!normalizedToken) {
       throw new NotFoundError("Shared asset loan not found");
@@ -312,10 +374,10 @@ export class AssetLoanService {
     };
   }
 
-  static async createAssetLoan(payload, actor) {
+  static async createAssetLoan(payload: CreateAssetLoanInput, actor: Actor) {
     requirePermission(actor, "create", "assetLoan");
 
-    const locationId = assertActorCanAccessLocation(actor, payload.locationId);
+    const locationId = requireAccessibleLocationId(actor, payload.locationId);
     const borrowerProfileId = AssetValidation.toPositiveInteger(
       payload.borrowerProfileId,
       "borrowerProfileId"
@@ -369,9 +431,9 @@ export class AssetLoanService {
       "lenderUserId"
     );
 
-    let createdLoan = null;
-    const createdItems = [];
-    const mutatedAssetSnapshots = [];
+    let createdLoan: AssetLoan | null = null;
+    const createdItems: AssetLoanItem[] = [];
+    const mutatedAssetSnapshots: AssetSnapshot[] = [];
 
     try {
       createdLoan = await AssetLoanRepository.create({
@@ -387,9 +449,10 @@ export class AssetLoanService {
         updatedBy: actor.userId,
       });
 
+      const loanId = createdLoan.assetLoanId;
       const insertedItems = await AssetLoanItemRepository.bulkInsert(
         assetIds.map((assetId) => ({
-          assetLoanId: createdLoan.assetLoanId,
+          assetLoanId: loanId,
           locationId,
           assetId,
           itemStatus: "Loaned",
@@ -436,25 +499,38 @@ export class AssetLoanService {
       throw error;
     }
 
+    // Set on the success path; any failure above rethrew after compensating.
+    const loan = createdLoan as AssetLoan;
+
     await ActivityLogService.record({
       entityType: "asset_loan",
-      entityId: createdLoan.assetLoanId,
-      entityLabel: `Loan #${createdLoan.assetLoanId}`,
+      entityId: loan.assetLoanId,
+      entityLabel: `Loan #${loan.assetLoanId}`,
       action: "created",
-      status: createdLoan.status,
-      locationId: createdLoan.locationId,
+      status: loan.status,
+      locationId: loan.locationId,
       actor,
       metadata: {
-        borrowerProfileId: createdLoan.borrowerProfileId,
+        borrowerProfileId: loan.borrowerProfileId,
         itemCount: createdItems.length,
-        endLoanDate: createdLoan.endLoanDate,
+        endLoanDate: loan.endLoanDate,
       },
     });
 
-    return AssetLoanService.decorateAssetLoan(createdLoan, createdItems);
+    return AssetLoanService.decorateAssetLoan(loan, createdItems);
   }
 
-  static async compensateCreate({ loan, mutatedAssetSnapshots, locationScope, actor }) {
+  static async compensateCreate({
+    loan,
+    mutatedAssetSnapshots,
+    locationScope,
+    actor,
+  }: {
+    loan: AssetLoan | null;
+    mutatedAssetSnapshots: AssetSnapshot[];
+    locationScope: LocationScope;
+    actor: Actor;
+  }) {
     for (const snapshot of mutatedAssetSnapshots) {
       try {
         const fresh = await AssetRepository.findById(snapshot.assetId, locationScope);
@@ -488,7 +564,7 @@ export class AssetLoanService {
     }
   }
 
-  static async updateAssetLoan(assetLoanId, payload, actor) {
+  static async updateAssetLoan(assetLoanId: unknown, payload: UpdateAssetLoanInput, actor: Actor) {
     requirePermission(actor, "update", "assetLoan");
     const normalizedId = AssetValidation.toPositiveInteger(
       assetLoanId,
@@ -508,8 +584,8 @@ export class AssetLoanService {
       );
     }
 
-    const updates = { updated_by: actor.userId };
-    let createdExtensionHistory = null;
+    const updates: RowUpdates = { updated_by: actor.userId };
+    let createdExtensionHistory: AssetLoanExtensionHistory | null = null;
     const targetEndLoanDate = payload.endLoanDate ?? existing.endLoanDate;
     const targetStatus = AssetLoanService.deriveStoredOpenLoanStatus(targetEndLoanDate);
 
@@ -581,7 +657,7 @@ export class AssetLoanService {
     }
   }
 
-  static async createAssetLoanShare(assetLoanId, actor) {
+  static async createAssetLoanShare(assetLoanId: unknown, actor: Actor) {
     requirePermission(actor, "update", "assetLoan");
     const normalizedId = AssetValidation.toPositiveInteger(
       assetLoanId,
@@ -628,7 +704,7 @@ export class AssetLoanService {
     };
   }
 
-  static async disableAssetLoanShare(assetLoanId, actor) {
+  static async disableAssetLoanShare(assetLoanId: unknown, actor: Actor) {
     requirePermission(actor, "update", "assetLoan");
     const normalizedId = AssetValidation.toPositiveInteger(
       assetLoanId,
@@ -669,7 +745,12 @@ export class AssetLoanService {
     };
   }
 
-  static async updateLoanItemStatus(assetLoanId, loanItemId, payload, actor) {
+  static async updateLoanItemStatus(
+    assetLoanId: unknown,
+    loanItemId: unknown,
+    payload: UpdateLoanItemStatusInput,
+    actor: Actor
+  ) {
     requirePermission(actor, "update", "assetLoan");
     const normalizedLoanId = AssetValidation.toPositiveInteger(
       assetLoanId,
@@ -681,7 +762,7 @@ export class AssetLoanService {
     );
     const expectedVersion = parseExpectedVersion(payload.version);
 
-    if (!ASSET_LOAN_ITEM_STATUS_VALUES.includes(payload.itemStatus)) {
+    if (!(ASSET_LOAN_ITEM_STATUS_VALUES as readonly string[]).includes(payload.itemStatus)) {
       throw new BadRequestError(
         `itemStatus must be one of: ${ASSET_LOAN_ITEM_STATUS_VALUES.join(", ")}`
       );
@@ -784,7 +865,7 @@ export class AssetLoanService {
     return AssetLoanService.decorateAssetLoan(updatedLoan, items);
   }
 
-  static async maybeRollupLoan(loan) {
+  static async maybeRollupLoan(loan: AssetLoan): Promise<AssetLoan> {
     if (!AssetLoanService.isOpenLoanStatus(loan.status)) return loan;
 
     const items = await AssetLoanItemRepository.listByLoanId(loan.assetLoanId);
@@ -810,7 +891,7 @@ export class AssetLoanService {
     );
   }
 
-  static async returnAssetLoan(assetLoanId, payload, actor) {
+  static async returnAssetLoan(assetLoanId: unknown, payload: VersionInput, actor: Actor) {
     requirePermission(actor, "update", "assetLoan");
     const normalizedId = AssetValidation.toPositiveInteger(
       assetLoanId,
@@ -901,7 +982,7 @@ export class AssetLoanService {
     return AssetLoanService.decorateAssetLoan(closedLoan, refreshedItems);
   }
 
-  static async cancelAssetLoan(assetLoanId, payload, actor) {
+  static async cancelAssetLoan(assetLoanId: unknown, payload: VersionInput, actor: Actor) {
     requirePermission(actor, "update", "assetLoan");
     const normalizedId = AssetValidation.toPositiveInteger(
       assetLoanId,
@@ -985,7 +1066,7 @@ export class AssetLoanService {
     return AssetLoanService.decorateAssetLoan(cancelled, refreshedItems);
   }
 
-  static async deleteAssetLoan(assetLoanId, actor) {
+  static async deleteAssetLoan(assetLoanId: unknown, actor: Actor) {
     requirePermission(actor, "delete", "assetLoan");
     const normalizedId = AssetValidation.toPositiveInteger(
       assetLoanId,

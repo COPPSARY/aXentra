@@ -1,4 +1,6 @@
-export const REALTIME_TABLE_CONFIG = {
+import type { RealtimeTableConfig } from "./types.js";
+
+export const REALTIME_TABLE_CONFIG: Record<string, RealtimeTableConfig> = {
   users: {
     primaryKey: "user_id",
     userIdField: "user_id",

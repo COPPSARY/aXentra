@@ -2,7 +2,49 @@ import Joi from "joi";
 import {
   ASSET_LOAN_ITEM_STATUS_VALUES,
   ASSET_LOAN_STATUS_VALUES,
+  type AssetLoanItemStatus,
 } from "../utils/constants.js";
+
+/** Body of `POST /api/loans` after validation. Dates stay `YYYY-MM-DD` strings (`.raw()`). */
+export interface CreateAssetLoanInput {
+  locationId: number;
+  borrowerProfileId: number;
+  startLoanDate: string;
+  endLoanDate: string;
+  remark?: string | null;
+  items: Array<{ assetId: number }>;
+  lenderUserId?: number;
+}
+
+/** Body of `PATCH /api/loans/:loanId` after validation. */
+export interface UpdateAssetLoanInput {
+  version: number;
+  remark?: string | null;
+  endLoanDate?: string;
+}
+
+/** Body of a loan item status change after validation. */
+export interface UpdateLoanItemStatusInput {
+  version: number;
+  /** The schema rejects `Loaned`; the service checks again. */
+  itemStatus: AssetLoanItemStatus;
+}
+
+/** Body of the return and cancel endpoints after validation. */
+export interface VersionInput {
+  version: number;
+}
+
+/** Query of `GET /api/loans` after validation. */
+export interface ListAssetLoansQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+  borrowerProfileId?: number;
+  lenderUserId?: number;
+  assetId?: number;
+  locationId?: number;
+}
 
 const positiveInt = Joi.number().integer().positive();
 

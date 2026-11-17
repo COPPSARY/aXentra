@@ -2,7 +2,42 @@ import Joi from "joi";
 import {
   SOFTWARE_LICENSE_MULTI_ALLOCATION_LIMIT_MAX,
   SOFTWARE_LICENSE_ALLOCATION_TYPE_VALUES,
+  type SoftwareLicenseAllocationType,
 } from "../utils/constants.js";
+
+/** Fields shared by license create and update bodies, after validation. */
+interface SoftwareLicenseFieldsInput {
+  softwareVersion?: string | null;
+  licenseKey?: string | null;
+  /** `Joi.date()` yields a `Date`. */
+  purchaseDate?: Date | null;
+  /** `Joi.date()` yields a `Date`. */
+  expiryDate?: Date | null;
+  description?: string | null;
+  fileId?: number | null;
+  replaceImages?: boolean;
+  allocationType?: SoftwareLicenseAllocationType;
+  allocationLimit?: number | null;
+  /** Added by the controller from the multipart upload, not by the schema. */
+  albumImages?: Express.Multer.File[];
+}
+
+/** Body of `POST /api/licenses` after validation, plus uploaded files. */
+export interface CreateSoftwareLicenseInput extends SoftwareLicenseFieldsInput {
+  softwareName: string;
+  locationId: number;
+}
+
+/** Body of `PATCH /api/licenses/:licenseId` after validation, plus uploaded files. */
+export interface UpdateSoftwareLicenseInput extends SoftwareLicenseFieldsInput {
+  version: number;
+  softwareName?: string;
+}
+
+/** Body of `POST /api/licenses/:licenseId/assignments` after validation. */
+export interface AssignSoftwareLicenseInput {
+  assetId: number;
+}
 
 const sharedFields = {
   softwareVersion: Joi.string().trim().max(100).allow("", null),

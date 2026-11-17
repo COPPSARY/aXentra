@@ -24,7 +24,7 @@ export class ProfileRepository {
 
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch profiles");
-    return (data || []).map(Profile.fromRow);
+    return (data || []).map((row) => Profile.fromRow(row));
   }
 
   static async listPaginated({
@@ -50,7 +50,7 @@ export class ProfileRepository {
     const { data, error, count } = await query;
     unwrapRepositoryError(error, "Failed to fetch paginated profiles");
     return {
-      items: (data || []).map(Profile.fromRow),
+      items: (data || []).map((row) => Profile.fromRow(row)),
       totalItems: Number(count) || 0,
     };
   }
@@ -90,7 +90,7 @@ export class ProfileRepository {
 
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch profiles by ids");
-    return (data || []).map(Profile.fromRow);
+    return (data || []).map((row) => Profile.fromRow(row));
   }
 
   static async create(payload: ProfileProps, createdBy: number | null) {

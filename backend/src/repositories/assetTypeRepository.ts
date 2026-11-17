@@ -55,7 +55,7 @@ export class AssetTypeRepository {
 
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch asset types");
-    return (data || []).map(AssetType.fromRow);
+    return (data || []).map((row) => AssetType.fromRow(row));
   }
 
   static async listPaginated({
@@ -80,7 +80,7 @@ export class AssetTypeRepository {
     const { data, error, count } = await query;
     unwrapRepositoryError(error, "Failed to fetch paginated asset types");
     return {
-      items: (data || []).map(AssetType.fromRow),
+      items: (data || []).map((row) => AssetType.fromRow(row)),
       totalItems: Number(count) || 0,
     };
   }

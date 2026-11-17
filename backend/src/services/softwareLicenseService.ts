@@ -12,9 +12,9 @@ import { AssetValidation } from "../utils/assetValidation.js";
 import { parseExpectedVersion } from "../utils/optimisticLocking.js";
 import { requirePermission } from "../utils/rbac.js";
 import {
-  assertActorCanAccessLocation,
   buildLocationScope,
   buildLocationScopeWithOptionalLocationId,
+  requireAccessibleLocationId,
 } from "../utils/locationScope.js";
 import {
   buildPaginatedResponse,
@@ -23,6 +23,8 @@ import {
 import {
   SOFTWARE_LICENSE_MULTI_ALLOCATION_LIMIT_MAX,
   SOFTWARE_LICENSE_STATUS_VALUES,
+  type SoftwareLicenseAllocationType,
+  type SoftwareLicenseStatus,
 } from "../utils/constants.js";
 import {
   getSoftwareLicenseAlbumObjectPublicUrl,
@@ -33,13 +35,31 @@ import {
   buildUploadedImageEntries,
   mergeImageBundles,
 } from "../utils/imageBundle.js";
+import type { SoftwareLicense } from "../models/index.js";
+import type { RowUpdates } from "../repositories/repositoryHelpers.js";
+import type { Actor, LocationScope } from "../types/auth.js";
+import type { PaginationQuery } from "../utils/pagination.js";
+import type {
+  AssignSoftwareLicenseInput,
+  CreateSoftwareLicenseInput,
+  UpdateSoftwareLicenseInput,
+} from "../validators/softwareLicense.js";
+
+/** A date as stored (`YYYY-MM-DD`) or as parsed from a request (`Date`). */
+type DateLike = string | Date | null | undefined;
+
+/** A license with its computed status, remaining seats and expiry label. */
+export type DecoratedSoftwareLicense = SoftwareLicense & {
+  available: number;
+  expiresIn: string;
+  status: SoftwareLicenseStatus;
+};
+
+/** Number of licenses per effective status, plus the total under `all`. */
+export type SoftwareLicenseStatusCounts = Record<SoftwareLicenseStatus, number> & { all: number };
 
 const ACTIVE_ONLY_TRUE_VALUES = new Set(["1", "true", "yes"]);
-const attachSoftwareLicenseImageUrls = async (softwareLicense) => {
-  if (!softwareLicense) {
-    return softwareLicense;
-  }
-
+const attachSoftwareLicenseImageUrls = async <L extends SoftwareLicense>(softwareLicense: L) => {
   return {
     ...softwareLicense,
     images: await attachImageBundleUrls(
@@ -50,22 +70,22 @@ const attachSoftwareLicenseImageUrls = async (softwareLicense) => {
 };
 
 export class SoftwareLicenseService {
-  static normalizeStatusFilter(status) {
+  static normalizeStatusFilter(status: unknown): SoftwareLicenseStatus | null {
     if (status === undefined || status === null || `${status}`.trim() === "") {
       return null;
     }
 
     const normalizedStatus = `${status}`.trim();
-    if (!SOFTWARE_LICENSE_STATUS_VALUES.includes(normalizedStatus)) {
+    if (!(SOFTWARE_LICENSE_STATUS_VALUES as readonly string[]).includes(normalizedStatus)) {
       throw new BadRequestError(
         `status must be one of: ${SOFTWARE_LICENSE_STATUS_VALUES.join(", ")}`
       );
     }
 
-    return normalizedStatus;
+    return normalizedStatus as SoftwareLicenseStatus;
   }
 
-  static isExpiredDate(expiryDate) {
+  static isExpiredDate(expiryDate: DateLike): boolean {
     if (!expiryDate) {
       return false;
     }
@@ -77,7 +97,7 @@ export class SoftwareLicenseService {
     return normalizedExpiryDate < today;
   }
 
-  static getExpiresIn(expiryDate) {
+  static getExpiresIn(expiryDate: DateLike): string {
     if (!expiryDate) {
       return "Never expires";
     }
@@ -107,7 +127,7 @@ export class SoftwareLicenseService {
     return `${daysRemaining} days`;
   }
 
-  static toActiveOnlyFlag(value) {
+  static toActiveOnlyFlag(value: unknown): boolean {
     if (typeof value === "boolean") {
       return value;
     }
@@ -119,7 +139,15 @@ export class SoftwareLicenseService {
     return ACTIVE_ONLY_TRUE_VALUES.has(String(value).trim().toLowerCase());
   }
 
-  static getEffectiveStatus({ status, expiryDate, activeAssignmentCount = 0 }) {
+  static getEffectiveStatus({
+    status,
+    expiryDate,
+    activeAssignmentCount = 0,
+  }: {
+    status: SoftwareLicenseStatus | null | undefined;
+    expiryDate: DateLike;
+    activeAssignmentCount?: number;
+  }): SoftwareLicenseStatus {
     if (SoftwareLicenseService.isExpiredDate(expiryDate)) {
       return "Expired";
     }
@@ -139,7 +167,11 @@ export class SoftwareLicenseService {
     fallbackStatus = "Unused",
     expiryDate,
     activeAssignmentCount = 0,
-  }) {
+  }: {
+    fallbackStatus?: SoftwareLicenseStatus;
+    expiryDate: DateLike;
+    activeAssignmentCount?: number;
+  }): SoftwareLicenseStatus {
     if (SoftwareLicenseService.isExpiredDate(expiryDate)) {
       return "Expired";
     }
@@ -151,7 +183,19 @@ export class SoftwareLicenseService {
     return fallbackStatus;
   }
 
-  static getAvailable({ status, expiryDate, allocationType, allocationLimit, activeAssignmentCount = 0 }) {
+  static getAvailable({
+    status,
+    expiryDate,
+    allocationType,
+    allocationLimit,
+    activeAssignmentCount = 0,
+  }: {
+    status: SoftwareLicenseStatus | null | undefined;
+    expiryDate: DateLike;
+    allocationType: SoftwareLicenseAllocationType | null | undefined;
+    allocationLimit: number | null | undefined;
+    activeAssignmentCount?: number;
+  }): number {
     const effectiveStatus = SoftwareLicenseService.getEffectiveStatus({
       status,
       expiryDate,
@@ -169,7 +213,18 @@ export class SoftwareLicenseService {
     return Math.max(1 - activeAssignmentCount, 0);
   }
 
-  static decorateSoftwareLicense(softwareLicense, activeAssignmentCount = 0) {
+  static decorateSoftwareLicense(
+    softwareLicense: SoftwareLicense,
+    activeAssignmentCount?: number
+  ): DecoratedSoftwareLicense;
+  static decorateSoftwareLicense(
+    softwareLicense: SoftwareLicense | null,
+    activeAssignmentCount?: number
+  ): DecoratedSoftwareLicense | null;
+  static decorateSoftwareLicense(
+    softwareLicense: SoftwareLicense | null,
+    activeAssignmentCount = 0
+  ): DecoratedSoftwareLicense | null {
     if (!softwareLicense) {
       return null;
     }
@@ -192,7 +247,9 @@ export class SoftwareLicenseService {
     };
   }
 
-  static normalizeSoftwareLicenseInput(payload) {
+  static normalizeSoftwareLicenseInput(
+    payload: CreateSoftwareLicenseInput | UpdateSoftwareLicenseInput
+  ) {
     return {
       softwareName: payload.softwareName !== undefined
         ? AssetValidation.normalizeNullableString(payload.softwareName)
@@ -203,7 +260,10 @@ export class SoftwareLicenseService {
     };
   }
 
-  static normalizeAllocationPolicy(payload, existingSoftwareLicense = null) {
+  static normalizeAllocationPolicy(
+    payload: Pick<CreateSoftwareLicenseInput, "allocationType" | "allocationLimit">,
+    existingSoftwareLicense: SoftwareLicense | null = null
+  ): { allocationType: SoftwareLicenseAllocationType; allocationLimit: number } {
     const allocationType = payload.allocationType
       ?? existingSoftwareLicense?.allocationType
       ?? "single";
@@ -221,7 +281,8 @@ export class SoftwareLicenseService {
 
     const allocationLimit = payload.allocationLimit ?? existingSoftwareLicense?.allocationLimit;
     if (
-      !Number.isInteger(allocationLimit)
+      typeof allocationLimit !== "number"
+      || !Number.isInteger(allocationLimit)
       || allocationLimit <= 0
       || allocationLimit > SOFTWARE_LICENSE_MULTI_ALLOCATION_LIMIT_MAX
     ) {
@@ -236,7 +297,15 @@ export class SoftwareLicenseService {
     };
   }
 
-  static async validateFileLocation({ fileId, locationId, actor }) {
+  static async validateFileLocation({
+    fileId,
+    locationId,
+    actor,
+  }: {
+    fileId: number | null | undefined;
+    locationId: number;
+    actor: Actor;
+  }): Promise<number | null | undefined> {
     if (fileId === null) {
       return null;
     }
@@ -261,7 +330,7 @@ export class SoftwareLicenseService {
   // Fetches active assignment counts, decorates, and attaches image URLs.
   // Shared by both branches of listSoftwareLicenses so the decoration pipeline
   // exists in exactly one place.
-  static async decorateSoftwareLicenses(softwareLicenses) {
+  static async decorateSoftwareLicenses(softwareLicenses: SoftwareLicense[]) {
     if (!softwareLicenses.length) {
       return [];
     }
@@ -277,19 +346,23 @@ export class SoftwareLicenseService {
       )
     );
 
-    return Promise.all(decorated.map(attachSoftwareLicenseImageUrls));
+    return Promise.all(
+      decorated.map((softwareLicense) => attachSoftwareLicenseImageUrls(softwareLicense))
+    );
   }
 
-  static buildEmptyStatusCounts() {
+  static buildEmptyStatusCounts(): Record<SoftwareLicenseStatus, number> {
     return SOFTWARE_LICENSE_STATUS_VALUES.reduce(
       (accumulator, status) => ({ ...accumulator, [status]: 0 }),
-      {}
+      {} as Record<SoftwareLicenseStatus, number>
     );
   }
 
   // Tally over already-decorated rows, whose `status` is the effective status.
   // Free when the caller has loaded the whole scope anyway.
-  static buildStatusCountsFromDecorated(decoratedSoftwareLicenses) {
+  static buildStatusCountsFromDecorated(
+    decoratedSoftwareLicenses: ReadonlyArray<{ status: SoftwareLicenseStatus }>
+  ): SoftwareLicenseStatusCounts {
     const counts = SoftwareLicenseService.buildEmptyStatusCounts();
 
     for (const softwareLicense of decoratedSoftwareLicenses) {
@@ -304,7 +377,9 @@ export class SoftwareLicenseService {
   // Counts for the unfiltered branch, where only one page has been loaded.
   // Reuses getEffectiveStatus rather than reimplementing the rules, so the
   // counts cannot drift from the status shown on each row.
-  static async buildStatusCounts(locationScope) {
+  static async buildStatusCounts(
+    locationScope: LocationScope
+  ): Promise<SoftwareLicenseStatusCounts> {
     const projections = await SoftwareLicenseRepository.listStatusProjection(locationScope);
     if (!projections.length) {
       return { all: 0, ...SoftwareLicenseService.buildEmptyStatusCounts() };
@@ -331,7 +406,10 @@ export class SoftwareLicenseService {
     return { all: projections.length, ...counts };
   }
 
-  static async listSoftwareLicenses(actor, query = {}) {
+  static async listSoftwareLicenses(
+    actor: Actor,
+    query: PaginationQuery & { locationId?: unknown; status?: unknown } = {}
+  ) {
     const { page, limit, from, to } = parsePaginationQuery(query);
     const locationScope = buildLocationScopeWithOptionalLocationId(actor, query.locationId);
     const statusFilter = SoftwareLicenseService.normalizeStatusFilter(query.status);
@@ -386,7 +464,7 @@ export class SoftwareLicenseService {
     };
   }
 
-  static async getSoftwareLicenseById(softwareLicenseId, actor) {
+  static async getSoftwareLicenseById(softwareLicenseId: unknown, actor: Actor) {
     const normalizedSoftwareLicenseId = AssetValidation.toPositiveInteger(
       softwareLicenseId,
       "Software license id"
@@ -409,11 +487,11 @@ export class SoftwareLicenseService {
     );
   }
 
-  static async createSoftwareLicense(payload, actor) {
+  static async createSoftwareLicense(payload: CreateSoftwareLicenseInput, actor: Actor) {
     requirePermission(actor, "create", "softwareLicense");
 
     const normalized = SoftwareLicenseService.normalizeSoftwareLicenseInput(payload);
-    const locationId = assertActorCanAccessLocation(actor, payload.locationId);
+    const locationId = requireAccessibleLocationId(actor, payload.locationId);
     const { allocationType, allocationLimit } = SoftwareLicenseService.normalizeAllocationPolicy(payload);
     const fileId = await SoftwareLicenseService.validateFileLocation({
       fileId: payload.fileId,
@@ -428,11 +506,14 @@ export class SoftwareLicenseService {
     });
 
     const createdSoftwareLicense = await SoftwareLicenseRepository.create({
-      softwareName: normalized.softwareName,
+      // Required and non-blank by schema, so normalizing never yields null here.
+      softwareName: normalized.softwareName as string,
       softwareVersion: normalized.softwareVersion,
       licenseKey: normalized.licenseKey,
-      purchaseDate: payload.purchaseDate ?? null,
-      expiryDate: payload.expiryDate ?? null,
+      // Dates arrive as `Date` objects; supabase-js serializes them and Postgres
+      // keeps the date part.
+      purchaseDate: (payload.purchaseDate ?? null) as string | null,
+      expiryDate: (payload.expiryDate ?? null) as string | null,
       locationId,
       status: SoftwareLicenseService.getStoredStatusForWrite({
         fallbackStatus: "Unused",
@@ -466,7 +547,11 @@ export class SoftwareLicenseService {
     );
   }
 
-  static async updateSoftwareLicense(softwareLicenseId, payload, actor) {
+  static async updateSoftwareLicense(
+    softwareLicenseId: unknown,
+    payload: UpdateSoftwareLicenseInput,
+    actor: Actor
+  ) {
     requirePermission(actor, "update", "softwareLicense");
     const expectedVersion = parseExpectedVersion(payload?.version);
 
@@ -507,7 +592,7 @@ export class SoftwareLicenseService {
       actor,
     });
 
-    const nextExpiryDate = payload.expiryDate !== undefined
+    const nextExpiryDate: DateLike = payload.expiryDate !== undefined
       ? payload.expiryDate
       : existingSoftwareLicense.expiryDate;
 
@@ -517,7 +602,7 @@ export class SoftwareLicenseService {
       activeAssignmentCount,
     });
 
-    const updates = {
+    const updates: RowUpdates = {
       updated_by: actor.userId,
       allocation_type: allocationType,
       allocation_limit: allocationLimit,
@@ -594,7 +679,7 @@ export class SoftwareLicenseService {
     );
   }
 
-  static async deleteSoftwareLicense(softwareLicenseId, actor) {
+  static async deleteSoftwareLicense(softwareLicenseId: unknown, actor: Actor) {
     requirePermission(actor, "delete", "softwareLicense");
 
     const normalizedSoftwareLicenseId = AssetValidation.toPositiveInteger(
@@ -639,7 +724,11 @@ export class SoftwareLicenseService {
     return deleted;
   }
 
-  static async listSoftwareLicenseAssignments(softwareLicenseId, actor, query = {}) {
+  static async listSoftwareLicenseAssignments(
+    softwareLicenseId: unknown,
+    actor: Actor,
+    query: PaginationQuery & { activeOnly?: unknown } = {}
+  ) {
     const normalizedSoftwareLicenseId = AssetValidation.toPositiveInteger(
       softwareLicenseId,
       "Software license id"
@@ -692,7 +781,11 @@ export class SoftwareLicenseService {
     };
   }
 
-  static async assignSoftwareLicense(softwareLicenseId, payload, actor) {
+  static async assignSoftwareLicense(
+    softwareLicenseId: unknown,
+    payload: AssignSoftwareLicenseInput,
+    actor: Actor
+  ) {
     requirePermission(actor, "update", "softwareLicense");
 
     const normalizedSoftwareLicenseId = AssetValidation.toPositiveInteger(
@@ -793,7 +886,7 @@ export class SoftwareLicenseService {
     };
   }
 
-  static async unassignSoftwareLicense(licenseLinkAssetId, actor) {
+  static async unassignSoftwareLicense(licenseLinkAssetId: unknown, actor: Actor) {
     requirePermission(actor, "update", "softwareLicense");
 
     const normalizedLicenseLinkAssetId = AssetValidation.toPositiveInteger(

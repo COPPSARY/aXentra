@@ -3,25 +3,54 @@ import { config } from "../config/index.js";
 import { supabase } from "../config/supabase.js";
 import { BadRequestError, InternalServerError } from "../utils/AppError.js";
 
-const EXTENSION_BY_MIME_TYPE = {
+/** A file received by multer with memory storage. */
+export type UploadedFile = Express.Multer.File;
+
+/** Where an uploaded object landed. `publicUrl` is set only for public buckets. */
+export interface UploadedObject {
+  objectPath: string;
+  publicUrl: string | null;
+}
+
+/** Input of every upload function: the uploader and the file. */
+export interface UploadInput {
+  userId: number;
+  file: UploadedFile | null | undefined;
+}
+
+const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
 };
 
-const sanitizeFileName = (fileName) => {
+const sanitizeFileName = (fileName: string | null | undefined): string => {
   return String(fileName || "file")
     .replace(/[^a-zA-Z0-9._-]/g, "-")
     .replace(/-{2,}/g, "-");
 };
 
-const assertFileSizeWithinLimit = ({ file, maxBytes, label }) => {
+const assertFileSizeWithinLimit = ({
+  file,
+  maxBytes,
+  label,
+}: {
+  file: UploadedFile;
+  maxBytes: number;
+  label: string;
+}): void => {
   if (Number.isInteger(file?.size) && file.size > maxBytes) {
     throw new BadRequestError(`${label} exceeds the ${maxBytes} byte limit`);
   }
 };
 
-const buildPublicUrl = ({ bucketName, objectPath }) => {
+const buildPublicUrl = ({
+  bucketName,
+  objectPath,
+}: {
+  bucketName: string;
+  objectPath: string | null | undefined;
+}): string | null => {
   if (!objectPath) {
     return null;
   }
@@ -34,7 +63,15 @@ const buildPublicUrl = ({ bucketName, objectPath }) => {
   return data?.publicUrl || null;
 };
 
-const buildSignedUrl = async ({ bucketName, objectPath, expiresIn = 3600 }) => {
+const buildSignedUrl = async ({
+  bucketName,
+  objectPath,
+  expiresIn = 3600,
+}: {
+  bucketName: string;
+  objectPath: string | null | undefined;
+  expiresIn?: number;
+}): Promise<string | null> => {
   if (!objectPath) {
     return null;
   }
@@ -60,7 +97,13 @@ const uploadToSupabaseBucket = async ({
   objectPath,
   file,
   errorContext,
-}) => {
+}: {
+  bucketName: string;
+  isPublicBucket: boolean;
+  objectPath: string;
+  file: UploadedFile;
+  errorContext: string;
+}): Promise<UploadedObject> => {
   const { error: uploadError } = await supabase.storage
     .from(bucketName)
     .upload(objectPath, file.buffer, {
@@ -83,9 +126,19 @@ const uploadToSupabaseBucket = async ({
   };
 };
 
-const deleteFromSupabaseBucket = async ({ bucketName, objectPaths, errorContext }) => {
+const deleteFromSupabaseBucket = async ({
+  bucketName,
+  objectPaths,
+  errorContext,
+}: {
+  bucketName: string;
+  objectPaths: ReadonlyArray<string | null | undefined> | null | undefined;
+  errorContext: string;
+}): Promise<void> => {
   const paths = [...new Set(
-    (objectPaths || []).filter((path) => path && !/^https?:\/\//i.test(path))
+    (objectPaths || []).filter(
+      (path): path is string => Boolean(path) && !/^https?:\/\//i.test(path as string)
+    )
   )];
   if (!paths.length) {
     return;
@@ -97,7 +150,10 @@ const deleteFromSupabaseBucket = async ({ bucketName, objectPaths, errorContext 
   }
 };
 
-export const uploadAvatar = async ({ userId, file }) => {
+export const uploadAvatar = async ({
+  userId,
+  file,
+}: UploadInput): Promise<{ objectPath: string; avatarPic: string }> => {
   if (!file) {
     throw new BadRequestError("Avatar file is required");
   }
@@ -117,7 +173,7 @@ export const uploadAvatar = async ({ userId, file }) => {
   const extension = EXTENSION_BY_MIME_TYPE[file.mimetype] || "bin";
   const objectPath = `${userId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
-  const { publicUrl } = await uploadToSupabaseBucket({
+  await uploadToSupabaseBucket({
     bucketName: config.storage.avatarBucket,
     isPublicBucket: config.storage.avatarBucketPublic,
     objectPath,
@@ -131,7 +187,10 @@ export const uploadAvatar = async ({ userId, file }) => {
   };
 };
 
-export const uploadFileObject = async ({ userId, file }) => {
+export const uploadFileObject = async ({
+  userId,
+  file,
+}: UploadInput): Promise<UploadedObject> => {
   if (!file) {
     throw new BadRequestError("File is required");
   }
@@ -163,7 +222,9 @@ export const uploadFileObject = async ({ userId, file }) => {
   });
 };
 
-export const deleteFileObjects = async (objectPaths) =>
+export const deleteFileObjects = async (
+  objectPaths: ReadonlyArray<string | null | undefined> | null | undefined
+) =>
   deleteFromSupabaseBucket({
     bucketName: config.storage.fileBucket,
     objectPaths,
@@ -179,7 +240,14 @@ const uploadAlbumObject = async ({
   allowedMimeTypes,
   errorContext,
   fileLabel = "Album file",
-}) => {
+}: UploadInput & {
+  bucketName: string;
+  isPublicBucket: boolean;
+  maxBytes: number;
+  allowedMimeTypes: readonly string[];
+  errorContext: string;
+  fileLabel?: string;
+}): Promise<UploadedObject> => {
   if (!file) {
     throw new BadRequestError(`${fileLabel} is required`);
   }
@@ -211,7 +279,10 @@ const uploadAlbumObject = async ({
   });
 };
 
-export const uploadAssetAlbumObject = async ({ userId, file }) =>
+export const uploadAssetAlbumObject = async ({
+  userId,
+  file,
+}: UploadInput): Promise<UploadedObject> =>
   uploadAlbumObject({
     userId,
     file,
@@ -223,7 +294,10 @@ export const uploadAssetAlbumObject = async ({ userId, file }) =>
     fileLabel: "Asset album file",
   });
 
-export const uploadAssetDisplayImage = async ({ userId, file }) =>
+export const uploadAssetDisplayImage = async ({
+  userId,
+  file,
+}: UploadInput): Promise<UploadedObject> =>
   uploadAlbumObject({
     userId,
     file,
@@ -235,14 +309,17 @@ export const uploadAssetDisplayImage = async ({ userId, file }) =>
     fileLabel: "Asset display image",
   });
 
-export const deleteAssetDisplayImage = async (objectPath) =>
+export const deleteAssetDisplayImage = async (objectPath: string | null | undefined) =>
   deleteFromSupabaseBucket({
     bucketName: config.storage.assetDisplayImageBucket,
     objectPaths: [objectPath],
     errorContext: "Failed to delete asset display image",
   });
 
-export const uploadSoftwareLicenseAlbumObject = async ({ userId, file }) =>
+export const uploadSoftwareLicenseAlbumObject = async ({
+  userId,
+  file,
+}: UploadInput): Promise<UploadedObject> =>
   uploadAlbumObject({
     userId,
     file,
@@ -254,7 +331,7 @@ export const uploadSoftwareLicenseAlbumObject = async ({ userId, file }) =>
     fileLabel: "Software license album file",
   });
 
-export const getFileObjectPublicUrl = async (objectPath) => {
+export const getFileObjectPublicUrl = async (objectPath: string | null | undefined) => {
   return buildSignedUrl({
     bucketName: config.storage.fileBucket,
     objectPath,
@@ -262,7 +339,7 @@ export const getFileObjectPublicUrl = async (objectPath) => {
   });
 };
 
-export const getAssetAlbumObjectPublicUrl = async (objectPath) => {
+export const getAssetAlbumObjectPublicUrl = async (objectPath: string | null | undefined) => {
   return buildSignedUrl({
     bucketName: config.storage.assetAlbumBucket,
     objectPath,
@@ -270,13 +347,15 @@ export const getAssetAlbumObjectPublicUrl = async (objectPath) => {
   });
 };
 
-export const getAssetDisplayImagePublicUrl = (objectPath) =>
+export const getAssetDisplayImagePublicUrl = (objectPath: string | null | undefined) =>
   buildPublicUrl({
     bucketName: config.storage.assetDisplayImageBucket,
     objectPath,
   });
 
-export const getSoftwareLicenseAlbumObjectPublicUrl = async (objectPath) => {
+export const getSoftwareLicenseAlbumObjectPublicUrl = async (
+  objectPath: string | null | undefined
+) => {
   return buildSignedUrl({
     bucketName: config.storage.softwareLicenseAlbumBucket,
     objectPath,
@@ -284,7 +363,7 @@ export const getSoftwareLicenseAlbumObjectPublicUrl = async (objectPath) => {
   });
 };
 
-export const getAvatarObjectPublicUrl = (objectPath) => {
+export const getAvatarObjectPublicUrl = (objectPath: string | null | undefined) => {
   if (!config.storage.avatarBucketPublic) {
     return objectPath || null;
   }

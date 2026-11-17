@@ -1,5 +1,11 @@
 import { supabase } from "../config/supabase.js";
-import { AuthToken, TOKEN_TYPES, type TokenType } from "../models/index.js";
+import {
+  AuthToken,
+  TOKEN_TYPES,
+  type AuthTokenWithUser,
+  type TokenType,
+  type AuthTokenRow,
+} from "../models/index.js";
 import { UserRepository } from "./userRepository.js";
 import { unwrapRepositoryError } from "./repositoryHelpers.js";
 
@@ -45,7 +51,7 @@ export class AuthRepository {
         AuthToken.toInsertRow({ userId, token, tokenType, expiresAt, createdBy })
       )
       .select("*")
-      .single();
+      .single<AuthTokenRow>();
 
     unwrapRepositoryError(error, "Failed to create password reset token");
     return AuthToken.fromRow(data);
@@ -60,7 +66,7 @@ export class AuthRepository {
       .is("used_at", null)
       .is("revoked_at", null)
       .gt("expires_at", new Date().toISOString())
-      .maybeSingle();
+      .maybeSingle<AuthTokenRow>();
 
     unwrapRepositoryError(error, "Failed to fetch password reset token");
 
@@ -73,8 +79,7 @@ export class AuthRepository {
       return null;
     }
 
-    const tokenRecord = AuthToken.fromRow(data);
-    tokenRecord.user = user;
+    const tokenRecord: AuthTokenWithUser = Object.assign(AuthToken.fromRow(data), { user });
     return tokenRecord;
   }
 
@@ -84,7 +89,7 @@ export class AuthRepository {
       .update(AuthToken.toUpdateRow(tokenRecord))
       .eq("id", tokenRecord.id)
       .select("*")
-      .single();
+      .single<AuthTokenRow>();
 
     unwrapRepositoryError(error, "Failed to save password reset token");
     return AuthToken.fromRow(data);
@@ -99,7 +104,7 @@ export class AuthRepository {
       .is("used_at", null)
       .is("revoked_at", null)
       .gt("expires_at", new Date().toISOString())
-      .maybeSingle();
+      .maybeSingle<AuthTokenRow>();
 
     unwrapRepositoryError(error, "Failed to fetch refresh token");
 
@@ -112,8 +117,7 @@ export class AuthRepository {
       return null;
     }
 
-    const tokenRecord = AuthToken.fromRow(data);
-    tokenRecord.user = user;
+    const tokenRecord: AuthTokenWithUser = Object.assign(AuthToken.fromRow(data), { user });
     return tokenRecord;
   }
 
@@ -125,7 +129,7 @@ export class AuthRepository {
       .eq("token_type", TOKEN_TYPES.REFRESH)
       .not("used_at", "is", null)
       .is("revoked_at", null)
-      .maybeSingle();
+      .maybeSingle<AuthTokenRow>();
 
     unwrapRepositoryError(error, "Failed to fetch used refresh token");
 

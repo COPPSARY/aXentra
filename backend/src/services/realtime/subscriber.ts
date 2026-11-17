@@ -1,4 +1,31 @@
+import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
+import type { Logger } from "../../utils/logger.js";
+import type { PostgresChangePayload, RealtimeChange } from "./types.js";
+
+/** The Supabase client methods the subscriber uses; tests pass a stand-in. */
+export type RealtimeClient = Pick<SupabaseClient, "channel" | "removeChannel">;
+
+export interface RealtimeSubscriberOptions {
+  supabaseClient: RealtimeClient;
+  hasCredentials: () => boolean;
+  logger: Pick<Logger, "info" | "warn">;
+  channelName: string;
+  tables: readonly string[];
+  mapPostgresChange: (payload: PostgresChangePayload) => Promise<RealtimeChange | null>;
+  onChange: (change: RealtimeChange) => unknown;
+}
+
 export class RealtimeSubscriber {
+  supabaseClient: RealtimeClient;
+  hasCredentials: () => boolean;
+  logger: Pick<Logger, "info" | "warn">;
+  channelName: string;
+  tables: readonly string[];
+  mapPostgresChange: RealtimeSubscriberOptions["mapPostgresChange"];
+  onChange: RealtimeSubscriberOptions["onChange"];
+  channel: RealtimeChannel | null;
+  initialized: boolean;
+
   constructor({
     supabaseClient,
     hasCredentials,
@@ -7,7 +34,7 @@ export class RealtimeSubscriber {
     tables,
     mapPostgresChange,
     onChange,
-  }) {
+  }: RealtimeSubscriberOptions) {
     if (!supabaseClient) {
       throw new Error("supabaseClient is required");
     }
@@ -78,7 +105,7 @@ export class RealtimeSubscriber {
     this.initialized = true;
   }
 
-  async handlePayload(payload) {
+  async handlePayload(payload: PostgresChangePayload) {
     const change = await this.mapPostgresChange(payload);
     if (!change) {
       return;

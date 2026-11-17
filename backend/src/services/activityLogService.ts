@@ -8,7 +8,44 @@ import { logger } from "../utils/logger.js";
 import {
   ACTIVITY_DASHBOARD_EXCLUDED_ENTITY_TYPES,
   ACTIVITY_SYSTEM_ACTOR_NAME,
+  type ActivityAction,
+  type ActivityEntityType,
 } from "../utils/constants.js";
+import type { ActivityLogProps } from "../models/index.js";
+import type { Actor, LocationScope } from "../types/auth.js";
+
+/** Who performed an action. `null` means a background job. */
+export type ActivityActor = Pick<Actor, "userId"> | null | undefined;
+
+/** One audit entry as a service describes it, before names are resolved. */
+export interface ActivityRecordInput {
+  entityType: ActivityEntityType;
+  entityId?: number | null;
+  /** Display label; falls back to "<entityType> <entityId>" when blank. */
+  entityLabel?: string | null;
+  action: ActivityAction;
+  status?: string | null;
+  locationId?: number | null;
+  locationName?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+/** Query accepted by `GET /api/activity`, after `activityLogQuerySchema`. */
+export interface ActivityListQuery {
+  page?: number;
+  limit?: number;
+  locationId?: number;
+  entityType?: ActivityEntityType;
+  entityId?: number;
+  action?: ActivityAction;
+  actorUserId?: number;
+  since?: string;
+}
+
+interface CachedName {
+  value: string;
+  expiresAt: number;
+}
 
 // The access token only carries { userId, role, allowedLocationIds }, so the
 // actor's display name has to be resolved to snapshot it onto the log row.
@@ -16,30 +53,35 @@ import {
 // per window instead of one per mutation. Location names are cached the same way.
 const NAME_CACHE_TTL_MS = 5 * 60 * 1000;
 const NAME_CACHE_MAX_ENTRIES = 500;
-const actorNameCache = new Map();
-const locationNameCache = new Map();
+const actorNameCache = new Map<number, CachedName>();
+const locationNameCache = new Map<number, CachedName>();
 
 // Activity feeds are read far more often than a page of any other resource,
 // so this endpoint sets its own ceiling rather than using MAX_LIMIT = 10.
 export const ACTIVITY_MAX_LIMIT = 50;
 export const ACTIVITY_DEFAULT_LIMIT = 20;
 
-const buildUserDisplayName = (user) => {
+const buildUserDisplayName = (
+  user:
+    | { firstName?: string | null; lastName?: string | null; username?: string }
+    | null
+    | undefined
+): string | null => {
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
   return fullName || user?.username || null;
 };
 
-const normalizePositiveId = (value) => {
+const normalizePositiveId = (value: unknown): number | null => {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
-const normalizeLabel = (value, fallback) => {
+const normalizeLabel = (value: unknown, fallback: string): string => {
   const normalized = String(value ?? "").trim();
   return normalized || fallback;
 };
 
-const readCache = (cache, key) => {
+const readCache = (cache: Map<number, CachedName>, key: number): string | null => {
   const cached = cache.get(key);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.value;
@@ -47,7 +89,11 @@ const readCache = (cache, key) => {
   return null;
 };
 
-const writeCache = (cache, key, value) => {
+const writeCache = (
+  cache: Map<number, CachedName>,
+  key: number | null | undefined,
+  value: string | null | undefined
+): void => {
   if (key === null || key === undefined || !value) {
     return;
   }
@@ -65,11 +111,14 @@ export class ActivityLogService {
     locationNameCache.clear();
   }
 
-  static cacheActorName(actorUserId, actorName) {
+  static cacheActorName(actorUserId: unknown, actorName: string | null | undefined) {
     writeCache(actorNameCache, normalizePositiveId(actorUserId), actorName);
   }
 
-  static async resolveActorName(actor, explicitActorName = null) {
+  static async resolveActorName(
+    actor: ActivityActor,
+    explicitActorName: string | null = null
+  ): Promise<string> {
     if (explicitActorName) {
       ActivityLogService.cacheActorName(actor?.userId, explicitActorName);
       return explicitActorName;
@@ -94,13 +143,16 @@ export class ActivityLogService {
     } catch (error) {
       logger.warn("Failed to resolve activity log actor name", {
         actorUserId,
-        error: error?.message,
+        error: (error as Error | null)?.message,
       });
       return fallbackName;
     }
   }
 
-  static async resolveLocationName(locationId, explicitLocationName = null) {
+  static async resolveLocationName(
+    locationId: unknown,
+    explicitLocationName: string | null = null
+  ): Promise<string | null> {
     const normalizedLocationId = normalizePositiveId(locationId);
     if (normalizedLocationId === null) {
       return null;
@@ -126,7 +178,7 @@ export class ActivityLogService {
     } catch (error) {
       logger.warn("Failed to resolve activity log location name", {
         locationId: normalizedLocationId,
-        error: error?.message,
+        error: (error as Error | null)?.message,
       });
       return `Location ${normalizedLocationId}`;
     }
@@ -143,7 +195,10 @@ export class ActivityLogService {
     actorUserId = null,
     actorName,
     metadata = {},
-  }) {
+  }: ActivityRecordInput & {
+    actorUserId?: number | null;
+    actorName: string;
+  }): ActivityLogProps {
     return {
       entityType,
       entityId: normalizePositiveId(entityId),
@@ -171,6 +226,10 @@ export class ActivityLogService {
     actor = null,
     actorName = null,
     metadata = {},
+  }: ActivityRecordInput & {
+    actor?: ActivityActor;
+    /** Overrides the looked-up actor name, for example on login. */
+    actorName?: string | null;
   }) {
     try {
       const [resolvedActorName, resolvedLocationName] = await Promise.all([
@@ -196,7 +255,7 @@ export class ActivityLogService {
         entityType,
         entityId,
         action,
-        error: error?.message,
+        error: (error as Error | null)?.message,
       });
       return null;
     }
@@ -204,7 +263,13 @@ export class ActivityLogService {
 
   // Append several entries in one insert, for operations that touch a batch of
   // entities (for example assigning one file to many assets).
-  static async recordMany(entries = [], { actor = null, actorName = null } = {}) {
+  static async recordMany(
+    entries: ActivityRecordInput[] = [],
+    {
+      actor = null,
+      actorName = null,
+    }: { actor?: ActivityActor; actorName?: string | null } = {}
+  ) {
     if (!Array.isArray(entries) || !entries.length) {
       return [];
     }
@@ -230,13 +295,13 @@ export class ActivityLogService {
     } catch (error) {
       logger.warn("Failed to record activity batch", {
         entryCount: entries.length,
-        error: error?.message,
+        error: (error as Error | null)?.message,
       });
       return [];
     }
   }
 
-  static async listActivities(actor, query = {}) {
+  static async listActivities(actor: Actor, query: ActivityListQuery = {}) {
     requirePermission(actor, "read", "activityLog");
 
     const { page, limit } = parsePaginationQuery(query, {
@@ -271,7 +336,10 @@ export class ActivityLogService {
 
   // Feed used by the dashboard's recentActivities block. Auth telemetry is
   // filtered out here rather than at write time so it stays queryable.
-  static async listRecentForDashboard({ locationScope = null, limit = 8 } = {}) {
+  static async listRecentForDashboard({
+    locationScope = null,
+    limit = 8,
+  }: { locationScope?: LocationScope; limit?: number } = {}) {
     return ActivityLogRepository.listPaginated({
       page: 1,
       limit,

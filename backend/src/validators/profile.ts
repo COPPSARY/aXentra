@@ -4,6 +4,20 @@ const phone = Joi.string().trim().pattern(/^\+?[0-9]{7,15}$/).messages({
   "string.pattern.base": "Phone must contain 7 to 15 digits, optionally starting with +",
 });
 
+/** Body of `POST /api/profiles` after validation. */
+export interface CreateProfileInput {
+  locationId: number;
+  fullName: string;
+  phone: string;
+  department?: string | null;
+  remark?: string | null;
+}
+
+/** Body of `PATCH /api/profiles/:profileId` after validation. */
+export interface UpdateProfileInput extends Partial<CreateProfileInput> {
+  version: number;
+}
+
 export const createProfileSchema = Joi.object({
   locationId: Joi.number().integer().positive().required().messages({
     "any.required": "Location id is required",

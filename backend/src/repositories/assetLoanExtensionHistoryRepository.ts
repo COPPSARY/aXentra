@@ -18,7 +18,7 @@ export class AssetLoanExtensionHistoryRepository {
       .order("asset_loan_extension_history_id", { ascending: false });
 
     unwrapRepositoryError(error, "Failed to fetch asset loan extension history");
-    return (data || []).map(AssetLoanExtensionHistory.fromRow);
+    return (data || []).map((row) => AssetLoanExtensionHistory.fromRow(row));
   }
 
   static async create(payload: AssetLoanExtensionHistoryProps) {

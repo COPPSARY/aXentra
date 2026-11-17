@@ -13,9 +13,9 @@ import { logger } from "../utils/logger.js";
 import { parseExpectedVersion } from "../utils/optimisticLocking.js";
 import { requirePermission } from "../utils/rbac.js";
 import {
-  assertActorCanAccessLocation,
   buildLocationScope,
   buildLocationScopeWithOptionalLocationId,
+  requireAccessibleLocationId,
 } from "../utils/locationScope.js";
 import {
   buildPaginatedResponse,
@@ -35,19 +35,53 @@ import {
   buildUploadedImageEntries,
   mergeImageBundles,
 } from "../utils/imageBundle.js";
+import type { Asset, AssetRow, Profile } from "../models/index.js";
+import type { ImageBundleItem } from "../utils/imageBundle.js";
+import type { Actor, LocationScope } from "../types/auth.js";
+import type { AssetStatus } from "../utils/constants.js";
+import type { PaginationQuery } from "../utils/pagination.js";
+import type { CreateAssetInput, UpdateAssetInput } from "../validators/asset.js";
+
+/** The borrower summary attached to an asset as `loanToProfile`. */
+export type LoanToProfile = Pick<
+  Profile,
+  "profileId" | "locationId" | "fullName" | "phone" | "department" | "remark"
+>;
+
+/** An asset with its assigned profile resolved. */
+export type AssetWithLoanToProfile = Asset & { loanToProfile: LoanToProfile | null };
+
+/** Column patch built by `buildAssetUpdates`, in database names. */
+export type AssetRowUpdates = Partial<AssetRow>;
+
+/** `Joi.date()` yields a `Date`; the column stores `YYYY-MM-DD`. */
+const toDateColumn = (value: Date | string | null | undefined): string | null | undefined =>
+  value instanceof Date ? value.toISOString().slice(0, 10) : value;
 
 const LOANABLE_STATUS = "In Storage";
 const ACTIVE_ONLY_TRUE_VALUES = new Set(["1", "true", "yes"]);
 const ASSET_TAG_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
 const ASSET_TAG_GENERATION_ATTEMPTS = 10;
-const generateAssetTag = () => {
+const generateAssetTag = (): string => {
   const value = Array.from(
     { length: 8 },
     () => ASSET_TAG_ALPHABET[randomInt(ASSET_TAG_ALPHABET.length)]
   ).join("");
   return `ITA-${value.slice(0, 4)}-${value.slice(4)}`;
 };
-const attachAssetImageUrls = async (asset) => {
+/** An asset as returned to clients: display image and album paths resolved to URLs. */
+type WithImageUrls<A extends Asset> = Omit<A, "displayImage" | "images"> & {
+  displayImage: string | null;
+  images: Array<ImageBundleItem & { publicUrl: string | null }>;
+};
+
+async function attachAssetImageUrls<A extends Asset>(asset: A): Promise<WithImageUrls<A>>;
+async function attachAssetImageUrls<A extends Asset>(
+  asset: A | null
+): Promise<WithImageUrls<A> | null>;
+async function attachAssetImageUrls<A extends Asset>(
+  asset: A | null
+): Promise<WithImageUrls<A> | null> {
   if (!asset) {
     return asset;
   }
@@ -57,8 +91,8 @@ const attachAssetImageUrls = async (asset) => {
     displayImage: getAssetDisplayImagePublicUrl(asset.displayImage),
     images: await attachImageBundleUrls(asset.images, getAssetAlbumObjectPublicUrl),
   };
-};
-const cleanupAssetDisplayImage = async (objectPath) => {
+}
+const cleanupAssetDisplayImage = async (objectPath: string | null | undefined) => {
   if (!objectPath) return;
 
   try {
@@ -66,13 +100,13 @@ const cleanupAssetDisplayImage = async (objectPath) => {
   } catch (error) {
     logger.warn("Failed to clean up asset display image", {
       objectPath,
-      message: error.message,
+      message: (error as Error).message,
     });
   }
 };
 
 export class AssetService {
-  static toActiveOnlyFlag(value, defaultValue = true) {
+  static toActiveOnlyFlag(value: unknown, defaultValue = true): boolean {
     if (value === undefined || value === null) {
       return defaultValue;
     }
@@ -84,7 +118,7 @@ export class AssetService {
     return ACTIVE_ONLY_TRUE_VALUES.has(String(value).trim().toLowerCase());
   }
 
-  static mapLoanToProfile(profile) {
+  static mapLoanToProfile(profile: Profile | null | undefined): LoanToProfile | null {
     if (!profile) return null;
     return {
       profileId: profile.profileId,
@@ -96,7 +130,7 @@ export class AssetService {
     };
   }
 
-  static toPositiveProfileId(value) {
+  static toPositiveProfileId(value: unknown): number | null {
     const parsed = Number(value);
     if (!Number.isInteger(parsed) || parsed <= 0) {
       return null;
@@ -104,8 +138,12 @@ export class AssetService {
     return parsed;
   }
 
-  static async enrichAssetsWithLoanToProfile(assets, locationScope = null) {
-    const assetList = assets || [];
+  static async enrichAssetsWithLoanToProfile(
+    assets: Asset[] | null | undefined,
+    locationScope: LocationScope = null
+  ): Promise<AssetWithLoanToProfile[]> {
+    // `loanToProfile` is set on every entry below, in place.
+    const assetList = (assets || []) as AssetWithLoanToProfile[];
     if (!assetList.length) {
       return assetList;
     }
@@ -113,7 +151,7 @@ export class AssetService {
     const profileIds = [...new Set(
       assetList
         .map((asset) => AssetService.toPositiveProfileId(asset.loanToProfileId))
-        .filter((profileId) => profileId !== null)
+        .filter((profileId): profileId is number => profileId !== null)
     )];
 
     if (!profileIds.length) {
@@ -138,7 +176,18 @@ export class AssetService {
     return assetList;
   }
 
-  static async enrichAssetWithLoanToProfile(asset, locationScope = null) {
+  static async enrichAssetWithLoanToProfile(
+    asset: Asset,
+    locationScope?: LocationScope
+  ): Promise<AssetWithLoanToProfile>;
+  static async enrichAssetWithLoanToProfile(
+    asset: Asset | null,
+    locationScope?: LocationScope
+  ): Promise<AssetWithLoanToProfile | null>;
+  static async enrichAssetWithLoanToProfile(
+    asset: Asset | null,
+    locationScope: LocationScope = null
+  ): Promise<AssetWithLoanToProfile | null> {
     if (!asset) {
       return null;
     }
@@ -146,7 +195,7 @@ export class AssetService {
     return enrichedAsset;
   }
 
-  static async listAssets(actor, query = {}) {
+  static async listAssets(actor: Actor, query: PaginationQuery & { locationId?: unknown } = {}) {
     const { page, limit } = parsePaginationQuery(query);
     const locationScope = buildLocationScopeWithOptionalLocationId(actor, query.locationId);
     const paginatedAssets = await AssetRepository.listPaginated({
@@ -158,7 +207,9 @@ export class AssetService {
       paginatedAssets.items,
       locationScope
     );
-    const assetsWithImages = await Promise.all(enrichedAssets.map(attachAssetImageUrls));
+    const assetsWithImages = await Promise.all(
+      enrichedAssets.map((asset) => attachAssetImageUrls(asset))
+    );
     const { items, ...pagination } = buildPaginatedResponse({
       items: assetsWithImages,
       totalItems: paginatedAssets.totalItems,
@@ -172,7 +223,7 @@ export class AssetService {
     };
   }
 
-  static async findAssetById(assetId, actor) {
+  static async findAssetById(assetId: unknown, actor: Actor) {
     const normalizedAssetId = AssetValidation.toPositiveInteger(assetId, "Asset id");
     const locationScope = buildLocationScope(actor);
     return findOrThrow(
@@ -181,7 +232,7 @@ export class AssetService {
     );
   }
 
-  static async getAssetById(assetId, actor) {
+  static async getAssetById(assetId: unknown, actor: Actor) {
     const locationScope = buildLocationScope(actor);
     const asset = await AssetService.findAssetById(assetId, actor);
     return attachAssetImageUrls(
@@ -189,7 +240,7 @@ export class AssetService {
     );
   }
 
-  static async getAssetByAssetTag(assetTag, actor) {
+  static async getAssetByAssetTag(assetTag: unknown, actor: Actor) {
     const normalizedAssetTag = AssetService.normalizeAssetTag(assetTag);
     if (!normalizedAssetTag || normalizedAssetTag.length > 255) {
       throw new BadRequestError("Asset tag must be a non-empty string up to 255 characters");
@@ -204,7 +255,11 @@ export class AssetService {
     );
   }
 
-  static async listAssetSoftwareLicenses(assetId, actor, query = {}) {
+  static async listAssetSoftwareLicenses(
+    assetId: unknown,
+    actor: Actor,
+    query: PaginationQuery & { activeOnly?: unknown } = {}
+  ) {
     requirePermission(actor, "read", "assets");
 
     const normalizedAssetId = AssetValidation.toPositiveInteger(assetId, "Asset id");
@@ -263,9 +318,14 @@ export class AssetService {
     serialNumber,
     excludeAssetId = null,
     actor = null,
+  }: {
+    assetName?: string | null;
+    serialNumber?: string | null;
+    excludeAssetId?: number | null;
+    actor?: Actor | null;
   }) {
     const locationScope = buildLocationScope(actor);
-    const isConflictAsset = (asset) =>
+    const isConflictAsset = (asset: Asset | null) =>
       asset && (excludeAssetId === null || asset.assetId !== excludeAssetId);
 
     if (assetName !== undefined && assetName !== null) {
@@ -286,11 +346,14 @@ export class AssetService {
     }
   }
 
-  static normalizeAssetTag(value) {
+  static normalizeAssetTag(value: unknown): string | null {
     return AssetValidation.normalizeNullableString(value)?.toUpperCase() ?? null;
   }
 
-  static async resolveAssetTag(value, excludeAssetId = null) {
+  static async resolveAssetTag(
+    value: unknown,
+    excludeAssetId: number | null = null
+  ): Promise<string> {
     const providedAssetTag = AssetService.normalizeAssetTag(value);
     if (providedAssetTag) {
       const existing = await AssetRepository.findByAssetTag(providedAssetTag);
@@ -310,7 +373,7 @@ export class AssetService {
     throw new Error("Failed to generate a unique asset tag");
   }
 
-  static normalizeAssetInput(payload) {
+  static normalizeAssetInput(payload: CreateAssetInput) {
     return {
       assetName: AssetValidation.normalizeNullableString(payload.assetName),
       description: AssetValidation.normalizeNullableString(payload.description),
@@ -321,10 +384,24 @@ export class AssetService {
     };
   }
 
-  static async validateAssetRelations({ assetTypeId, productId, locationId, loanToProfileId, fileId, actor }) {
+  static async validateAssetRelations({
+    assetTypeId,
+    productId,
+    locationId,
+    loanToProfileId,
+    fileId,
+    actor,
+  }: {
+    assetTypeId: unknown;
+    productId?: number | null;
+    locationId: unknown;
+    loanToProfileId?: unknown;
+    fileId?: unknown;
+    actor: Actor;
+  }) {
     const locationScope = buildLocationScope(actor);
     const normalizedAssetTypeId = AssetValidation.toAssetTypeId(assetTypeId);
-    const normalizedLocationId = assertActorCanAccessLocation(actor, locationId);
+    const normalizedLocationId = requireAccessibleLocationId(actor, locationId);
 
     const assetType = await findOrThrow(
       () => AssetTypeRepository.findById(normalizedAssetTypeId, locationScope),
@@ -336,8 +413,9 @@ export class AssetService {
 
     let normalizedProductId = productId ?? null;
     if (normalizedProductId !== null) {
+      const requestedProductId = normalizedProductId;
       const product = await findOrThrow(
-        () => ProductRepository.findById(normalizedProductId, locationScope),
+        () => ProductRepository.findById(requestedProductId, locationScope),
         "Product not found"
       );
       if (product.assetTypeId !== normalizedAssetTypeId) {
@@ -349,7 +427,7 @@ export class AssetService {
       normalizedProductId = product.productId;
     }
 
-    let normalizedLoanToProfileId = null;
+    let normalizedLoanToProfileId: number | null = null;
     if (loanToProfileId !== null && loanToProfileId !== undefined) {
       const normalizedId = AssetValidation.toPositiveInteger(loanToProfileId, "Loan to profile id");
       const profile = await findOrThrow(
@@ -362,11 +440,12 @@ export class AssetService {
       normalizedLoanToProfileId = profile.profileId;
     }
 
-    let normalizedFileId = null;
+    let normalizedFileId: number | null = null;
     if (fileId !== null && fileId !== undefined) {
-      normalizedFileId = AssetValidation.toPositiveInteger(fileId, "File id");
+      const requestedFileId = AssetValidation.toPositiveInteger(fileId, "File id");
+      normalizedFileId = requestedFileId;
       const file = await findOrThrow(
-        () => FileRepository.findById(normalizedFileId, locationScope),
+        () => FileRepository.findById(requestedFileId, locationScope),
         "File not found"
       );
       if (Number(file.locationId) !== Number(normalizedLocationId)) {
@@ -383,7 +462,15 @@ export class AssetService {
     };
   }
 
-  static validateLoanRules({ status, loanable, loanToProfileId }) {
+  static validateLoanRules({
+    status,
+    loanable,
+    loanToProfileId,
+  }: {
+    status: AssetStatus | undefined;
+    loanable: boolean | undefined;
+    loanToProfileId: number | null | undefined;
+  }): void {
     if (loanable && status !== LOANABLE_STATUS) {
       throw new BadRequestError(
         `Asset cannot be loanable when status is "${status}"`
@@ -394,7 +481,7 @@ export class AssetService {
     }
   }
 
-  static async createAsset(payload, actor) {
+  static async createAsset(payload: CreateAssetInput, actor: Actor) {
     requirePermission(actor, "create", "assets");
 
     const normalized = AssetService.normalizeAssetInput(payload);
@@ -415,7 +502,7 @@ export class AssetService {
       actor,
     });
 
-    const normalizedStatus = payload.status ?? "In Storage";
+    const normalizedStatus: AssetStatus = payload.status ?? "In Storage";
     const derivedLoanable = normalizedStatus === LOANABLE_STATUS;
     const requestedLoanable =
       payload.loanable === undefined ? derivedLoanable : Boolean(payload.loanable);
@@ -435,10 +522,11 @@ export class AssetService {
       ? await uploadAssetDisplayImage({ userId: actor.userId, file: payload.displayImage })
       : null;
 
-    let createdAsset;
+    let createdAsset: Asset;
     try {
       createdAsset = await AssetRepository.create({
-        assetName: normalized.assetName,
+        // The schema requires a non-blank name, so normalizing never yields null here.
+        assetName: normalized.assetName as string,
         productId: relations.productId,
         assetTypeId: relations.assetTypeId,
         locationId: relations.locationId,
@@ -449,10 +537,7 @@ export class AssetService {
         assetTag,
         status: normalizedStatus,
         loanable: requestedLoanable,
-        warrantyExpiryDate:
-          payload.warrantyExpiryDate instanceof Date
-            ? payload.warrantyExpiryDate.toISOString().slice(0, 10)
-            : payload.warrantyExpiryDate ?? null,
+        warrantyExpiryDate: toDateColumn(payload.warrantyExpiryDate) ?? null,
         loanToProfileId: relations.loanToProfileId,
         fileId: relations.fileId,
         displayImage: displayImage?.objectPath ?? null,
@@ -482,21 +567,26 @@ export class AssetService {
     );
   }
 
-  static async buildAssetUpdates(payload, asset, actor) {
+  static async buildAssetUpdates(
+    payload: UpdateAssetInput,
+    asset: Asset,
+    actor: Actor
+  ): Promise<AssetRowUpdates> {
     const locationScope = buildLocationScope(actor);
     const requestedLocationId =
       payload.locationId !== undefined
-        ? assertActorCanAccessLocation(actor, payload.locationId)
+        ? requireAccessibleLocationId(actor, payload.locationId)
         : asset.locationId;
     const isLocationChanging =
       payload.locationId !== undefined &&
       Number(requestedLocationId) !== Number(asset.locationId);
-    const updates = {
+    const updates: AssetRowUpdates = {
       updated_by: actor.userId,
     };
 
     if (payload.assetName !== undefined) {
-      updates.asset_name = AssetValidation.normalizeNullableString(payload.assetName);
+      // The schema rejects a blank name, so this is never null.
+      updates.asset_name = AssetValidation.normalizeNullableString(payload.assetName) as string;
     }
     const targetAssetTypeId =
       payload.assetTypeId !== undefined
@@ -527,8 +617,9 @@ export class AssetService {
       }
     }
     if (payload.productId !== undefined) {
+      const requestedProductId = payload.productId;
       const product = await findOrThrow(
-        () => ProductRepository.findById(payload.productId, locationScope),
+        () => ProductRepository.findById(requestedProductId, locationScope),
         "Product not found"
       );
       const effectiveAssetTypeId = updates.asset_type_id ?? asset.assetTypeId;
@@ -563,18 +654,16 @@ export class AssetService {
     if (payload.status !== undefined) updates.status = payload.status;
     if (payload.loanable !== undefined) updates.loanable = Boolean(payload.loanable);
     if (payload.warrantyExpiryDate !== undefined) {
-      updates.warranty_expiry_date =
-        payload.warrantyExpiryDate instanceof Date
-          ? payload.warrantyExpiryDate.toISOString().slice(0, 10)
-          : payload.warrantyExpiryDate;
+      updates.warranty_expiry_date = toDateColumn(payload.warrantyExpiryDate) ?? null;
     }
     if (payload.loanToProfileId !== undefined) {
       if (payload.loanToProfileId === null) {
         updates.loan_to_profile_id = null;
       } else {
+        const requestedProfileId = payload.loanToProfileId;
         const profile = await findOrThrow(
           () => ProfileRepository.findById(
-            AssetValidation.toPositiveInteger(payload.loanToProfileId, "Loan to profile id"),
+            AssetValidation.toPositiveInteger(requestedProfileId, "Loan to profile id"),
             locationScope
           ),
           "Profile not found"
@@ -619,7 +708,7 @@ export class AssetService {
     return updates;
   }
 
-  static async updateAsset(assetId, payload, actor) {
+  static async updateAsset(assetId: unknown, payload: UpdateAssetInput, actor: Actor) {
     requirePermission(actor, "update", "assets");
     const expectedVersion = parseExpectedVersion(payload?.version);
 
@@ -675,7 +764,7 @@ export class AssetService {
     }
 
     const locationScope = buildLocationScope(actor);
-    let updatedAsset;
+    let updatedAsset: Asset;
     try {
       updatedAsset = await AssetRepository.update(
         asset.assetId,
@@ -710,7 +799,7 @@ export class AssetService {
     );
   }
 
-  static async deleteAsset(assetId, actor) {
+  static async deleteAsset(assetId: unknown, actor: Actor) {
     requirePermission(actor, "delete", "assets");
 
     const asset = await AssetService.findAssetById(assetId, actor);

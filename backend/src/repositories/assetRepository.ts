@@ -1,7 +1,8 @@
 import { supabase } from "../config/supabase.js";
 import type { LocationScope } from "../types/auth.js";
-import { Asset } from "../models/index.js";
+import { Asset, type AssetRow } from "../models/index.js";
 import type { AssetStatus } from "../utils/constants.js";
+import type { ImageBundleItem } from "../utils/imageBundle.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
 import { getPaginationRange } from "../utils/pagination.js";
 import {
@@ -67,7 +68,7 @@ export class AssetRepository {
 
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch assets");
-    return (data || []).map(Asset.fromRow);
+    return (data || []).map((row) => Asset.fromRow(row));
   }
 
   static async listPaginated({
@@ -93,7 +94,7 @@ export class AssetRepository {
     const { data, error, count } = await query;
     unwrapRepositoryError(error, "Failed to fetch paginated assets");
     return {
-      items: (data || []).map(Asset.fromRow),
+      items: (data || []).map((row) => Asset.fromRow(row)),
       totalItems: Number(count) || 0,
     };
   }
@@ -103,7 +104,7 @@ export class AssetRepository {
       .from("asset")
       .select("*")
       .eq("asset_id", assetId)
-      .maybeSingle();
+      .maybeSingle<AssetRow>();
 
     query = applyLocationScope(query, locationScope);
 
@@ -121,7 +122,7 @@ export class AssetRepository {
       .from("asset")
       .select("*")
       .eq(field, value)
-      .maybeSingle();
+      .maybeSingle<AssetRow>();
 
     query = applyLocationScope(query, locationScope);
 
@@ -156,7 +157,7 @@ export class AssetRepository {
 
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch assets by ids");
-    return (data || []).map(Asset.fromRow);
+    return (data || []).map((row) => Asset.fromRow(row));
   }
 
   static async listByAssetTypeId({
@@ -196,7 +197,7 @@ export class AssetRepository {
 
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch assets by asset type");
-    return (data || []).map(Asset.fromRow);
+    return (data || []).map((row) => Asset.fromRow(row));
   }
 
   static async countByStatusForAssetType(
@@ -308,7 +309,7 @@ export class AssetRepository {
     updatedBy = createdBy,
   }: {
     assetName: string;
-    productId: number;
+    productId: number | null;
     assetTypeId: number;
     locationId: number;
     description?: string | null;
@@ -324,6 +325,11 @@ export class AssetRepository {
     displayImage?: string | null;
     createdBy: number | null;
     updatedBy?: number | null;
+    /**
+     * Not written: the row is inserted with an empty album, so images
+     * uploaded with a new asset are dropped. Existing behaviour, kept as is.
+     */
+    images?: ImageBundleItem[];
   }) {
     const newAsset = new Asset({
       assetName,
@@ -349,7 +355,7 @@ export class AssetRepository {
       .from("asset")
       .insert(Asset.toInsertRow(newAsset))
       .select("*")
-      .single();
+      .single<AssetRow>();
 
     unwrapRepositoryError(error, "Failed to create asset");
     return Asset.fromRow(data);
@@ -370,7 +376,7 @@ export class AssetRepository {
       .eq("asset_id", assetId)
       .eq("version", expectedVersion)
       .select("*")
-      .maybeSingle();
+      .maybeSingle<AssetRow>();
 
     query = applyLocationScope(query, locationScope);
 
@@ -390,7 +396,7 @@ export class AssetRepository {
       .delete()
       .eq("asset_id", assetId)
       .select("*")
-      .maybeSingle();
+      .maybeSingle<AssetRow>();
 
     query = applyLocationScope(query, locationScope);
 
@@ -422,7 +428,7 @@ export class AssetRepository {
       .eq("asset_id", assetId)
       .eq("version", expectedVersion)
       .select("*")
-      .maybeSingle();
+      .maybeSingle<AssetRow>();
 
     query = applyLocationScope(query, locationScope);
 
@@ -447,7 +453,7 @@ export class AssetRepository {
 
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch assets by file id");
-    return (data || []).map(Asset.fromRow);
+    return (data || []).map((row) => Asset.fromRow(row));
   }
 
   static async countByFileIds(
@@ -508,7 +514,7 @@ export class AssetRepository {
     const { data, error, count } = await query;
     unwrapRepositoryError(error, "Failed to fetch paginated assets by file id");
     return {
-      items: (data || []).map(Asset.fromRow),
+      items: (data || []).map((row) => Asset.fromRow(row)),
       totalItems: Number(count) || 0,
     };
   }

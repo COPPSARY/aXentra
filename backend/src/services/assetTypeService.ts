@@ -11,13 +11,13 @@ import { AssetSpecValueRepository } from "../repositories/assetSpecValueReposito
 import { ProductRepository } from "../repositories/productRepository.js";
 import { AssetValidation } from "../utils/assetValidation.js";
 import { requirePermission } from "../utils/rbac.js";
-import { ASSET_STATUS_VALUES } from "../utils/constants.js";
+import { ASSET_STATUS_VALUES, type AssetStatus } from "../utils/constants.js";
 import { AssetService } from "./assetService.js";
 import { ActivityLogService } from "./activityLogService.js";
 import {
-  assertActorCanAccessLocation,
   buildLocationScope,
   buildLocationScopeWithOptionalLocationId,
+  requireAccessibleLocationId,
 } from "../utils/locationScope.js";
 import {
   buildPaginatedResponse,
@@ -28,8 +28,46 @@ import {
 } from "../utils/fieldKeyGenerator.js";
 import { parseExpectedVersion } from "../utils/optimisticLocking.js";
 import { getAssetDisplayImagePublicUrl } from "./storageService.js";
+import type { AssetSpecValue, AssetTypeField, Product } from "../models/index.js";
+import type { Actor, LocationScope } from "../types/auth.js";
+import type { PaginationQuery } from "../utils/pagination.js";
+import type { CreateAssetTypeInput, UpdateAssetTypeInput } from "../validators/assetType.js";
 
-const getGridSpecValue = (field, spec) => {
+/**
+ * Query of the asset-type asset listing. Besides the named keys it accepts
+ * dynamic custom-field filters as `field.<key>=a,b` or `field[<key>]=a`.
+ */
+export type AssetTypeAssetsQuery = PaginationQuery & {
+  locationId?: unknown;
+  status?: unknown;
+  productId?: unknown;
+  field?: unknown;
+  hasField?: unknown;
+  [key: string]: unknown;
+};
+
+/** A custom-field filter parsed from the query, keyed by field key. */
+export interface FieldKeyFilter {
+  fieldKey: string;
+  terms: string[];
+  requireValue: boolean;
+}
+
+type StatusCounts = Record<AssetStatus, number>;
+
+/** Zero-filled counts for every asset status. */
+const toStatusCounts = (rawStatusCounts: Record<string, number>): StatusCounts => {
+  const statusCounts = {} as StatusCounts;
+  for (const statusValue of ASSET_STATUS_VALUES) {
+    statusCounts[statusValue] = rawStatusCounts[statusValue] || 0;
+  }
+  return statusCounts;
+};
+
+const getGridSpecValue = (
+  field: AssetTypeField,
+  spec: AssetSpecValue | undefined
+): string | number | boolean | null => {
   if (!spec) return null;
 
   switch (field.fieldType) {
@@ -44,7 +82,7 @@ const getGridSpecValue = (field, spec) => {
   }
 };
 
-const buildGridSpec = (field, spec) => {
+const buildGridSpec = (field: AssetTypeField, spec: AssetSpecValue | undefined) => {
   const value = getGridSpecValue(field, spec);
   return {
     fieldId: field.assetTypeFieldId,
@@ -63,7 +101,7 @@ const buildGridSpec = (field, spec) => {
 export class AssetTypeService {
   // The icon is an opaque frontend identifier (for example `lucide:laptop`), so
   // the backend only trims it and treats a blank string as "no icon".
-  static normalizeIcon(icon) {
+  static normalizeIcon(icon: unknown): string | null {
     if (icon === null || icon === undefined) {
       return null;
     }
@@ -72,10 +110,10 @@ export class AssetTypeService {
     return normalizedIcon === "" ? null : normalizedIcon;
   }
 
-  static extractDynamicFieldFilters(query = {}) {
-    const filters = new Map();
+  static extractDynamicFieldFilters(query: AssetTypeAssetsQuery = {}): FieldKeyFilter[] {
+    const filters = new Map<string, { terms: string[]; requireValue: boolean }>();
 
-    const ensureFilter = (fieldKey) => {
+    const ensureFilter = (fieldKey: unknown) => {
       if (typeof fieldKey !== "string" || !fieldKey.trim()) {
         return null;
       }
@@ -85,10 +123,10 @@ export class AssetTypeService {
         filters.set(normalizedFieldKey, { terms: [], requireValue: false });
       }
 
-      return filters.get(normalizedFieldKey);
+      return filters.get(normalizedFieldKey)!;
     };
 
-    const appendTerms = (fieldKey, rawValue) => {
+    const appendTerms = (fieldKey: string, rawValue: unknown) => {
       const filter = ensureFilter(fieldKey);
       if (!filter) {
         return;
@@ -107,7 +145,7 @@ export class AssetTypeService {
       filter.terms.push(...terms);
     };
 
-    const appendHasField = (rawValue) => {
+    const appendHasField = (rawValue: unknown) => {
       const values = Array.isArray(rawValue) ? rawValue : [rawValue];
       for (const value of values) {
         for (const fieldKey of `${value}`.split(",")) {
@@ -145,11 +183,11 @@ export class AssetTypeService {
   }
 
   static async findMatchingAssetIdsForFieldFilters(
-    assetTypeId,
-    locationScope,
-    filters = [],
-    fields = null
-  ) {
+    assetTypeId: number,
+    locationScope: LocationScope,
+    filters: FieldKeyFilter[] = [],
+    fields: AssetTypeField[] | null = null
+  ): Promise<number[] | null> {
     if (!filters.length) {
       return null;
     }
@@ -179,7 +217,10 @@ export class AssetTypeService {
     });
   }
 
-  static async listAssetTypes(actor, query = {}) {
+  static async listAssetTypes(
+    actor: Actor,
+    query: PaginationQuery & { locationId?: unknown } = {}
+  ) {
     const { page, limit } = parsePaginationQuery(query);
     const paginatedAssetTypes = await AssetTypeRepository.listPaginated({
       page,
@@ -199,10 +240,10 @@ export class AssetTypeService {
     };
   }
 
-  static async createAssetType(payload, actor) {
+  static async createAssetType(payload: CreateAssetTypeInput, actor: Actor) {
     requirePermission(actor, "create", "assetType");
 
-    const locationId = assertActorCanAccessLocation(actor, payload.locationId);
+    const locationId = requireAccessibleLocationId(actor, payload.locationId);
     const name = payload.name.trim();
     const locationScope = buildLocationScope(actor);
     const existing = await AssetTypeRepository.findByName(
@@ -237,7 +278,7 @@ export class AssetTypeService {
     return created;
   }
 
-  static async getAssetTypeById(assetTypeId, actor) {
+  static async getAssetTypeById(assetTypeId: unknown, actor: Actor) {
     const normalizedAssetTypeId = AssetValidation.toAssetTypeId(assetTypeId);
     return findOrThrow(
       () => AssetTypeRepository.findById(normalizedAssetTypeId, buildLocationScope(actor)),
@@ -245,19 +286,19 @@ export class AssetTypeService {
     );
   }
 
-  static normalizeStatusFilter(status) {
+  static normalizeStatusFilter(status: unknown): AssetStatus | null {
     if (status === undefined || status === null || `${status}`.trim() === "") {
       return null;
     }
 
     const normalizedStatus = `${status}`.trim();
-    if (!ASSET_STATUS_VALUES.includes(normalizedStatus)) {
+    if (!(ASSET_STATUS_VALUES as readonly string[]).includes(normalizedStatus)) {
       throw new BadRequestError(
         `Status must be one of: ${ASSET_STATUS_VALUES.join(", ")}`
       );
     }
 
-    return normalizedStatus;
+    return normalizedStatus as AssetStatus;
   }
 
   // Validates ?productId= against the products that actually belong to this
@@ -268,7 +309,10 @@ export class AssetTypeService {
   // Returns null when no filter was requested, or an array of ids. Rejecting an
   // unrelated product id is deliberate: silently returning an empty page would
   // look identical to "this product has no assets".
-  static normalizeProductFilter(rawProductId, products = []) {
+  static normalizeProductFilter(
+    rawProductId: unknown,
+    products: Product[] = []
+  ): number[] | null {
     if (
       rawProductId === undefined
       || rawProductId === null
@@ -302,7 +346,11 @@ export class AssetTypeService {
     return requestedIds;
   }
 
-  static async listAssetsByAssetType(assetTypeId, query = {}, actor) {
+  static async listAssetsByAssetType(
+    assetTypeId: unknown,
+    query: AssetTypeAssetsQuery = {},
+    actor: Actor
+  ) {
     const normalizedAssetTypeId = AssetValidation.toAssetTypeId(assetTypeId);
     const { page, limit } = parsePaginationQuery(query);
     const locationScope = buildLocationScopeWithOptionalLocationId(
@@ -354,7 +402,7 @@ export class AssetTypeService {
     const gridFields = [...new Set((assetType.gridFieldIds || []).map(Number))]
       .slice(0, 5)
       .map((fieldId) => fieldById.get(fieldId))
-      .filter(Boolean);
+      .filter((field): field is AssetTypeField => Boolean(field));
     const assetIds = assets.map((asset) => asset.assetId);
     const [enrichedAssets, specs] = await Promise.all([
       AssetService.enrichAssetsWithLoanToProfile(assets, locationScope),
@@ -384,10 +432,7 @@ export class AssetTypeService {
       };
     });
 
-    const statusCounts = {};
-    for (const statusValue of ASSET_STATUS_VALUES) {
-      statusCounts[statusValue] = rawStatusCounts[statusValue] || 0;
-    }
+    const statusCounts = toStatusCounts(rawStatusCounts);
 
     const totalItems = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
     const filteredItems = statusFilter ? statusCounts[statusFilter] : totalItems;
@@ -408,7 +453,10 @@ export class AssetTypeService {
     };
   }
 
-  static async listAssetsOverviewByAssetTypes(query = {}, actor) {
+  static async listAssetsOverviewByAssetTypes(
+    query: PaginationQuery & { locationId?: unknown; status?: unknown } = {},
+    actor: Actor
+  ) {
     const statusFilter = AssetTypeService.normalizeStatusFilter(query.status);
     const { page, limit } = parsePaginationQuery(query);
     const locationScope = buildLocationScopeWithOptionalLocationId(
@@ -428,10 +476,7 @@ export class AssetTypeService {
     const summaries = paginatedAssetTypes.items.map((assetType) => {
       const rawStatusCounts = rawCountsByType[String(assetType.assetTypeId)] || {};
 
-      const statusCounts = {};
-      for (const statusValue of ASSET_STATUS_VALUES) {
-        statusCounts[statusValue] = rawStatusCounts[statusValue] || 0;
-      }
+      const statusCounts = toStatusCounts(rawStatusCounts);
 
       const totalItems = Object.values(statusCounts).reduce(
         (sum, count) => sum + count,
@@ -460,7 +505,7 @@ export class AssetTypeService {
     };
   }
 
-  static async updateAssetType(assetTypeId, payload, actor) {
+  static async updateAssetType(assetTypeId: unknown, payload: UpdateAssetTypeInput, actor: Actor) {
     requirePermission(actor, "update", "assetType");
     const expectedVersion = parseExpectedVersion(payload?.version);
 
@@ -471,7 +516,7 @@ export class AssetTypeService {
     );
 
     const locationScope = buildLocationScope(actor);
-    const updates = {
+    const updates: Parameters<typeof AssetTypeRepository.update>[1] = {
       updatedBy: actor.userId,
     };
 
@@ -550,7 +595,7 @@ export class AssetTypeService {
     return updated;
   }
 
-  static async deleteAssetType(assetTypeId, actor) {
+  static async deleteAssetType(assetTypeId: unknown, actor: Actor) {
     requirePermission(actor, "delete", "assetType");
 
     const normalizedAssetTypeId = AssetValidation.toAssetTypeId(assetTypeId);

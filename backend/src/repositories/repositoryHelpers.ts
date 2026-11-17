@@ -8,15 +8,21 @@ export interface RepositoryError {
 /** Column patch for an update, in database (snake_case) names. Built field by field by the services. */
 export type RowUpdates = Record<string, unknown>;
 
-/** Rethrows a Supabase query error with the repository context prepended to its message. */
-export const unwrapRepositoryError = (
+/**
+ * Rethrows a Supabase query error with the repository context prepended to its message.
+ *
+ * Declared as an assertion so that, for a destructured `{ data, error }`
+ * result, TypeScript narrows `data` to its success type afterwards (for
+ * example, the row of a `.single()` query is then known to be present).
+ */
+export function unwrapRepositoryError(
   error: RepositoryError | null | undefined,
   context: string
-): void => {
+): asserts error is null | undefined {
   if (!error) return;
   error.message = `${context}: ${error.message}`;
   throw error;
-};
+}
 
 /**
  * The two filter methods of a Supabase filter builder, each returning the

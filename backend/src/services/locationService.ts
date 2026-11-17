@@ -12,9 +12,13 @@ import { parseExpectedVersion } from "../utils/optimisticLocking.js";
 import {
   buildPaginatedResponse,
   parsePaginationQuery,
+  type PaginationQuery,
 } from "../utils/pagination.js";
+import type { RowUpdates } from "../repositories/repositoryHelpers.js";
+import type { Actor } from "../types/auth.js";
+import type { CreateLocationInput, UpdateLocationInput } from "../validators/location.js";
 
-const normalizeRequiredString = (value, fieldName) => {
+const normalizeRequiredString = (value: unknown, fieldName: string): string => {
   const normalized = String(value || "").trim();
   if (!normalized) {
     throw new BadRequestError(`${fieldName} is required`);
@@ -24,7 +28,7 @@ const normalizeRequiredString = (value, fieldName) => {
 };
 
 export class LocationService {
-  static async listLocations(actor, query = {}) {
+  static async listLocations(actor: Actor, query: PaginationQuery = {}) {
     requirePermission(actor, "read", "location");
     const { page, limit } = parsePaginationQuery(query);
     const paginated = await LocationRepository.listPaginated({
@@ -45,7 +49,7 @@ export class LocationService {
     };
   }
 
-  static async getLocationById(locationId, actor) {
+  static async getLocationById(locationId: unknown, actor: Actor) {
     requirePermission(actor, "read", "location");
 
     const normalizedLocationId = AssetValidation.toPositiveInteger(locationId, "Location id");
@@ -55,7 +59,7 @@ export class LocationService {
     );
   }
 
-  static async createLocation(payload, actor) {
+  static async createLocation(payload: CreateLocationInput, actor: Actor) {
     requirePermission(actor, "create", "location");
 
     const name = normalizeRequiredString(payload.name, "Name");
@@ -88,12 +92,12 @@ export class LocationService {
     return created;
   }
 
-  static async updateLocation(locationId, payload, actor) {
+  static async updateLocation(locationId: unknown, payload: UpdateLocationInput, actor: Actor) {
     requirePermission(actor, "update", "location");
     const expectedVersion = parseExpectedVersion(payload?.version);
 
     const location = await LocationService.getLocationById(locationId, actor);
-    const updates = {
+    const updates: RowUpdates = {
       updated_by: actor.userId,
     };
 
@@ -137,7 +141,7 @@ export class LocationService {
     return updated;
   }
 
-  static async deleteLocation(locationId, confirmationName, actor) {
+  static async deleteLocation(locationId: unknown, confirmationName: string, actor: Actor) {
     requirePermission(actor, "delete", "location");
 
     const location = await LocationService.getLocationById(locationId, actor);

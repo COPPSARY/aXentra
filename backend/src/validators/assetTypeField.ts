@@ -1,6 +1,30 @@
 import Joi from "joi";
 
-const assetFieldTypeValues = ["text", "number", "date", "boolean", "select"];
+import type { AssetFieldType } from "../models/index.js";
+
+const assetFieldTypeValues: AssetFieldType[] = ["text", "number", "date", "boolean", "select"];
+
+/** Body of `POST /api/assets/types/:assetTypeId/fields` after validation. */
+export interface CreateAssetTypeFieldInput {
+  fieldLabel: string;
+  fieldType: AssetFieldType;
+  locationId: number;
+  isRequired?: boolean;
+  /** Required for `select`, otherwise `null`. */
+  options?: string[] | null;
+  sortOrder?: number;
+}
+
+/** Body of an asset type field update after validation. */
+export interface UpdateAssetTypeFieldInput {
+  version: number;
+  fieldLabel?: string;
+  fieldType?: AssetFieldType;
+  isRequired?: boolean;
+  options?: string[] | null;
+  /** Rejected by the schema; the service checks again. */
+  fieldKey?: unknown;
+}
 
 const selectOptionsSchema = Joi.array()
   .items(Joi.string().trim().min(1).max(255).required())

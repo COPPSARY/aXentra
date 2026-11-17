@@ -12,6 +12,18 @@ const addressSchema = Joi.string().trim().min(1).max(500).messages({
   "string.max": "Address cannot exceed 500 characters",
 });
 
+/** Body of `POST /api/locations` after validation. */
+export interface CreateLocationInput {
+  name: string;
+  description?: string | null;
+  address: string;
+}
+
+/** Body of `PATCH /api/locations/:locationId` after validation. */
+export interface UpdateLocationInput extends Partial<CreateLocationInput> {
+  version: number;
+}
+
 export const createLocationSchema = Joi.object({
   name: nameSchema.required().messages({
     "any.required": "Name is required",

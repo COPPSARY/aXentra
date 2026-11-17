@@ -1,6 +1,46 @@
 import Joi from "joi";
 import { ASSET_STATUS_VALUES } from "../utils/constants.js";
 
+import type { AssetStatus } from "../utils/constants.js";
+
+/** Fields shared by asset create and update bodies, after validation. */
+interface AssetFieldsInput {
+  description?: string | null;
+  remark?: string | null;
+  macAddress?: string | null;
+  serialNumber?: string | null;
+  status?: AssetStatus;
+  loanable?: boolean;
+  /** `Joi.date()` yields a `Date`; services store `YYYY-MM-DD`. */
+  warrantyExpiryDate?: Date | string | null;
+  loanToProfileId?: number | null;
+  fileId?: number | null;
+  replaceImages?: boolean;
+  /** Added by the controller from the multipart upload, not by the schema. */
+  albumImages?: Express.Multer.File[];
+  /** Added by the controller from the multipart upload, not by the schema. */
+  displayImage?: Express.Multer.File;
+}
+
+/** Body of `POST /api/assets` after validation, plus uploaded files. */
+export interface CreateAssetInput extends AssetFieldsInput {
+  assetName: string;
+  assetTypeId: number;
+  locationId: number;
+  productId: number;
+  assetTag?: string | null;
+}
+
+/** Body of `PATCH /api/assets/:assetId` after validation, plus uploaded files. */
+export interface UpdateAssetInput extends AssetFieldsInput {
+  version: number;
+  assetTag?: string;
+  assetName?: string;
+  assetTypeId?: number;
+  locationId?: number;
+  productId?: number;
+}
+
 const MAC_ADDRESS_PATTERN = /^(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/;
 
 const sharedFields = {

@@ -6,8 +6,11 @@ import { createRealtimeEventMapper } from "./eventMapper.js";
 import { SseHub } from "./sseHub.js";
 import { RealtimeSubscriber } from "./subscriber.js";
 import { REALTIME_TABLES } from "./tableConfig.js";
+import type { Request, Response } from "express";
+import type { Actor } from "../../types/auth.js";
+import type { RealtimeUserContext } from "./types.js";
 
-const normalizeRealtimeUserId = (value) => {
+const normalizeRealtimeUserId = (value: unknown): number | null => {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
     return null;
@@ -15,7 +18,7 @@ const normalizeRealtimeUserId = (value) => {
   return parsed;
 };
 
-const loadAssetLocationId = async (assetId) => {
+const loadAssetLocationId = async (assetId: unknown): Promise<number | null> => {
   const normalizedAssetId = Number(assetId);
   if (!Number.isInteger(normalizedAssetId) || normalizedAssetId <= 0) {
     return null;
@@ -39,7 +42,9 @@ const loadAssetLocationId = async (assetId) => {
   return Number.isInteger(locationId) && locationId > 0 ? locationId : null;
 };
 
-const loadRealtimeUserContext = async (user) => {
+const loadRealtimeUserContext = async (
+  user: RealtimeUserContext
+): Promise<RealtimeUserContext> => {
   const normalizedUserId = normalizeRealtimeUserId(user?.userId);
   if (normalizedUserId === null) {
     return user;
@@ -73,7 +78,7 @@ const loadRealtimeUserContext = async (user) => {
   } catch (error) {
     logger.warn("Failed to refresh realtime user context", {
       userId: normalizedUserId,
-      error: error.message,
+      error: (error as Error).message,
     });
     return user;
   }
@@ -102,12 +107,12 @@ export const initializeRealtime = async () => {
   await realtimeSubscriber.initialize();
 };
 
-export const openRealtimeStream = async (req, res, user) => {
+export const openRealtimeStream = async (req: Request, res: Response, user: Actor) => {
   const currentUserContext = await loadRealtimeUserContext(user);
   sseHub.openStream(req, res, currentUserContext);
 };
 
-export const closeRealtimeStreamsForUser = (userId) => {
+export const closeRealtimeStreamsForUser = (userId: unknown): number => {
   return sseHub.closeUserStreams(userId);
 };
 

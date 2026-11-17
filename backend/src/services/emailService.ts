@@ -1,7 +1,15 @@
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 import { config } from "../config/index.js";
 
+/** The user fields an email needs. */
+interface EmailRecipient {
+  username: string;
+  email: string | null;
+}
+
 class EmailService {
+  transporter: Transporter;
+
   constructor() {
     this.transporter = nodemailer.createTransport({
       host: config.email.host,
@@ -14,10 +22,21 @@ class EmailService {
     });
   }
 
-  async sendEmail({ to, subject, html, text }) {
+  async sendEmail({
+    to,
+    subject,
+    html,
+    text,
+  }: {
+    to: string | null;
+    subject: string;
+    html: string;
+    text: string;
+  }) {
     const mailOptions = {
       from: `"IT Asset Inventory" <${config.email.from}>`,
-      to,
+      // A missing address is passed through; nodemailer then rejects the send.
+      to: to ?? undefined,
       subject,
       html,
       text,
@@ -26,7 +45,7 @@ class EmailService {
     return this.transporter.sendMail(mailOptions);
   }
 
-  async sendPasswordResetEmail(user, token) {
+  async sendPasswordResetEmail(user: EmailRecipient, token: string) {
     const resetUrl = `${config.frontendUrl}/reset-password?token=${token}`;
 
     const html = `
@@ -55,7 +74,7 @@ If you did not request this, you can ignore this email.
     });
   }
 
-  async sendPasswordChangedEmail(user) {
+  async sendPasswordChangedEmail(user: EmailRecipient) {
     const html = `
       <p>Hello ${user.username},</p>
       <p>Your password was changed successfully.</p>
@@ -77,7 +96,7 @@ If this was not you, contact support immediately.
     });
   }
 
-  async sendEmailNotLinkedNotice(email, message) {
+  async sendEmailNotLinkedNotice(email: string, message: string) {
     const html = `
       <p>Hello,</p>
       <p>${message}</p>

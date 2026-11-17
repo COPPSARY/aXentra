@@ -8,7 +8,7 @@ import { ActivityLogService } from "./activityLogService.js";
 import { AssetRepository } from "../repositories/assetRepository.js";
 import { FileRepository } from "../repositories/fileRepository.js";
 import { SoftwareLicenseRepository } from "../repositories/softwareLicenseRepository.js";
-import { FileModel } from "../models/index.js";
+import { FileModel, type Asset, type SoftwareLicense } from "../models/index.js";
 import { BadRequestError, NotFoundError, findOrThrow } from "../utils/AppError.js";
 import { AssetValidation } from "../utils/assetValidation.js";
 import {
@@ -28,10 +28,23 @@ import {
 import {
   buildPaginatedResponse,
   parsePaginationQuery,
+  type PaginationQuery,
 } from "../utils/pagination.js";
+import type { Actor } from "../types/auth.js";
+import type { UploadedFile } from "./storageService.js";
 
-const normalizeAssetVersionPairs = (assets) => {
-  const seen = new Map();
+/** An `{ id, version }` pair from the assign request, before validation. */
+type VersionedRef<K extends string> = { [key in K]?: unknown } & { version?: unknown };
+
+/** Which assignments `GET /api/files/:fileId` returns. */
+type AssignmentFilter = "all" | "assets" | "softwareLicenses";
+
+type CountsById = Record<string, number>;
+
+const normalizeAssetVersionPairs = (
+  assets: ReadonlyArray<VersionedRef<"assetId"> | null | undefined>
+) => {
+  const seen = new Map<number, number>();
   for (const entry of assets) {
     const assetId = AssetValidation.toPositiveInteger(entry?.assetId, "Asset id");
     const version = parseExpectedVersion(entry?.version);
@@ -43,8 +56,10 @@ const normalizeAssetVersionPairs = (assets) => {
   return [...seen.entries()].map(([assetId, version]) => ({ assetId, version }));
 };
 
-const normalizeSoftwareLicenseVersionPairs = (softwareLicenses) => {
-  const seen = new Map();
+const normalizeSoftwareLicenseVersionPairs = (
+  softwareLicenses: ReadonlyArray<VersionedRef<"softwareLicenseId"> | null | undefined>
+) => {
+  const seen = new Map<number, number>();
   for (const entry of softwareLicenses) {
     const softwareLicenseId = AssetValidation.toPositiveInteger(
       entry?.softwareLicenseId,
@@ -64,10 +79,16 @@ const normalizeSoftwareLicenseVersionPairs = (softwareLicenses) => {
   }));
 };
 
-const buildAssignmentTotal = ({ assets = [], softwareLicenses = [] }) =>
+const buildAssignmentTotal = ({
+  assets = [],
+  softwareLicenses = [],
+}: {
+  assets?: readonly unknown[];
+  softwareLicenses?: readonly unknown[];
+}): number =>
   assets.length + softwareLicenses.length;
 
-const normalizeAssignmentFilter = (value) => {
+const normalizeAssignmentFilter = (value: unknown): AssignmentFilter => {
   if (value === undefined || value === null || `${value}`.trim() === "") {
     return "all";
   }
@@ -89,7 +110,11 @@ const normalizeAssignmentFilter = (value) => {
   throw new BadRequestError("type must be one of: asset, software");
 };
 
-const attachAssignmentTotals = (files, assetCounts = {}, softwareLicenseCounts = {}) =>
+const attachAssignmentTotals = <F extends { fileId: number }>(
+  files: F[],
+  assetCounts: CountsById = {},
+  softwareLicenseCounts: CountsById = {}
+) =>
   files.map((file) => ({
     ...file,
     total:
@@ -97,7 +122,7 @@ const attachAssignmentTotals = (files, assetCounts = {}, softwareLicenseCounts =
       (softwareLicenseCounts[String(file.fileId)] || 0),
   }));
 
-const attachPublicUrl = async (file) => {
+const attachPublicUrl = async (file: FileModel) => {
   if (!file) {
     return file;
   }
@@ -111,7 +136,7 @@ const attachPublicUrl = async (file) => {
 };
 
 export class FileService {
-  static async listFiles(actor, query = {}) {
+  static async listFiles(actor: Actor, query: PaginationQuery & { locationId?: unknown } = {}) {
     const { page, limit } = parsePaginationQuery(query);
     const locationScope = buildLocationScopeWithOptionalLocationId(actor, query.locationId);
     const paginatedFiles = await FileRepository.listPaginated({
@@ -142,7 +167,11 @@ export class FileService {
     };
   }
 
-  static resolveLocationIdForWrite(actor, locationIdInput, fallbackLocationId = undefined) {
+  static resolveLocationIdForWrite(
+    actor: Actor,
+    locationIdInput: unknown,
+    fallbackLocationId: unknown = undefined
+  ): number | null {
     const hasLocationInput = locationIdInput !== undefined && locationIdInput !== null;
     if (hasLocationInput) {
       return assertActorCanAccessLocation(actor, locationIdInput);
@@ -168,7 +197,21 @@ export class FileService {
     return null;
   }
 
-  static async uploadFile({ file, images = [], fileLabel, locationId, description, actor }) {
+  static async uploadFile({
+    file,
+    images = [],
+    fileLabel,
+    locationId,
+    description,
+    actor,
+  }: {
+    file?: UploadedFile;
+    images?: UploadedFile[];
+    fileLabel?: string;
+    locationId: unknown;
+    description?: string;
+    actor: Actor;
+  }) {
     if (locationId === undefined || locationId === null) {
       throw new BadRequestError("locationId is required");
     }
@@ -209,7 +252,17 @@ export class FileService {
     return await attachPublicUrl(savedFile);
   }
 
-  static async assignFileToAssets({ fileId, assets, softwareLicenses, actor }) {
+  static async assignFileToAssets({
+    fileId,
+    assets,
+    softwareLicenses,
+    actor,
+  }: {
+    fileId: unknown;
+    assets?: VersionedRef<"assetId">[];
+    softwareLicenses?: VersionedRef<"softwareLicenseId">[];
+    actor: Actor;
+  }) {
     const normalizedFileId = AssetValidation.toPositiveInteger(fileId, "File id");
     const locationScope = buildLocationScope(actor);
 
@@ -231,7 +284,7 @@ export class FileService {
       throw new BadRequestError("File location is not set");
     }
 
-    let existingAssets = [];
+    let existingAssets: Asset[] = [];
     if (normalizedAssetIds.length) {
       existingAssets = await AssetRepository.findByIds(normalizedAssetIds, locationScope);
       const existingAssetIds = new Set(existingAssets.map((asset) => asset.assetId));
@@ -254,7 +307,7 @@ export class FileService {
     const normalizedSoftwareLicenseIds = softwareLicensePairs.map(
       (pair) => pair.softwareLicenseId
     );
-    let existingSoftwareLicenses = [];
+    let existingSoftwareLicenses: SoftwareLicense[] = [];
     if (normalizedSoftwareLicenseIds.length) {
       existingSoftwareLicenses = await SoftwareLicenseRepository.findByIds(
         normalizedSoftwareLicenseIds,
@@ -285,7 +338,7 @@ export class FileService {
       }
     }
 
-    const updatedAssets = [];
+    const updatedAssets: Asset[] = [];
     for (const { assetId, version } of pairs) {
       const updated = await AssetRepository.assignFileToAsset({
         assetId,
@@ -297,7 +350,7 @@ export class FileService {
       updatedAssets.push(updated);
     }
 
-    const updatedSoftwareLicenses = [];
+    const updatedSoftwareLicenses: SoftwareLicense[] = [];
     for (const { softwareLicenseId, version } of softwareLicensePairs) {
       const updated = await SoftwareLicenseRepository.update(
         softwareLicenseId,
@@ -344,7 +397,7 @@ export class FileService {
     };
   }
 
-  static async getFileById(fileId, actor, query = {}) {
+  static async getFileById(fileId: unknown, actor: Actor, query: { type?: unknown } = {}) {
     const normalizedFileId = AssetValidation.toPositiveInteger(fileId, "File id");
     const locationScope = buildLocationScope(actor);
     const assignmentFilter = normalizeAssignmentFilter(query.type);
@@ -386,6 +439,15 @@ export class FileService {
     description,
     version,
     actor,
+  }: {
+    fileId: unknown;
+    file?: UploadedFile;
+    images?: UploadedFile[];
+    removeImageId?: string;
+    fileLabel?: string;
+    description?: string;
+    version: unknown;
+    actor: Actor;
   }) {
     const normalizedFileId = AssetValidation.toPositiveInteger(fileId, "File id");
     const expectedVersion = parseExpectedVersion(version);
@@ -472,7 +534,7 @@ export class FileService {
     return await attachPublicUrl(updatedFile);
   }
 
-  static async deleteFile({ fileId, actor }) {
+  static async deleteFile({ fileId, actor }: { fileId: unknown; actor: Actor }) {
     const normalizedFileId = AssetValidation.toPositiveInteger(fileId, "File id");
     const locationScope = buildLocationScope(actor);
 

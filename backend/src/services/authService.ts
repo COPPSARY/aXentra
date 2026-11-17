@@ -4,12 +4,23 @@ import { generateAccessToken, verifyAccessToken } from "../utils/jwt.js";
 import { generateRandomToken, hashToken } from "../utils/crypto.js";
 import { BadRequestError, UnauthorizedError } from "../utils/AppError.js";
 import { emailService } from "./emailService.js";
-import { TOKEN_TYPES, User } from "../models/index.js";
+import { TOKEN_TYPES, User, type AuthToken } from "../models/index.js";
 import { config } from "../config/index.js";
 import { logger } from "../utils/logger.js";
 import { closeRealtimeStreamsForUser } from "./realtime/service.js";
 import { ActivityLogService } from "./activityLogService.js";
 import { mapUserForResponse } from "../utils/userResponse.js";
+import type { ActivityAction } from "../utils/constants.js";
+import type { Actor } from "../types/auth.js";
+import type {
+  ForgotPasswordInput,
+  LoginInput,
+  ResetPasswordInput,
+} from "../validators/auth.js";
+
+/** The user an auth event is about. Only the id is known on some paths. */
+type AuthEventUser = Pick<User, "userId"> &
+  Partial<Pick<User, "firstName" | "lastName" | "username" | "role">>;
 
 const PASSWORD_RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000;
 const REFRESH_TOKEN_BYTES = 48;
@@ -19,7 +30,7 @@ const FORGOT_PASSWORD_SUCCESS_MESSAGE =
   "If an account with that email exists, a password reset link has been sent";
 const LOGOUT_SUCCESS_MESSAGE = "Logged out successfully";
 
-const safelyNotify = async (sendFn, errorMessage) => {
+const safelyNotify = async (sendFn: () => Promise<unknown>, errorMessage: string) => {
   try {
     await sendFn();
   } catch (emailError) {
@@ -31,7 +42,15 @@ const safelyNotify = async (sendFn, errorMessage) => {
 // are excluded from the dashboard feed, but remain queryable at /api/activity.
 // Routine token refreshes are deliberately not logged; only the theft-detection
 // branch is, so normal session churn does not dominate the table.
-const recordAuthActivity = async ({ user, action, metadata = {} }) => {
+const recordAuthActivity = async ({
+  user,
+  action,
+  metadata = {},
+}: {
+  user: AuthEventUser | null | undefined;
+  action: ActivityAction;
+  metadata?: Record<string, unknown>;
+}) => {
   if (!user) {
     return;
   }
@@ -53,7 +72,10 @@ const recordAuthActivity = async ({ user, action, metadata = {} }) => {
   });
 };
 
-const resolveLogoutUserId = async ({ refreshToken, accessToken }) => {
+const resolveLogoutUserId = async ({
+  refreshToken,
+  accessToken,
+}: LogoutInput): Promise<{ userId: number | null; tokenRecord: AuthToken | null }> => {
   if (refreshToken) {
     const tokenRecord = await AuthRepository.findValidRefreshTokenByHash(hashToken(refreshToken));
 
@@ -69,7 +91,8 @@ const resolveLogoutUserId = async ({ refreshToken, accessToken }) => {
     try {
       const payload = verifyAccessToken(accessToken);
       return {
-        userId: payload?.userId ?? null,
+        // Signed by this service, so the claim holds the numeric user id.
+        userId: (payload?.userId as number | undefined) ?? null,
         tokenRecord: null,
       };
     } catch {
@@ -86,15 +109,21 @@ const resolveLogoutUserId = async ({ refreshToken, accessToken }) => {
   };
 };
 
+/** What logout can identify the session by: the refresh cookie, the bearer token, or both. */
+export interface LogoutInput {
+  refreshToken?: string | null;
+  accessToken?: string | null;
+}
+
 export class AuthService {
-  static async resolveUserLocationScope(userId) {
+  static async resolveUserLocationScope(userId: number) {
     return {
       ids: await UserRepository.findLocationIdsByUserId(userId),
       resolved: true,
     };
   }
 
-  static async login(payload) {
+  static async login(payload: LoginInput) {
     const { username, password, rememberMe = false } = payload;
     const normalizedUsername = String(username).toLowerCase();
 
@@ -111,7 +140,7 @@ export class AuthService {
     const locationScope = await AuthService.resolveUserLocationScope(user.userId);
     const allowedLocationIds = locationScope.ids;
 
-    const tokenPayload = {
+    const tokenPayload: Actor = {
       userId: user.userId,
       role: user.role,
     };
@@ -120,8 +149,8 @@ export class AuthService {
     }
     const token = generateAccessToken(tokenPayload);
 
-    let refreshToken = null;
-    let refreshTokenExpiresAt = null;
+    let refreshToken: string | null = null;
+    let refreshTokenExpiresAt: Date | null = null;
 
     if (rememberMe) {
       await AuthRepository.invalidateActiveRefreshTokensByUserId(user.userId);
@@ -155,7 +184,7 @@ export class AuthService {
     };
   }
 
-  static async forgotPassword(payload) {
+  static async forgotPassword(payload: ForgotPasswordInput) {
     const { email } = payload;
     const user = await UserRepository.findUserByEmail(email);
 
@@ -190,7 +219,7 @@ export class AuthService {
     return { message: FORGOT_PASSWORD_SUCCESS_MESSAGE };
   }
 
-  static async resetPassword(payload) {
+  static async resetPassword(payload: ResetPasswordInput) {
     const { token, password } = payload;
 
     const tokenRecord = await AuthRepository.findValidAuthTokenByHash(hashToken(token));
@@ -221,7 +250,7 @@ export class AuthService {
     return { message: "Password reset successfully" };
   }
 
-  static async refreshSession(payload = {}) {
+  static async refreshSession(payload: { refreshToken?: string | null } = {}) {
     const { refreshToken } = payload;
 
     if (!refreshToken) {
@@ -265,7 +294,7 @@ export class AuthService {
 
     const locationScope = await AuthService.resolveUserLocationScope(tokenRecord.user.userId);
     const allowedLocationIds = locationScope.ids;
-    const tokenPayload = {
+    const tokenPayload: Actor = {
       userId: tokenRecord.user.userId,
       role: tokenRecord.user.role,
     };
@@ -288,7 +317,7 @@ export class AuthService {
     };
   }
 
-  static async logout(payload = {}) {
+  static async logout(payload: LogoutInput = {}) {
     const { userId, tokenRecord } = await resolveLogoutUserId(payload);
 
     if (tokenRecord) {

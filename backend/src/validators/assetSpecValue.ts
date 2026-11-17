@@ -1,5 +1,26 @@
 import Joi from "joi";
 
+/**
+ * Exactly one typed value. `valueDate` arrives as a `Date` because the schema
+ * uses `Joi.date()`; services convert it back to `YYYY-MM-DD`.
+ */
+export interface SpecValueInput {
+  valueText?: string;
+  valueNumber?: number;
+  valueDate?: Date | string;
+  valueBoolean?: boolean;
+}
+
+/** Body of `POST /api/assets/:assetId/specs` after validation. */
+export interface CreateAssetSpecValueInput extends SpecValueInput {
+  fieldId: number;
+}
+
+/** Body of a spec value update after validation. */
+export interface UpdateAssetSpecValueInput extends SpecValueInput {
+  version: number;
+}
+
 const specValueSchema = {
   valueText: Joi.string().trim().min(1).max(1000),
   valueNumber: Joi.number(),

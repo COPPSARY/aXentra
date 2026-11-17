@@ -7,9 +7,19 @@ import { buildLocationScope } from "../utils/locationScope.js";
 import { parseExpectedVersion } from "../utils/optimisticLocking.js";
 import { AssetService } from "./assetService.js";
 import { ActivityLogService } from "./activityLogService.js";
+import type { Actor } from "../types/auth.js";
+import type {
+  CreateAssetSpecValueInput,
+  SpecValueInput,
+  UpdateAssetSpecValueInput,
+} from "../validators/assetSpecValue.js";
+
+/** `Joi.date()` yields a `Date`; the column stores `YYYY-MM-DD`. */
+const toDateColumn = (value: SpecValueInput["valueDate"]): string | undefined =>
+  value instanceof Date ? value.toISOString().slice(0, 10) : value;
 
 export class AssetSpecValueService {
-  static async listAssetSpecValues(assetId, actor) {
+  static async listAssetSpecValues(assetId: unknown, actor: Actor) {
     const asset = await AssetService.getAssetById(assetId, actor);
     const specs = await AssetSpecValueRepository.listByAssetId(asset.assetId);
 
@@ -19,7 +29,11 @@ export class AssetSpecValueService {
     };
   }
 
-  static async createAssetSpecValue(assetId, payload, actor) {
+  static async createAssetSpecValue(
+    assetId: unknown,
+    payload: CreateAssetSpecValueInput,
+    actor: Actor
+  ) {
     requirePermission(actor, "create", "assetSpecValue");
 
     const asset = await AssetService.getAssetById(assetId, actor);
@@ -48,10 +62,7 @@ export class AssetSpecValueService {
             ? undefined
             : AssetValidation.normalizeNullableString(payload.valueText),
         valueNumber: payload.valueNumber,
-        valueDate:
-          payload.valueDate instanceof Date
-            ? payload.valueDate.toISOString().slice(0, 10)
-            : payload.valueDate,
+        valueDate: toDateColumn(payload.valueDate),
         valueBoolean: payload.valueBoolean,
       },
     });
@@ -73,7 +84,7 @@ export class AssetSpecValueService {
     return created;
   }
 
-  static async getAssetSpecValue(assetSpecValueId, actor) {
+  static async getAssetSpecValue(assetSpecValueId: unknown, actor: Actor) {
     const normalizedSpecValueId = AssetValidation.toPositiveInteger(
       assetSpecValueId,
       "Asset specification value id"
@@ -88,7 +99,11 @@ export class AssetSpecValueService {
     return spec;
   }
 
-  static async updateAssetSpecValue(assetSpecValueId, payload, actor) {
+  static async updateAssetSpecValue(
+    assetSpecValueId: unknown,
+    payload: UpdateAssetSpecValueInput,
+    actor: Actor
+  ) {
     requirePermission(actor, "update", "assetSpecValue");
     const expectedVersion = parseExpectedVersion(payload?.version);
 
@@ -107,10 +122,7 @@ export class AssetSpecValueService {
           ? null
           : AssetValidation.normalizeNullableString(payload.valueText),
       value_number: payload.valueNumber ?? null,
-      value_date:
-        payload.valueDate instanceof Date
-          ? payload.valueDate.toISOString().slice(0, 10)
-          : payload.valueDate ?? null,
+      value_date: toDateColumn(payload.valueDate) ?? null,
       value_boolean: payload.valueBoolean ?? null,
       updated_by: actor.userId,
     }, expectedVersion);
@@ -132,7 +144,7 @@ export class AssetSpecValueService {
     return updated;
   }
 
-  static async deleteAssetSpecValue(assetSpecValueId, actor) {
+  static async deleteAssetSpecValue(assetSpecValueId: unknown, actor: Actor) {
     requirePermission(actor, "delete", "assetSpecValue");
 
     const spec = await AssetSpecValueService.getAssetSpecValue(assetSpecValueId, actor);

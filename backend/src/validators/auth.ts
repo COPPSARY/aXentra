@@ -1,6 +1,25 @@
 import Joi from "joi";
 import { strongPasswordSchema } from "./password.js";
 
+/** Body of `POST /api/auth/login` after validation. */
+export interface LoginInput {
+  username: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+/** Body of `POST /api/auth/forgot-password` after validation. */
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+/** Body of `POST /api/auth/reset-password` after validation. */
+export interface ResetPasswordInput {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}
+
 export const loginSchema = Joi.object({
   username: Joi.string().min(3).max(50).pattern(/^[^A-Z]+$/).required().messages({
     "string.min": "Username must be at least 3 characters",

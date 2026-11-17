@@ -1,5 +1,20 @@
 import Joi from "joi";
 
+/** Body of `POST /api/assets/types` after validation. */
+export interface CreateAssetTypeInput {
+  name: string;
+  icon?: string | null;
+  locationId: number;
+}
+
+/** Body of `PATCH /api/assets/types/:assetTypeId` after validation. */
+export interface UpdateAssetTypeInput {
+  version: number;
+  name?: string;
+  icon?: string | null;
+  gridFieldIds?: number[];
+}
+
 export const createAssetTypeSchema = Joi.object({
   name: Joi.string().trim().min(1).max(100).required().messages({
     "string.empty": "Asset type name is required",

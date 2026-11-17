@@ -37,7 +37,7 @@ export class ActivityLogRepository {
       .select(SELECT_COLUMNS);
 
     unwrapRepositoryError(error, "Failed to create activity log entries");
-    return (data || []).map(ActivityLog.fromRow);
+    return (data || []).map((row) => ActivityLog.fromRow(row));
   }
 
   static async listPaginated({
@@ -99,7 +99,7 @@ export class ActivityLogRepository {
     const { data, error, count } = await query;
     unwrapRepositoryError(error, "Failed to fetch activity log");
     return {
-      items: (data || []).map(ActivityLog.fromRow),
+      items: (data || []).map((row) => ActivityLog.fromRow(row)),
       totalItems: Number(count) || 0,
     };
   }

@@ -5,6 +5,54 @@ import { LocationRepository } from "../repositories/locationRepository.js";
 import { AssetLoanItemRepository } from "../repositories/assetLoanItemRepository.js";
 import { ActivityLogService } from "./activityLogService.js";
 import { buildLocationScopeWithOptionalLocationId } from "../utils/locationScope.js";
+import type { ActivityLog, Asset, AssetType, Location } from "../models/index.js";
+import type { Actor, LocationScope } from "../types/auth.js";
+
+/** Query of `GET /api/dashboard`. Every option is a bounded integer. */
+export interface DashboardQuery {
+  locationId?: unknown;
+  expiringDays?: unknown;
+  recentLimit?: unknown;
+  upcomingLimit?: unknown;
+  refreshWindowDays?: unknown;
+  trendMonths?: unknown;
+}
+
+/** One loan item as read for the assignment trend. */
+type TrendLoanItem = {
+  assetId: number;
+  startLoanDate: string | null;
+  returnDate: string | null;
+};
+
+interface AssetTypeMeta {
+  typeKey: string;
+  name: string;
+}
+
+interface UtilisationItem {
+  assetTypeId: number | null;
+  typeKey: string | null;
+  assetTypeName: string;
+  totalAssets: number;
+  assignedAssets: number;
+  utilisationPercent: number;
+}
+
+interface LocationUtilisationItem {
+  locationId: number | null;
+  locationName: string;
+  totalAssets: number;
+  assignedAssets: number;
+  utilisationPercent: number;
+}
+
+interface TrendMonth {
+  month: string;
+  label: string;
+  assigned: number;
+  returned: number;
+}
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -16,7 +64,15 @@ const AGE_BUCKET_DEFINITIONS = [
 ];
 
 export class DashboardService {
-  static normalizeInteger(value, { defaultValue, min = 1, max = 365, label }) {
+  static normalizeInteger(
+    value: unknown,
+    {
+      defaultValue,
+      min = 1,
+      max = 365,
+      label,
+    }: { defaultValue: number; min?: number; max?: number; label: string }
+  ): number {
     if (value === undefined || value === null || `${value}`.trim() === "") {
       return defaultValue;
     }
@@ -29,7 +85,7 @@ export class DashboardService {
     return parsed;
   }
 
-  static normalizeOverviewOptions(query = {}) {
+  static normalizeOverviewOptions(query: DashboardQuery = {}) {
     return {
       expiringDays: DashboardService.normalizeInteger(query.expiringDays, {
         defaultValue: 30,
@@ -64,7 +120,7 @@ export class DashboardService {
     };
   }
 
-  static utcStartOfDay(inputDate) {
+  static utcStartOfDay(inputDate: Date): number {
     return Date.UTC(
       inputDate.getUTCFullYear(),
       inputDate.getUTCMonth(),
@@ -72,14 +128,14 @@ export class DashboardService {
     );
   }
 
-  static diffInDaysFromToday(targetDate) {
+  static diffInDaysFromToday(targetDate: Date): number {
     const now = new Date();
     const todayUtcStart = DashboardService.utcStartOfDay(now);
     const targetUtcStart = DashboardService.utcStartOfDay(targetDate);
     return Math.floor((targetUtcStart - todayUtcStart) / DAY_IN_MS);
   }
 
-  static toRelativeTime(inputDate) {
+  static toRelativeTime(inputDate: unknown): string {
     if (!(inputDate instanceof Date) || Number.isNaN(inputDate.getTime())) {
       return "unknown";
     }
@@ -96,11 +152,14 @@ export class DashboardService {
     return `${elapsedDays}d ago`;
   }
 
-  static roundToOneDecimal(value) {
+  static roundToOneDecimal(value: number): number {
     return Math.round(value * 10) / 10;
   }
 
-  static parseDate(value, { dateOnly = false } = {}) {
+  static parseDate(
+    value: string | null | undefined,
+    { dateOnly = false }: { dateOnly?: boolean } = {}
+  ): Date | null {
     if (!value) {
       return null;
     }
@@ -110,11 +169,11 @@ export class DashboardService {
     return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
   }
 
-  static buildAssetTypeNameById(assetTypes) {
+  static buildAssetTypeNameById(assetTypes: AssetType[]): Map<number, string> {
     return new Map(assetTypes.map((assetType) => [assetType.assetTypeId, assetType.name]));
   }
 
-  static buildAssetTypeMetaById(assetTypes) {
+  static buildAssetTypeMetaById(assetTypes: AssetType[]): Map<number, AssetTypeMeta> {
     return new Map(
       assetTypes.map((assetType) => [
         assetType.assetTypeId,
@@ -123,11 +182,11 @@ export class DashboardService {
     );
   }
 
-  static buildLocationNameById(locations) {
+  static buildLocationNameById(locations: Location[]): Map<number, string> {
     return new Map(locations.map((location) => [location.locationId, location.name]));
   }
 
-  static buildSummary(assets, assetTypes, expiringSoonItems) {
+  static buildSummary(assets: Asset[], assetTypes: AssetType[], expiringSoonItems: unknown[]) {
     const totalAssets = assets.length;
     const inLoaned = assets.filter((asset) => asset.status === "Loaned").length;
     const inRepair = assets.filter((asset) => asset.status === "In Repair").length;
@@ -147,9 +206,9 @@ export class DashboardService {
     };
   }
 
-  static buildDistributionItems(assets, assetTypeNameById) {
+  static buildDistributionItems(assets: Asset[], assetTypeNameById: Map<number, string>) {
     const totalAssets = assets.length;
-    const distributionMap = new Map();
+    const distributionMap = new Map<number, number>();
 
     for (const asset of assets) {
       distributionMap.set(asset.assetTypeId, (distributionMap.get(asset.assetTypeId) || 0) + 1);
@@ -165,9 +224,15 @@ export class DashboardService {
       .sort((a, b) => b.count - a.count || a.assetTypeName.localeCompare(b.assetTypeName));
   }
 
-  static buildCrossLocationDistributionItems(assets, assetTypeMetaById) {
+  static buildCrossLocationDistributionItems(
+    assets: Asset[],
+    assetTypeMetaById: Map<number, AssetTypeMeta>
+  ) {
     const totalAssets = assets.length;
-    const groupMap = new Map();
+    const groupMap = new Map<
+      string,
+      { assetTypeId: number | null; typeKey: string | null; assetTypeName: string; count: number }
+    >();
 
     for (const asset of assets) {
       const meta = assetTypeMetaById.get(asset.assetTypeId);
@@ -182,7 +247,7 @@ export class DashboardService {
           count: 0,
         });
       }
-      groupMap.get(groupKey).count += 1;
+      groupMap.get(groupKey)!.count += 1;
     }
 
     return [...groupMap.values()]
@@ -193,9 +258,9 @@ export class DashboardService {
       .sort((a, b) => b.count - a.count || a.assetTypeName.localeCompare(b.assetTypeName));
   }
 
-  static buildAssetTypeUtilisationItems(assets, assetTypes) {
+  static buildAssetTypeUtilisationItems(assets: Asset[], assetTypes: AssetType[]) {
     const assetTypeMetaById = DashboardService.buildAssetTypeMetaById(assetTypes);
-    const groupMap = new Map();
+    const groupMap = new Map<number, UtilisationItem>();
 
     for (const asset of assets) {
       const meta = assetTypeMetaById.get(asset.assetTypeId);
@@ -213,7 +278,7 @@ export class DashboardService {
         });
       }
 
-      const item = groupMap.get(assetTypeId);
+      const item = groupMap.get(assetTypeId)!;
       item.totalAssets += 1;
       if (asset.status === "Loaned") {
         item.assignedAssets += 1;
@@ -235,9 +300,9 @@ export class DashboardService {
       );
   }
 
-  static buildCrossLocationAssetTypeUtilisationItems(assets, assetTypes) {
+  static buildCrossLocationAssetTypeUtilisationItems(assets: Asset[], assetTypes: AssetType[]) {
     const assetTypeMetaById = DashboardService.buildAssetTypeMetaById(assetTypes);
-    const groupMap = new Map();
+    const groupMap = new Map<string, UtilisationItem>();
 
     for (const asset of assets) {
       const meta = assetTypeMetaById.get(asset.assetTypeId);
@@ -255,7 +320,7 @@ export class DashboardService {
         });
       }
 
-      const item = groupMap.get(groupKey);
+      const item = groupMap.get(groupKey)!;
       item.totalAssets += 1;
       if (asset.status === "Loaned") {
         item.assignedAssets += 1;
@@ -277,7 +342,11 @@ export class DashboardService {
       );
   }
 
-  static buildExpiringSoonItems(assets, assetTypeNameById, expiringDays) {
+  static buildExpiringSoonItems(
+    assets: Asset[],
+    assetTypeNameById: Map<number, string>,
+    expiringDays: number
+  ) {
     return assets
       .map((asset) => {
         if (!asset.warrantyExpiryDate) return null;
@@ -299,52 +368,61 @@ export class DashboardService {
           status: asset.status,
         };
       })
-      .filter(Boolean)
+      .filter((item): item is NonNullable<typeof item> => Boolean(item))
       .sort(
         (a, b) =>
           a.daysRemaining - b.daysRemaining ||
-          new Date(a.warrantyExpiryDate) - new Date(b.warrantyExpiryDate)
+          new Date(a.warrantyExpiryDate).getTime() - new Date(b.warrantyExpiryDate).getTime()
       );
   }
 
   // Maps one append-only activity_log row onto the dashboard feed item shape.
   // The row already carries snapshots of the actor, location and entity labels,
   // so no extra reads are needed here.
-  static buildActivityItem(activity) {
+  static buildActivityItem(activity: ActivityLog | null | undefined) {
     const activityAt = DashboardService.parseDate(activity?.occurredAt);
     if (!activityAt) {
       return null;
     }
 
+    // A row with a parseable timestamp exists, so `activity` is set from here on.
+    const entry = activity as ActivityLog;
+
     return {
-      type: activity.entityType,
-      id: activity.entityId,
-      label: activity.entityLabel,
-      action: activity.action,
-      status: activity.status || activity.action,
-      location: activity.locationId === null || activity.locationId === undefined
+      type: entry.entityType,
+      id: entry.entityId,
+      label: entry.entityLabel,
+      action: entry.action,
+      status: entry.status || entry.action,
+      location: entry.locationId === null || entry.locationId === undefined
         ? null
         : {
-            id: activity.locationId,
-            name: activity.locationName || `Location ${activity.locationId}`,
+            id: entry.locationId,
+            name: entry.locationName || `Location ${entry.locationId}`,
           },
       actor: {
-        id: activity.actorUserId ?? null,
-        name: activity.actorName,
+        id: entry.actorUserId ?? null,
+        name: entry.actorName,
       },
       at: activityAt.toISOString(),
       relativeTime: DashboardService.toRelativeTime(activityAt),
     };
   }
 
-  static buildRecentActivities(activities = []) {
-    return activities.map(DashboardService.buildActivityItem).filter(Boolean);
+  static buildRecentActivities(activities: ActivityLog[] = []) {
+    return activities
+      .map((activity) => DashboardService.buildActivityItem(activity))
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
   }
 
-  static buildUpcomingItems(assets, upcomingLimit) {
+  static buildUpcomingItems(assets: Asset[], upcomingLimit: number) {
     return assets
       .filter((asset) => asset.status === "Loaned")
-      .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+      .sort(
+        (a, b) =>
+          new Date((b.updatedAt || b.createdAt) as string).getTime() -
+          new Date((a.updatedAt || a.createdAt) as string).getTime()
+      )
       .slice(0, upcomingLimit)
       .map((asset) => {
         const followUpDate = new Date(asset.updatedAt || asset.createdAt || Date.now());
@@ -358,7 +436,7 @@ export class DashboardService {
       });
   }
 
-  static getAssetAgeYears(asset) {
+  static getAssetAgeYears(asset: Asset): number | null {
     const createdAt = DashboardService.parseDate(asset.createdAt);
     if (!createdAt) {
       return null;
@@ -372,10 +450,10 @@ export class DashboardService {
     return ageYears;
   }
 
-  static buildAgeDistribution(assets) {
+  static buildAgeDistribution(assets: Asset[]) {
     const ages = assets
       .map((asset) => DashboardService.getAssetAgeYears(asset))
-      .filter((value) => value !== null);
+      .filter((value): value is number => value !== null);
 
     const items = AGE_BUCKET_DEFINITIONS.map((bucket) => ({
       label: bucket.label,
@@ -413,7 +491,11 @@ export class DashboardService {
     };
   }
 
-  static buildDueForRefreshMetrics(assets, assetTypeNameById, refreshWindowDays) {
+  static buildDueForRefreshMetrics(
+    assets: Asset[],
+    assetTypeNameById: Map<number, string>,
+    refreshWindowDays: number
+  ) {
     const expiringItems = DashboardService.buildExpiringSoonItems(
       assets,
       assetTypeNameById,
@@ -431,7 +513,11 @@ export class DashboardService {
     };
   }
 
-  static buildKpis(summary, ageDistribution, dueForRefreshMetrics) {
+  static buildKpis(
+    summary: ReturnType<typeof DashboardService.buildSummary>,
+    ageDistribution: ReturnType<typeof DashboardService.buildAgeDistribution>,
+    dueForRefreshMetrics: ReturnType<typeof DashboardService.buildDueForRefreshMetrics>
+  ) {
     return {
       overallUtilisation: {
         value: summary.inUsePercent,
@@ -456,10 +542,10 @@ export class DashboardService {
     };
   }
 
-  static buildUtilisationByLocation(assets, locations) {
+  static buildUtilisationByLocation(assets: Asset[], locations: Location[]) {
     const locationNameById = DashboardService.buildLocationNameById(locations);
-    const locationMap = new Map(
-      locations.map((location) => [
+    const locationMap = new Map<number | null, LocationUtilisationItem>(
+      locations.map((location): [number | null, LocationUtilisationItem] => [
         location.locationId,
         {
           locationId: location.locationId,
@@ -487,7 +573,7 @@ export class DashboardService {
         });
       }
 
-      const item = locationMap.get(locationId);
+      const item = locationMap.get(locationId)!;
       item.totalAssets += 1;
       if (asset.status === "Loaned") {
         item.assignedAssets += 1;
@@ -514,9 +600,9 @@ export class DashboardService {
     };
   }
 
-  static buildMonthWindow(trendMonths) {
+  static buildMonthWindow(trendMonths: number): TrendMonth[] {
     const now = new Date();
-    const items = [];
+    const items: TrendMonth[] = [];
 
     for (let offset = trendMonths - 1; offset >= 0; offset -= 1) {
       const monthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offset, 1));
@@ -532,7 +618,7 @@ export class DashboardService {
     return items;
   }
 
-  static buildAssignmentTrend(loanItems, assets, trendMonths) {
+  static buildAssignmentTrend(loanItems: TrendLoanItem[], assets: Asset[], trendMonths: number) {
     const assetIds = new Set(assets.map((asset) => asset.assetId));
     const monthWindow = DashboardService.buildMonthWindow(trendMonths);
     const monthMap = new Map(monthWindow.map((item) => [item.month, item]));
@@ -546,7 +632,7 @@ export class DashboardService {
       if (startLoanDate) {
         const monthKey = startLoanDate.toISOString().slice(0, 7);
         if (monthMap.has(monthKey)) {
-          monthMap.get(monthKey).assigned += 1;
+          monthMap.get(monthKey)!.assigned += 1;
         }
       }
 
@@ -554,7 +640,7 @@ export class DashboardService {
       if (returnDate) {
         const monthKey = returnDate.toISOString().slice(0, 7);
         if (monthMap.has(monthKey)) {
-          monthMap.get(monthKey).returned += 1;
+          monthMap.get(monthKey)!.returned += 1;
         }
       }
     }
@@ -567,7 +653,17 @@ export class DashboardService {
     };
   }
 
-  static buildScope({ actor, locationScope, queryLocationId, isCrossLocation }) {
+  static buildScope({
+    actor,
+    locationScope,
+    queryLocationId,
+    isCrossLocation,
+  }: {
+    actor: Actor | null | undefined;
+    locationScope: LocationScope;
+    queryLocationId: number | null | undefined;
+    isCrossLocation: boolean;
+  }) {
     return {
       role: actor?.role ?? null,
       locationId: queryLocationId ?? null,
@@ -592,6 +688,24 @@ export class DashboardService {
     assetTypeUtilisationItems,
     assignmentTrend,
     isCrossLocation,
+  }: {
+    actor: Actor;
+    locationScope: LocationScope;
+    queryLocationId: number | null;
+    summary: ReturnType<typeof DashboardService.buildSummary>;
+    distributionItems:
+      | ReturnType<typeof DashboardService.buildDistributionItems>
+      | ReturnType<typeof DashboardService.buildCrossLocationDistributionItems>;
+    expiringSoonItems: ReturnType<typeof DashboardService.buildExpiringSoonItems>;
+    recentActivities: ReturnType<typeof DashboardService.buildRecentActivities>;
+    upcomingItems: ReturnType<typeof DashboardService.buildUpcomingItems>;
+    expiringDays: number;
+    ageDistribution: ReturnType<typeof DashboardService.buildAgeDistribution>;
+    dueForRefreshMetrics: ReturnType<typeof DashboardService.buildDueForRefreshMetrics>;
+    utilisationByLocation: ReturnType<typeof DashboardService.buildUtilisationByLocation>;
+    assetTypeUtilisationItems: UtilisationItem[];
+    assignmentTrend: ReturnType<typeof DashboardService.buildAssignmentTrend>;
+    isCrossLocation: boolean;
   }) {
     return {
       scope: DashboardService.buildScope({
@@ -642,7 +756,7 @@ export class DashboardService {
     };
   }
 
-  static async getOverview(query = {}, actor) {
+  static async getOverview(query: DashboardQuery = {}, actor: Actor) {
     const {
       expiringDays,
       recentLimit,
@@ -661,7 +775,9 @@ export class DashboardService {
     const assetTypeNameById = DashboardService.buildAssetTypeNameById(assetTypes);
     const isCrossLocation = !query.locationId && locations.length > 1;
 
-    let distributionItems;
+    let distributionItems:
+      | ReturnType<typeof DashboardService.buildDistributionItems>
+      | ReturnType<typeof DashboardService.buildCrossLocationDistributionItems>;
     if (isCrossLocation) {
       const assetTypeMetaById = DashboardService.buildAssetTypeMetaById(assetTypes);
       distributionItems = DashboardService.buildCrossLocationDistributionItems(assets, assetTypeMetaById);

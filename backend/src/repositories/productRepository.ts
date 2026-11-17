@@ -38,7 +38,7 @@ export class ProductRepository {
 
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch products by asset type");
-    return (data || []).map(Product.fromRow);
+    return (data || []).map((row) => Product.fromRow(row));
   }
 
   static async create({

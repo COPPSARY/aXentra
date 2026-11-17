@@ -24,7 +24,7 @@ export class LocationRepository {
 
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch locations");
-    return (data || []).map(Location.fromRow);
+    return (data || []).map((row) => Location.fromRow(row));
   }
 
   static async listPaginated({
@@ -50,7 +50,7 @@ export class LocationRepository {
     const { data, error, count } = await query;
     unwrapRepositoryError(error, "Failed to fetch locations");
     return {
-      items: (data || []).map(Location.fromRow),
+      items: (data || []).map((row) => Location.fromRow(row)),
       totalItems: Number(count) || 0,
     };
   }

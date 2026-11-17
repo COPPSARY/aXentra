@@ -17,13 +17,23 @@ import {
 import { parseExpectedVersion } from "../utils/optimisticLocking.js";
 import { applyMappedUpdates } from "./updateHelpers.js";
 import { ActivityLogService } from "./activityLogService.js";
+import type { RowUpdates } from "../repositories/repositoryHelpers.js";
+import type { Actor } from "../types/auth.js";
+import type {
+  CreateAssetTypeFieldInput,
+  UpdateAssetTypeFieldInput,
+} from "../validators/assetTypeField.js";
 
-function normalizeFieldLabel(label) {
+function normalizeFieldLabel(label: string): string {
   return label.trim().toLowerCase();
 }
 
 export class AssetTypeFieldService {
-  static async listAssetTypeFields(assetTypeId, actor, query = {}) {
+  static async listAssetTypeFields(
+    assetTypeId: unknown,
+    actor: Actor,
+    query: { locationId?: number } = {}
+  ) {
     const normalizedAssetTypeId = AssetValidation.toAssetTypeId(assetTypeId);
     const locationScope = buildLocationScopeWithOptionalLocationId(
       actor,
@@ -44,7 +54,11 @@ export class AssetTypeFieldService {
     };
   }
 
-  static async createAssetTypeField(assetTypeId, payload, actor) {
+  static async createAssetTypeField(
+    assetTypeId: unknown,
+    payload: CreateAssetTypeFieldInput,
+    actor: Actor
+  ) {
     requirePermission(actor, "create", "assetTypeField");
 
     const normalizedAssetTypeId = AssetValidation.toAssetTypeId(assetTypeId);
@@ -133,7 +147,7 @@ export class AssetTypeFieldService {
     return created;
   }
 
-  static async getAssetTypeField(assetTypeId, fieldId, actor) {
+  static async getAssetTypeField(assetTypeId: unknown, fieldId: unknown, actor: Actor) {
     const normalizedAssetTypeId = AssetValidation.toAssetTypeId(assetTypeId);
     const locationScope = buildLocationScope(actor);
     const assetType = await findOrThrow(
@@ -150,7 +164,12 @@ export class AssetTypeFieldService {
     return field;
   }
 
-  static async updateAssetTypeField(assetTypeId, fieldId, payload, actor) {
+  static async updateAssetTypeField(
+    assetTypeId: unknown,
+    fieldId: unknown,
+    payload: UpdateAssetTypeFieldInput,
+    actor: Actor
+  ) {
     requirePermission(actor, "update", "assetTypeField");
     const expectedVersion = parseExpectedVersion(payload?.version);
 
@@ -168,7 +187,7 @@ export class AssetTypeFieldService {
       throw new BadRequestError("Options are only allowed when fieldType is select");
     }
 
-    const updates = {
+    const updates: RowUpdates = {
       updated_by: actor.userId,
     };
 
@@ -181,7 +200,7 @@ export class AssetTypeFieldService {
       {
         payloadKey: "fieldLabel",
         dbKey: "field_label",
-        transform: (value) => value.trim(),
+        transform: (value: string) => value.trim(),
       },
       {
         payloadKey: "fieldType",
@@ -242,7 +261,7 @@ export class AssetTypeFieldService {
     return updated;
   }
 
-  static async deleteAssetTypeField(assetTypeId, fieldId, actor) {
+  static async deleteAssetTypeField(assetTypeId: unknown, fieldId: unknown, actor: Actor) {
     requirePermission(actor, "delete", "assetTypeField");
 
     const field = await AssetTypeFieldService.getAssetTypeField(assetTypeId, fieldId, actor);
@@ -253,7 +272,7 @@ export class AssetTypeFieldService {
       (gridFieldId) => Number(gridFieldId) !== Number(field.assetTypeFieldId)
     );
 
-    if (nextGridFieldIds.length !== gridFieldIds.length) {
+    if (assetType && nextGridFieldIds.length !== gridFieldIds.length) {
       // ponytail: two writes; use a database transaction if atomic deletion becomes required.
       await AssetTypeRepository.update(
         assetType.assetTypeId,

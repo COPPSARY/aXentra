@@ -24,22 +24,45 @@ import {
 } from "../utils/pagination.js";
 import { AssetValidation } from "../utils/assetValidation.js";
 import { mapUserForResponse } from "../utils/userResponse.js";
+import type { Role } from "../config/rbac.js";
+import type { RowUpdates } from "../repositories/repositoryHelpers.js";
+import type { Actor } from "../types/auth.js";
+import type { PaginationQuery } from "../utils/pagination.js";
+import type { UploadedFile } from "./storageService.js";
+import type { CreateUserInput, UpdateUserInput } from "../validators/user.js";
 
-const buildSystemEmail = (username) => {
+type AssignmentFilter = "assigned" | "unassigned";
+
+/** The fields of a listed user that the role and assignment filters read. */
+interface ListedUser {
+  role: Role;
+  allowedLocationIds?: number[];
+}
+
+/**
+ * A user id from the route. It arrives as a string and is passed to the
+ * database as is; PostgREST converts it.
+ */
+type UserIdParam = string | number;
+
+const buildSystemEmail = (username: string): string => {
   const encoded = Buffer.from(username, "utf8").toString("hex");
   return `u${encoded}@local.user`;
 };
 
-const resolveRole = (payloadRole, existingRole = null) => payloadRole || existingRole || "admin";
+const resolveRole = (payloadRole: Role | undefined, existingRole: Role | null = null): Role =>
+  payloadRole || existingRole || "admin";
 
 // Display label snapshotted onto activity_log rows for user entities.
-const buildActivityUserLabel = (user) => {
+const buildActivityUserLabel = (
+  user: Pick<User, "firstName" | "lastName" | "username" | "userId"> | null | undefined
+): string => {
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
   return fullName || user?.username || `User ${user?.userId ?? ""}`.trim();
 };
-const USER_ASSIGNMENT_FILTERS = new Set(["assigned", "unassigned"]);
+const USER_ASSIGNMENT_FILTERS = new Set<unknown>(["assigned", "unassigned"]);
 
-const normalizeListRoleFilter = (role) => {
+const normalizeListRoleFilter = (role: unknown): Role | null => {
   if (role === undefined || role === null || `${role}`.trim() === "") {
     return null;
   }
@@ -51,7 +74,7 @@ const normalizeListRoleFilter = (role) => {
   return role;
 };
 
-const normalizeAssignmentFilter = (assignment) => {
+const normalizeAssignmentFilter = (assignment: unknown): AssignmentFilter | null => {
   if (assignment === undefined || assignment === null || `${assignment}`.trim() === "") {
     return null;
   }
@@ -60,10 +83,10 @@ const normalizeAssignmentFilter = (assignment) => {
     throw new BadRequestError("Invalid assignment filter");
   }
 
-  return assignment;
+  return assignment as AssignmentFilter;
 };
 
-const buildUserListCounts = (users) => {
+const buildUserListCounts = (users: ListedUser[]) => {
   const counts = {
     all: users.length,
     admin: 0,
@@ -94,7 +117,10 @@ const buildUserListCounts = (users) => {
   return counts;
 };
 
-const filterUsersForList = (users, { role, assignment }) => {
+const filterUsersForList = <U extends ListedUser>(
+  users: U[],
+  { role, assignment }: { role: Role | null; assignment: AssignmentFilter | null }
+): U[] => {
   return users.filter((user) => {
     if (role && user.role !== role) {
       return false;
@@ -112,13 +138,19 @@ const filterUsersForList = (users, { role, assignment }) => {
   });
 };
 
-const assertRoleLocationAssignments = ({ role, locationIds }) => {
+const assertRoleLocationAssignments = ({
+  role,
+  locationIds,
+}: {
+  role: Role;
+  locationIds: number[];
+}): void => {
   if (role === "super_admin" && locationIds.length > 0) {
     throw new BadRequestError("Super admin must not have location assignments");
   }
 };
 
-const assertLocationsExist = async (locationIds) => {
+const assertLocationsExist = async (locationIds: number[]): Promise<void> => {
   if (!locationIds.length) {
     return;
   }
@@ -140,7 +172,7 @@ const assertLocationsExist = async (locationIds) => {
 };
 
 export class UserService {
-  static async buildUserResponseWithLocations(user) {
+  static async buildUserResponseWithLocations(user: User) {
     const locationIds = await UserRepository.findLocationIdsByUserId(user.userId);
     return {
       ...mapUserForResponse(user.toSafeJSON()),
@@ -148,7 +180,7 @@ export class UserService {
     };
   }
 
-  static async createUser(payload, actor) {
+  static async createUser(payload: CreateUserInput, actor: Actor) {
     requirePermission(actor, "create", "user");
 
     if (!isSuperAdmin(actor)) {
@@ -220,13 +252,16 @@ export class UserService {
     return UserService.buildUserResponseWithLocations(user);
   }
 
-  static async listUsers(actor, query = {}) {
+  static async listUsers(
+    actor: Actor,
+    query: PaginationQuery & { locationId?: unknown; role?: unknown; assignment?: unknown } = {}
+  ) {
     requirePermission(actor, "read", "user");
     const { page, limit, from, to } = parsePaginationQuery(query);
     const requestedLocationId = query.locationId;
     const roleFilter = normalizeListRoleFilter(query.role);
     const assignmentFilter = normalizeAssignmentFilter(query.assignment);
-    let scopedLocationId = null;
+    let scopedLocationId: number | null = null;
 
     if (
       requestedLocationId !== undefined &&
@@ -268,7 +303,7 @@ export class UserService {
     };
   }
 
-  static async getMyProfile(actor) {
+  static async getMyProfile(actor: Actor) {
     const user = await findOrThrow(
       () => UserRepository.findUserById(actor.userId),
       "User not found"
@@ -276,15 +311,15 @@ export class UserService {
     return UserService.buildUserResponseWithLocations(user);
   }
 
-  static async getUserById(userId) {
+  static async getUserById(userId: UserIdParam) {
     const user = await findOrThrow(
-      () => UserRepository.findUserById(userId),
+      () => UserRepository.findUserById(userId as number),
       "User not found"
     );
     return UserService.buildUserResponseWithLocations(user);
   }
 
-  static async updateUser(userId, payload, actor) {
+  static async updateUser(userId: UserIdParam, payload: UpdateUserInput, actor: Actor) {
     const isOwner = String(userId) === String(actor?.userId);
     requirePermission(actor, "update", "user", isOwner);
     const expectedVersion = parseExpectedVersion(payload?.version);
@@ -313,12 +348,20 @@ export class UserService {
     }
 
     const user = await findOrThrow(
-      () => UserRepository.findUserById(userId),
+      () => UserRepository.findUserById(userId as number),
       "User not found"
     );
 
-    const updates = {};
-    const normalizedUpdates = {};
+    const updates: RowUpdates = {};
+    const normalizedUpdates: {
+      username?: string;
+      email?: string;
+      firstName?: string | null;
+      lastName?: string | null;
+      password?: string;
+      role?: Role;
+      avatarPic?: string | null;
+    } = {};
 
     if (payload.username !== undefined) {
       const normalizedUsername = String(payload.username).toLowerCase();
@@ -432,7 +475,7 @@ export class UserService {
     return UserService.buildUserResponseWithLocations(updatedUser);
   }
 
-  static async deleteUser(userId, actor) {
+  static async deleteUser(userId: UserIdParam, actor: Actor) {
     requirePermission(actor, "delete", "user");
 
     if (!isSuperAdmin(actor)) {
@@ -444,7 +487,7 @@ export class UserService {
     }
 
     const user = await findOrThrow(
-      () => UserRepository.findUserById(userId),
+      () => UserRepository.findUserById(userId as number),
       "User not found"
     );
 
@@ -471,7 +514,7 @@ export class UserService {
     return UserService.buildUserResponseWithLocations(deletedUser);
   }
 
-  static async uploadMyAvatar(file, actor) {
+  static async uploadMyAvatar(file: UploadedFile | undefined, actor: Actor) {
     const user = await findOrThrow(
       () => UserRepository.findUserById(actor.userId),
       "User not found"

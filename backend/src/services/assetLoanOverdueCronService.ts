@@ -1,14 +1,14 @@
-import cron from "node-cron";
+import cron, { type ScheduledTask } from "node-cron";
 import { config } from "../config/index.js";
 import { AssetLoanRepository } from "../repositories/assetLoanRepository.js";
 import { ActivityLogService } from "./activityLogService.js";
 import { logger } from "../utils/logger.js";
 
-let overdueCronTask = null;
+let overdueCronTask: ScheduledTask | null = null;
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
-export const syncOverdueLoanStatuses = async ({ today = todayIso() } = {}) => {
+export const syncOverdueLoanStatuses = async ({ today = todayIso() }: { today?: string } = {}) => {
   const result = await AssetLoanRepository.syncOverdueStatuses(today);
   logger.info("Synced overdue loan statuses", {
     today,

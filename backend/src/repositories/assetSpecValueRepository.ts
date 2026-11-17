@@ -18,7 +18,7 @@ export class AssetSpecValueRepository {
       .order("field_id", { ascending: true });
 
     unwrapRepositoryError(error, "Failed to fetch asset grid specification values");
-    return (data || []).map(AssetSpecValue.fromRow);
+    return (data || []).map((row) => AssetSpecValue.fromRow(row));
   }
 
   static async listByFieldId(fieldId: number) {
@@ -40,7 +40,7 @@ export class AssetSpecValueRepository {
       .order("asset_spec_value_id", { ascending: true });
 
     unwrapRepositoryError(error, "Failed to fetch asset specification values");
-    return (data || []).map(AssetSpecValue.fromRow);
+    return (data || []).map((row) => AssetSpecValue.fromRow(row));
   }
 
   static async findById(assetSpecValueId: number) {
@@ -48,7 +48,7 @@ export class AssetSpecValueRepository {
       .from("asset_spec_value")
       .select("*")
       .eq("asset_spec_value_id", assetSpecValueId)
-      .maybeSingle();
+      .maybeSingle<AssetSpecValueRow>();
 
     unwrapRepositoryError(error, "Failed to fetch asset specification value");
     return AssetSpecValue.fromRow(data);
@@ -60,7 +60,7 @@ export class AssetSpecValueRepository {
       .select("*")
       .eq("asset_id", assetId)
       .eq("field_id", fieldId)
-      .maybeSingle();
+      .maybeSingle<AssetSpecValueRow>();
 
     unwrapRepositoryError(error, "Failed to fetch asset specification value by field");
     return AssetSpecValue.fromRow(data);
@@ -97,7 +97,7 @@ export class AssetSpecValueRepository {
       .from("asset_spec_value")
       .insert(row)
       .select("*")
-      .single();
+      .single<AssetSpecValueRow>();
 
     unwrapRepositoryError(error, "Failed to create asset specification value");
     return AssetSpecValue.fromRow(data);
@@ -113,7 +113,7 @@ export class AssetSpecValueRepository {
       .eq("asset_spec_value_id", assetSpecValueId)
       .eq("version", expectedVersion)
       .select("*")
-      .maybeSingle();
+      .maybeSingle<AssetSpecValueRow>();
 
     unwrapRepositoryError(error, "Failed to update asset specification value");
 
@@ -130,7 +130,7 @@ export class AssetSpecValueRepository {
       .delete()
       .eq("asset_spec_value_id", assetSpecValueId)
       .select("*")
-      .single();
+      .single<AssetSpecValueRow>();
 
     unwrapRepositoryError(error, "Failed to delete asset specification value");
     return AssetSpecValue.fromRow(data);

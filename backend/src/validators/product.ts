@@ -1,5 +1,21 @@
 import Joi from "joi";
 
+/** Body of `POST /api/assets/types/:assetTypeId/products` after validation. */
+export interface CreateProductInput {
+  locationId: number;
+  productName: string;
+  manufacturer?: string | null;
+  cost?: number;
+}
+
+/** Body of a product update after validation. The location cannot change. */
+export interface UpdateProductInput {
+  version: number;
+  productName?: string;
+  manufacturer?: string | null;
+  cost?: number;
+}
+
 export const createProductSchema = Joi.object({
   locationId: Joi.number().integer().positive().required().messages({
     "any.required": "Location id is required",

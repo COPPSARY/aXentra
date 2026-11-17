@@ -124,7 +124,7 @@ export class AssetLoanRepository {
     const { data, error, count } = await query;
     unwrapRepositoryError(error, "Failed to fetch paginated asset loans");
     return {
-      items: (data || []).map(AssetLoan.fromRow),
+      items: (data || []).map((row) => AssetLoan.fromRow(row)),
       totalItems: Number(count) || 0,
     };
   }

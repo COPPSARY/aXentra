@@ -1,5 +1,5 @@
 import type { LocationScope, ScopedActor } from "../types/auth.js";
-import { ForbiddenError } from "../utils/AppError.js";
+import { BadRequestError, ForbiddenError } from "../utils/AppError.js";
 
 type MaybeActor = ScopedActor | null | undefined;
 
@@ -63,6 +63,22 @@ export const assertActorCanAccessLocation = (
   const allowedLocationIds = assertAdminHasLocations(actor);
   if (Array.isArray(allowedLocationIds) && !allowedLocationIds.includes(normalizedLocationId)) {
     throw new ForbiddenError("You do not have access to this location");
+  }
+
+  return normalizedLocationId;
+};
+
+/**
+ * `assertActorCanAccessLocation` for a location the request must name.
+ *
+ * The plain check passes an unusable id through as `null` for a super admin;
+ * here that becomes a 400 instead. Routes validate the id first, so in
+ * practice this only narrows the type to `number`.
+ */
+export const requireAccessibleLocationId = (actor: MaybeActor, locationId: unknown): number => {
+  const normalizedLocationId = assertActorCanAccessLocation(actor, locationId);
+  if (normalizedLocationId === null) {
+    throw new BadRequestError("A valid location is required");
   }
 
   return normalizedLocationId;

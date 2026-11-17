@@ -11,9 +11,16 @@ import {
   buildLocationScopeWithOptionalLocationId,
 } from "../utils/locationScope.js";
 import { applyMappedUpdates } from "./updateHelpers.js";
+import type { RowUpdates } from "../repositories/repositoryHelpers.js";
+import type { Actor } from "../types/auth.js";
+import type { CreateProductInput, UpdateProductInput } from "../validators/product.js";
 
 export class ProductService {
-  static async listProductsByAssetType(assetTypeId, actor, query = {}) {
+  static async listProductsByAssetType(
+    assetTypeId: unknown,
+    actor: Actor,
+    query: { locationId?: number } = {}
+  ) {
     const normalizedAssetTypeId = AssetValidation.toAssetTypeId(assetTypeId);
     const locationScope = buildLocationScopeWithOptionalLocationId(
       actor,
@@ -34,7 +41,7 @@ export class ProductService {
     };
   }
 
-  static async createProduct(assetTypeId, payload, actor) {
+  static async createProduct(assetTypeId: unknown, payload: CreateProductInput, actor: Actor) {
     requirePermission(actor, "create", "product");
 
     const normalizedAssetTypeId = AssetValidation.toAssetTypeId(assetTypeId);
@@ -74,7 +81,7 @@ export class ProductService {
     return created;
   }
 
-  static async getProductById(productId, actor) {
+  static async getProductById(productId: unknown, actor: Actor) {
     const normalizedProductId = AssetValidation.toPositiveInteger(productId, "Product id");
     return findOrThrow(
       () => ProductRepository.findById(normalizedProductId, buildLocationScope(actor)),
@@ -82,12 +89,12 @@ export class ProductService {
     );
   }
 
-  static async updateProduct(productId, payload, actor) {
+  static async updateProduct(productId: unknown, payload: UpdateProductInput, actor: Actor) {
     requirePermission(actor, "update", "product");
     const expectedVersion = parseExpectedVersion(payload?.version);
 
     const product = await ProductService.getProductById(productId, actor);
-    const updates = {
+    const updates: RowUpdates = {
       updated_by: actor.userId,
     };
 
@@ -128,7 +135,7 @@ export class ProductService {
     return updated;
   }
 
-  static async deleteProduct(productId, actor) {
+  static async deleteProduct(productId: unknown, actor: Actor) {
     requirePermission(actor, "delete", "product");
 
     const product = await ProductService.getProductById(productId, actor);

@@ -1,6 +1,10 @@
 import { supabase } from "../config/supabase.js";
 import type { LocationScope } from "../types/auth.js";
-import { SoftwareLicense, type SoftwareLicenseProps } from "../models/index.js";
+import {
+  SoftwareLicense,
+  type SoftwareLicenseProps,
+  type SoftwareLicenseRow,
+} from "../models/index.js";
 import { getPaginationRange } from "../utils/pagination.js";
 import { throwOptimisticLockConflict } from "../utils/optimisticLocking.js";
 import {
@@ -47,7 +51,7 @@ export class SoftwareLicenseRepository {
 
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch software licenses");
-    return (data || []).map(SoftwareLicense.fromRow);
+    return (data || []).map((row) => SoftwareLicense.fromRow(row));
   }
 
   static async listPaginated({
@@ -73,7 +77,7 @@ export class SoftwareLicenseRepository {
     const { data, error, count } = await query;
     unwrapRepositoryError(error, "Failed to fetch paginated software licenses");
     return {
-      items: (data || []).map(SoftwareLicense.fromRow),
+      items: (data || []).map((row) => SoftwareLicense.fromRow(row)),
       totalItems: Number(count) || 0,
     };
   }
@@ -83,7 +87,7 @@ export class SoftwareLicenseRepository {
       .from("software_license")
       .select("*")
       .eq("software_license_id", softwareLicenseId)
-      .maybeSingle();
+      .maybeSingle<SoftwareLicenseRow>();
 
     query = applyLocationScope(query, locationScope);
 
@@ -115,7 +119,7 @@ export class SoftwareLicenseRepository {
 
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch software licenses");
-    return (data || []).map(SoftwareLicense.fromRow);
+    return (data || []).map((row) => SoftwareLicense.fromRow(row));
   }
 
   static async findByFileId(fileId: number, locationScope: LocationScope = null) {
@@ -129,7 +133,7 @@ export class SoftwareLicenseRepository {
 
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch software licenses by file id");
-    return (data || []).map(SoftwareLicense.fromRow);
+    return (data || []).map((row) => SoftwareLicense.fromRow(row));
   }
 
   static async countByFileIds(
@@ -172,7 +176,7 @@ export class SoftwareLicenseRepository {
       .from("software_license")
       .insert(SoftwareLicense.toInsertRow(newSoftwareLicense))
       .select("*")
-      .single();
+      .single<SoftwareLicenseRow>();
 
     unwrapRepositoryError(error, "Failed to create software license");
     return SoftwareLicense.fromRow(data);
@@ -193,7 +197,7 @@ export class SoftwareLicenseRepository {
       .eq("software_license_id", softwareLicenseId)
       .eq("version", expectedVersion)
       .select("*")
-      .maybeSingle();
+      .maybeSingle<SoftwareLicenseRow>();
 
     query = applyLocationScope(query, locationScope);
 
@@ -213,7 +217,7 @@ export class SoftwareLicenseRepository {
       .delete()
       .eq("software_license_id", softwareLicenseId)
       .select("*")
-      .single();
+      .single<SoftwareLicenseRow>();
 
     query = applyLocationScope(query, locationScope);
 

@@ -21,7 +21,7 @@ export class AssetLoanItemRepository {
       .order("loan_item_id", { ascending: true });
 
     unwrapRepositoryError(error, "Failed to fetch asset loan items");
-    return (data || []).map(AssetLoanItem.fromRow);
+    return (data || []).map((row) => AssetLoanItem.fromRow(row));
   }
 
   static async listByLoanIds(assetLoanIds: readonly number[] = []) {
@@ -42,7 +42,7 @@ export class AssetLoanItemRepository {
       .order("loan_item_id", { ascending: true });
 
     unwrapRepositoryError(error, "Failed to fetch asset loan items by loan ids");
-    return (data || []).map(AssetLoanItem.fromRow);
+    return (data || []).map((row) => AssetLoanItem.fromRow(row));
   }
 
   static async findById(loanItemId: number) {
@@ -71,7 +71,7 @@ export class AssetLoanItemRepository {
       .select(SELECT_COLUMNS);
 
     unwrapRepositoryError(error, "Failed to create asset loan items");
-    return (data || []).map(AssetLoanItem.fromRow);
+    return (data || []).map((row) => AssetLoanItem.fromRow(row));
   }
 
   static async update(loanItemId: number, updates: RowUpdates, expectedVersion: number) {
@@ -126,7 +126,7 @@ export class AssetLoanItemRepository {
 
     const { data, error } = await query;
     unwrapRepositoryError(error, "Failed to fetch asset loan items by asset");
-    return (data || []).map(AssetLoanItem.fromRow);
+    return (data || []).map((row) => AssetLoanItem.fromRow(row));
   }
 
   static async listLoanedByAssetId(assetId: number) {
@@ -137,7 +137,7 @@ export class AssetLoanItemRepository {
       .eq("item_status", "Loaned");
 
     unwrapRepositoryError(error, "Failed to fetch active loan items for asset");
-    return (data || []).map(AssetLoanItem.fromRow);
+    return (data || []).map((row) => AssetLoanItem.fromRow(row));
   }
 
   static async listForTrend({
