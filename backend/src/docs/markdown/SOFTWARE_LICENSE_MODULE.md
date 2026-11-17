@@ -322,6 +322,28 @@ It then verifies access through the parent license.
 
 This parent check is the item security boundary.
 
+### License keys
+
+A license key is a secret.
+The API returns `licenseKey` only in responses about one license:
+
+- Get license
+- Create license (to the person who submitted the key)
+- Update license (to the person who submitted the key)
+
+These responses omit the key, so one request cannot collect the keys of every
+license in scope:
+
+- List licenses, filtered or not
+- The `softwareLicense` object in the assignment list
+- The licenses in `GET /api/assets/{assetId}/licenses`
+- The licenses in `GET /api/files/{fileId}` and in the file assignment response
+
+`withoutLicenseKey` in `src/utils/licenseResponse.ts` removes the key.
+Use it in any new response that returns licenses as part of something else.
+
+The activity log never records a key.
+
 ## 7. Data access
 
 ### License table
@@ -410,6 +432,13 @@ The service tests cover these cases:
 - Unassignment history
 - Ignored status-update conflicts
 - Active deletion protection
+- License keys returned by get and omitted from lists and assignments
+
+Related tests check the other responses that embed licenses:
+
+- `test/unit/utils/licenseResponse.test.ts`
+- `test/unit/services/assets.licenses.service.test.ts`
+- `test/unit/services/file.service.test.ts`
 
 The model tests verify assignment row mapping.
 Route tests verify authentication, permissions, multipart validation, and status codes.

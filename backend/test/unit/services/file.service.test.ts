@@ -129,7 +129,7 @@ describe("FileService", () => {
     vi.mocked(getFileObjectPublicUrl).mockImplementation(async (path) => signed(path));
     stub(AssetRepository.findByFileId).mockResolvedValue([{ assetId: 100, fileId: 4 }]);
     stub(SoftwareLicenseRepository.findByFileId).mockResolvedValue([
-      { softwareLicenseId: 8, fileId: 4 },
+      { softwareLicenseId: 8, fileId: 4, licenseKey: "AAAAA-BBBBB-CCCCC" },
     ]);
     stub(AssetService.enrichAssetsWithLoanToProfile).mockResolvedValue([
       { assetId: 100, fileId: 4, loanToProfile: null },
@@ -169,7 +169,7 @@ describe("FileService", () => {
     vi.mocked(getFileObjectPublicUrl).mockImplementation(async (path) => signed(path));
     stub(AssetRepository.findByFileId).mockResolvedValue([{ assetId: 100, fileId: 4 }]);
     stub(SoftwareLicenseRepository.findByFileId).mockResolvedValue([
-      { softwareLicenseId: 8, fileId: 4 },
+      { softwareLicenseId: 8, fileId: 4, licenseKey: "AAAAA-BBBBB-CCCCC" },
     ]);
     stub(AssetService.enrichAssetsWithLoanToProfile).mockResolvedValue([
       { assetId: 100, fileId: 4, loanToProfile: null },
@@ -209,7 +209,7 @@ describe("FileService", () => {
     vi.mocked(getFileObjectPublicUrl).mockImplementation(async (path) => signed(path));
     stub(AssetRepository.findByFileId).mockResolvedValue([{ assetId: 100, fileId: 4 }]);
     stub(SoftwareLicenseRepository.findByFileId).mockResolvedValue([
-      { softwareLicenseId: 8, fileId: 4 },
+      { softwareLicenseId: 8, fileId: 4, licenseKey: "AAAAA-BBBBB-CCCCC" },
     ]);
     stub(AssetService.enrichAssetsWithLoanToProfile).mockResolvedValue([
       { assetId: 100, fileId: 4, loanToProfile: null },
@@ -253,6 +253,33 @@ describe("FileService", () => {
         undefined
       )
     ).toThrow("locationId is required for users assigned to multiple locations");
+  });
+
+  it("assignFileToAssets should not return the key of an assigned license", async () => {
+    const actor = { userId: 10, role: "admin", allowedLocationIds: [1] } satisfies Actor;
+
+    stub(FileRepository.findById).mockResolvedValue({ fileId: 4, locationId: 1 });
+    stub(SoftwareLicenseRepository.findByIds).mockResolvedValue([
+      { softwareLicenseId: 8, locationId: 1 },
+    ]);
+    stub(SoftwareLicenseRepository.update).mockResolvedValue({
+      softwareLicenseId: 8,
+      fileId: 4,
+      locationId: 1,
+      licenseKey: "AAAAA-BBBBB-CCCCC",
+    });
+    stub(AssetService.enrichAssetsWithLoanToProfile).mockResolvedValue([]);
+
+    const result = await FileService.assignFileToAssets({
+      fileId: 4,
+      softwareLicenses: [{ softwareLicenseId: 8, version: 1 }],
+      actor,
+    });
+
+    expect(result.softwareLicenses).toEqual([
+      { softwareLicenseId: 8, fileId: 4, locationId: 1 },
+    ]);
+    expect(JSON.stringify(result)).not.toContain("AAAAA");
   });
 
   it("assignFileToAssets should fail when some asset ids are missing", async () => {

@@ -11,6 +11,7 @@ import { SoftwareLicenseRepository } from "../repositories/softwareLicenseReposi
 import { FileModel, type Asset, type SoftwareLicense } from "../models/index.js";
 import { BadRequestError, NotFoundError, findOrThrow } from "../utils/AppError.js";
 import { AssetValidation } from "../utils/assetValidation.js";
+import { withoutLicenseKey } from "../utils/licenseResponse.js";
 import {
   attachImageBundleUrls,
   buildUploadedImageEntries,
@@ -393,7 +394,8 @@ export class FileService {
         softwareLicenses: updatedSoftwareLicenses,
       }),
       assets: enrichedAssets,
-      softwareLicenses: updatedSoftwareLicenses,
+      // Related-record view: never includes the license key.
+      softwareLicenses: updatedSoftwareLicenses.map((license) => withoutLicenseKey(license)),
     };
   }
 
@@ -416,8 +418,11 @@ export class FileService {
       locationScope
     );
     const assets = assignmentFilter === "softwareLicenses" ? [] : enrichedAssets;
+    // Related-record view: never includes the license key.
     const softwareLicenses =
-      assignmentFilter === "assets" ? [] : allSoftwareLicenses;
+      assignmentFilter === "assets"
+        ? []
+        : allSoftwareLicenses.map((license) => withoutLicenseKey(license));
 
     return {
       ...fileWithUrl,

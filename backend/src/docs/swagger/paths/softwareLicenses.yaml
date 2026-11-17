@@ -51,6 +51,12 @@ softwareLicenseSchema:
       type: string
       nullable: true
       example: XXXXX-XXXXX-XXXXX-XXXXX
+      description: >-
+        The product or license key. A key is a secret, so it is present only in
+        responses about a single license that the caller asked for or just
+        submitted: get by id, create and update. It is omitted from the license
+        list, from the license embedded in an assignment list, from the licenses
+        of an asset, and from the licenses attached to a file.
     purchaseDate:
       type: string
       format: date

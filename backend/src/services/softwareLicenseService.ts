@@ -36,6 +36,7 @@ import {
   mergeImageBundles,
 } from "../utils/imageBundle.js";
 import type { SoftwareLicense } from "../models/index.js";
+import { withoutLicenseKey } from "../utils/licenseResponse.js";
 import type { RowUpdates } from "../repositories/repositoryHelpers.js";
 import type { Actor, LocationScope } from "../types/auth.js";
 import type { PaginationQuery } from "../utils/pagination.js";
@@ -329,7 +330,7 @@ export class SoftwareLicenseService {
 
   // Fetches active assignment counts, decorates, and attaches image URLs.
   // Shared by both branches of listSoftwareLicenses so the decoration pipeline
-  // exists in exactly one place.
+  // exists in exactly one place. A list never carries license keys.
   static async decorateSoftwareLicenses(softwareLicenses: SoftwareLicense[]) {
     if (!softwareLicenses.length) {
       return [];
@@ -347,7 +348,9 @@ export class SoftwareLicenseService {
     );
 
     return Promise.all(
-      decorated.map((softwareLicense) => attachSoftwareLicenseImageUrls(softwareLicense))
+      decorated.map(async (softwareLicense) =>
+        withoutLicenseKey(await attachSoftwareLicenseImageUrls(softwareLicense))
+      )
     );
   }
 
@@ -770,10 +773,13 @@ export class SoftwareLicenseService {
     });
 
     return {
-      softwareLicense: await attachSoftwareLicenseImageUrls(
-        SoftwareLicenseService.decorateSoftwareLicense(
-          softwareLicense,
-          activeAssignmentCount
+      // The key is only returned by the single-license endpoints.
+      softwareLicense: withoutLicenseKey(
+        await attachSoftwareLicenseImageUrls(
+          SoftwareLicenseService.decorateSoftwareLicense(
+            softwareLicense,
+            activeAssignmentCount
+          )
         )
       ),
       ...pagination,

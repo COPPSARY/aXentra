@@ -23,6 +23,7 @@ import {
 } from "../utils/pagination.js";
 import { SoftwareLicenseService } from "./softwareLicenseService.js";
 import { ActivityLogService } from "./activityLogService.js";
+import { withoutLicenseKey } from "../utils/licenseResponse.js";
 import {
   deleteAssetDisplayImage,
   getAssetAlbumObjectPublicUrl,
@@ -291,9 +292,12 @@ export class AssetService {
 
     const decoratedAssignments = paginatedAssignments.items.map((assignment) => ({
       ...assignment,
-      softwareLicense: SoftwareLicenseService.decorateSoftwareLicense(
-        softwareLicenseById.get(assignment.softwareLicenseId) || null,
-        countsByLicenseId[String(assignment.softwareLicenseId)] || 0
+      // Related-record view: never includes the license key.
+      softwareLicense: withoutLicenseKey(
+        SoftwareLicenseService.decorateSoftwareLicense(
+          softwareLicenseById.get(assignment.softwareLicenseId) || null,
+          countsByLicenseId[String(assignment.softwareLicenseId)] || 0
+        )
       ),
     }));
 

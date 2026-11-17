@@ -567,3 +567,70 @@ describe("SoftwareLicenseService", () => {
     });
   });
 });
+
+describe("SoftwareLicenseService license key exposure", () => {
+  const SECRET = "AAAAA-BBBBB-CCCCC-DDDDD";
+  const actor = { userId: 10, role: "admin", allowedLocationIds: [1] } satisfies Actor;
+  const license = (softwareLicenseId: number) => ({
+    softwareLicenseId,
+    softwareName: `Product ${softwareLicenseId}`,
+    licenseKey: `${SECRET}-${softwareLicenseId}`,
+    locationId: 1,
+    status: "Unused",
+    expiryDate: null,
+    allocationType: "single",
+    allocationLimit: 1,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    stub(LicenseLinkAssetRepository.countActiveBySoftwareLicenseIds).mockResolvedValue({});
+    stub(LicenseLinkAssetRepository.countActiveBySoftwareLicenseId).mockResolvedValue(0);
+  });
+
+  it("does not return keys in the unfiltered list", async () => {
+    stub(SoftwareLicenseRepository.listPaginated).mockResolvedValue({
+      items: [license(1), license(2)],
+      totalItems: 2,
+    });
+    stub(SoftwareLicenseRepository.listStatusProjection).mockResolvedValue([]);
+
+    const result = await SoftwareLicenseService.listSoftwareLicenses(actor, {});
+
+    expect(result.softwareLicenses).toHaveLength(2);
+    expect(JSON.stringify(result)).not.toContain(SECRET);
+    expect(result.softwareLicenses[0]).not.toHaveProperty("licenseKey");
+  });
+
+  it("does not return keys in the status-filtered list", async () => {
+    stub(SoftwareLicenseRepository.listAll).mockResolvedValue([license(1), license(2)]);
+
+    const result = await SoftwareLicenseService.listSoftwareLicenses(actor, {
+      status: "Unused",
+    });
+
+    expect(result.softwareLicenses).toHaveLength(2);
+    expect(JSON.stringify(result)).not.toContain(SECRET);
+  });
+
+  it("still returns the key for a single license, which the detail page reveals", async () => {
+    stub(SoftwareLicenseRepository.findById).mockResolvedValue(license(7));
+
+    const result = await SoftwareLicenseService.getSoftwareLicenseById(7, actor);
+
+    expect(result.licenseKey).toBe(`${SECRET}-7`);
+  });
+
+  it("does not return the key inside the assignments response", async () => {
+    stub(SoftwareLicenseRepository.findById).mockResolvedValue(license(7));
+    stub(LicenseLinkAssetRepository.listBySoftwareLicenseIdPaginated).mockResolvedValue({
+      items: [],
+      totalItems: 0,
+    });
+
+    const result = await SoftwareLicenseService.listSoftwareLicenseAssignments(7, actor, {});
+
+    expect(result.softwareLicense).toMatchObject({ softwareLicenseId: 7 });
+    expect(JSON.stringify(result)).not.toContain(SECRET);
+  });
+});
